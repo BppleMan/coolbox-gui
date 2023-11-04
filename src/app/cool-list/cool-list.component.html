@@ -1,0 +1,28 @@
+<nz-collapse
+    style="width: 100%"
+    nzBordered="false"
+    nzExpandIconPosition="right"
+>
+    <nz-collapse-panel
+        nzHeader="Wget"
+        [nzExtra]="extraTemplate"
+    >
+        <p>一个命令行下载工具</p>
+        <nz-divider></nz-divider>
+        <nz-steps [nzCurrent]="1" [nzProgressDot]="progressTemplate" nzDirection="vertical">
+            <nz-step nzTitle="Finished" nzDescription="You can hover on the dot."></nz-step>
+            <nz-step nzTitle="In Progress" nzDescription="You can hover on the dot."></nz-step>
+            <nz-step nzTitle="Waiting" nzDescription="You can hover on the dot."></nz-step>
+            <nz-step nzTitle="Waiting" nzDescription="You can hover on the dot."></nz-step>
+        </nz-steps>
+        <ng-template #progressTemplate let-dot let-status="status" let-index="index">
+            <span nz-popover nzPopoverContent="steps {{ index }} status: {{ status }}">
+                <ng-template [ngTemplateOutlet]="dot"></ng-template>
+            </span>
+        </ng-template>
+    </nz-collapse-panel>
+
+</nz-collapse>
+<ng-template #extraTemplate>
+    <button nz-button nzType="primary">Install</button>
+</ng-template>

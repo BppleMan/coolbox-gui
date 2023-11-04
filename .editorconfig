@@ -4,12 +4,16 @@ root = true
 [*]
 charset = utf-8
 indent_style = space
-indent_size = 2
+indent_size = 4
 insert_final_newline = true
 trim_trailing_whitespace = true
+ij_css_use_double_quotes = true
+ij_html_quote_style = double
+ij_javascript_force_quote_style = true
+ij_javascript_use_double_quotes = true
 
 [*.ts]
-quote_type = single
+quote_type = double
 
 [*.md]
 max_line_length = off
