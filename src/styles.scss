@@ -1,0 +1,54 @@
+/* You can add global styles to this file, and also import other style files */
+@use 'sass:map';
+@use "@angular/material" as mat;
+@use "palette-helper";
+@use "palette";
+
+@include mat.core();
+
+// Define a theme.
+$primary: mat.define-palette(palette.$purple-palette, 600);
+$accent: mat.define-palette(palette.$purple-palette);
+$error: mat.define-palette(palette.$red-palette);
+$warn: mat.define-palette(palette.$orange-palette);
+
+$cool-box-theme: mat.define-dark-theme((
+    color: (
+        primary: $primary,
+        accent: $accent,
+        error: $error,
+        warn: $warn,
+    ),
+    typography: mat.define-typography-config(),
+    density: 0,
+));
+
+$cool-box-theme: palette-helper.modify-background($cool-box-theme, #101828);
+
+// Include all theme styles for the components.
+@include mat.all-component-themes($cool-box-theme);
+
+@include mat.typography-hierarchy($cool-box-theme);
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+    @apply flex h-screen w-screen m-0;
+    font-family: Roboto, "Helvetica Neue", sans-serif;
+    font-size: 16px;
+}
+
+app-root {
+    @apply flex flex-col w-full p-10;
+}
+
+.cool-box-app-background {
+    background-color: #101828;
+}
+
+.mat-raised-button.mat-warn, .mat-fab.mat-warn, .mat-mini-fab.mat-warn, .mat-flat-button, .mat-raised-button, .mat-fab, .mat-mini-fab {
+    background-color: #101828;
+    //background-color: red;
+}

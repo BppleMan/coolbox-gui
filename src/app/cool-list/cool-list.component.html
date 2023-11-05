@@ -1,0 +1,7 @@
+<div class="flex-1">
+    <mat-accordion multi displayMode="flat">
+        <mat-list>
+            <app-cool-card *ngFor="let cool of cool_list$ | async" [cool]="cool"></app-cool-card>
+        </mat-list>
+    </mat-accordion>
+</div>

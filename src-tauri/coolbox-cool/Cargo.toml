@@ -1,0 +1,47 @@
+[package]
+name = "cool"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+coolbox-macros = { path = "../coolbox-macros" }
+
+color-eyre.workspace = true
+log.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+reqwest.workspace = true
+toml.workspace = true
+tar.workspace = true
+flate2.workspace = true
+zip.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rayon.workspace = true
+tempfile.workspace = true
+lazy_static.workspace = true
+once_cell.workspace = true
+crossbeam.workspace = true
+pretty_assertions.workspace = true
+fs_extra.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+walkdir.workspace = true
+users.workspace = true
+copypasta.workspace = true
+tera.workspace = true
+git2.workspace = true
+proxyconfig.workspace = true
+which.workspace = true
+include_dir.workspace = true
+
+[dev-dependencies]
+uuid = "1.4.1"
+http = "0.2.9"
+indicatif = { version = "0.17.7", features = ["rayon", "improved_unicode"] }
+mockito = "1.2.0"

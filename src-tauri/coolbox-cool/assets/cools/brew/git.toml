@@ -1,0 +1,17 @@
+name = "curl"
+description = "一个命令行版本控制工具"
+dependencies = ["brew"]
+
+[[install_tasks]]
+[install_tasks.InstallTask]
+installer = "brew"
+name = "git"
+
+[[uninstall_tasks]]
+[uninstall_tasks.UninstallTask]
+installer = "brew"
+name = "git"
+
+[[check_tasks]]
+[check_tasks.WhichTask]
+command = "git"

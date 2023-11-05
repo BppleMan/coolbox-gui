@@ -1,0 +1,23 @@
+<div id="check-card"
+     class="flex flex-row p-6 mb-1.5 border-solid border-2 border-[#CECFD2] rounded-[16px] items-start select-none"
+     (click)="toggle_selected($event)"
+>
+    <mat-checkbox color="primary" [checked]="selected"></mat-checkbox>
+    <mat-expansion-panel #expansionPanel hideToggle class="flex flex-col grow" (click)="$event.stopPropagation()">
+        <mat-expansion-panel-header>
+            <div class="flex flex-col grow">
+                <div class="flex flex-row items-center justify-between">
+                    <mat-panel-title>{{cool.name}}</mat-panel-title>
+                    <mat-panel-description>
+                        <button mat-raised-button color="primary" class="flex-shrink-0" (click)="toggle_panel($event)">
+                            Install
+                        </button>
+                    </mat-panel-description>
+                </div>
+                <span>{{cool.description}}</span>
+            </div>
+        </mat-expansion-panel-header>
+        <div *ngFor="let task of cool.install_tasks">{{task.toString()}}</div>
+        <p>This is the primary content of the panel.</p>
+    </mat-expansion-panel>
+</div>

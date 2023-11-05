@@ -1,0 +1,19 @@
+.mat-expansion-panel-header {
+    @apply pr-4 h-auto;
+}
+
+.mat-expansion-panel-header-title {
+    @apply whitespace-nowrap mr-0 text-[#F5F5F6];
+}
+
+.mat-expansion-panel-header-description {
+    @apply flex-grow-0 justify-between mr-0;
+}
+
+mat-checkbox {
+    @apply flex;
+}
+
+#check-card {
+
+}

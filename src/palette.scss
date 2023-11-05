@@ -1,0 +1,117 @@
+$dark-primary-text: rgba(black, 0.87);
+$light-primary-text: white;
+
+$purple-palette: (
+    50: #F9F5FF,
+    100: #F4EBFF,
+    200: #E9D7FE,
+    300: #D6BBFB,
+    400: #B692F6,
+    500: #9E77ED,
+    600: #7F56D9,
+    700: #6941C6,
+    800: #53389E,
+    900: #42307D,
+    A100: #b388ff,
+    A200: #7c4dff,
+    A400: #651fff,
+    A700: #6200ea,
+    contrast: (
+        50: $dark-primary-text,
+        100: $dark-primary-text,
+        200: $dark-primary-text,
+        300: $light-primary-text,
+        400: $light-primary-text,
+        500: $light-primary-text,
+        600: $light-primary-text,
+        700: $light-primary-text,
+        800: $light-primary-text,
+        900: $light-primary-text,
+        A100: $dark-primary-text,
+        A200: $light-primary-text,
+        A400: $light-primary-text,
+        A700: $light-primary-text,
+    )
+);
+
+$red-palette: (
+    25: #FFFBFA,
+    50: #FEF3F2,
+    100: #FEE4E2,
+    200: #FECDCA,
+    300: #FDA29B,
+    400: #F97066,
+    500: #F04438,
+    600: #D92D20,
+    700: #B42318,
+    800: #912018,
+    900: #7A271A,
+    950: #55160C,
+    contrast: (
+        50: $dark-primary-text,
+        100: $dark-primary-text,
+        200: $dark-primary-text,
+        300: $light-primary-text,
+        400: $light-primary-text,
+        500: $light-primary-text,
+        600: $light-primary-text,
+        700: $light-primary-text,
+        800: $light-primary-text,
+        900: $light-primary-text,
+    )
+);
+
+
+$orange-palette: (
+    25: #FFFCF5,
+    50: #FFFAEB,
+    100: #FEF0C7,
+    200: #FEDF89,
+    300: #FEC84B,
+    400: #FDB022,
+    500: #F79009,
+    600: #DC6803,
+    700: #B54708,
+    800: #93370D,
+    900: #7A2E0E,
+    950: #4E1D09,
+    contrast: (
+        50: $dark-primary-text,
+        100: $dark-primary-text,
+        200: $dark-primary-text,
+        300: $light-primary-text,
+        400: $light-primary-text,
+        500: $light-primary-text,
+        600: $light-primary-text,
+        700: $light-primary-text,
+        800: $light-primary-text,
+        900: $light-primary-text,
+    )
+);
+
+$gray-palette: (
+    25: #FAFAFA,
+    50: #F5F5F6,
+    100: #F0F1F1,
+    200: #ECECED,
+    300: #CECFD2,
+    400: #94969C,
+    500: #85888E,
+    600: #61646C,
+    700: #333741,
+    800: #1F242F,
+    900: #161B26,
+    950: #0C111D,
+    contrast: (
+        50: $dark-primary-text,
+        100: $dark-primary-text,
+        200: $dark-primary-text,
+        300: $light-primary-text,
+        400: $light-primary-text,
+        500: $light-primary-text,
+        600: $light-primary-text,
+        700: $light-primary-text,
+        800: $light-primary-text,
+        900: $light-primary-text,
+    )
+);
