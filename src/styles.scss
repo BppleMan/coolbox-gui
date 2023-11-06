@@ -34,6 +34,8 @@ $cool-box-theme: palette-helper.modify-background($cool-box-theme, #101828);
 @tailwind components;
 @tailwind utilities;
 
+@import "~highlight.js/styles/monokai.css";
+
 html, body {
     @apply flex h-screen w-screen m-0;
     font-family: Roboto, "Helvetica Neue", sans-serif;

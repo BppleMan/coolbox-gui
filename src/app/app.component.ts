@@ -1,4 +1,5 @@
 import {Component} from "@angular/core"
+import {HighlightAutoResult} from "ngx-highlightjs"
 
 @Component({
     selector: "app-root",
@@ -7,4 +8,13 @@ import {Component} from "@angular/core"
 })
 export class AppComponent {
     title = "coolbox-gui"
+
+    onHighlight(e: HighlightAutoResult) {
+        console.log({
+            language: e.language,
+            relevance: e.relevance,
+            secondBest: "{...}",
+            value: "{...}",
+        })
+    }
 }
