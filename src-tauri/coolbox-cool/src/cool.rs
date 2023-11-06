@@ -25,7 +25,7 @@ lazy_static! {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Cool {
+pub struct Models {
     pub name: String,
     pub description: String,
     pub dependencies: Vec<String>,
@@ -34,7 +34,7 @@ pub struct Cool {
     pub check_tasks: Tasks,
 }
 
-impl Cool {
+impl Models {
     pub fn new(
         name: String,
         description: String,
@@ -120,7 +120,7 @@ impl Cool {
             .dependencies
             .par_iter()
             .map(|d| {
-                if let Some(cool) = COOL_LIST.read().unwrap().get(d) {
+                if let Some(cool) = COOL_LIST.get(d) {
                     Ok(cool.write().unwrap().install()?)
                 } else {
                     Err(eyre!("{} not found", d))
@@ -141,13 +141,13 @@ impl Cool {
     }
 }
 
-impl Ord for Cool {
+impl Ord for Models {
     fn cmp(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
     }
 }
 
-impl PartialOrd for Cool {
+impl PartialOrd for Models {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
@@ -158,12 +158,12 @@ mod test {
     use crate::result::CoolResult;
     use crate::shell::{MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
-    use crate::{init_backtrace, Cool};
+    use crate::{init_backtrace, Models};
 
     #[test]
     fn test_cool() -> CoolResult<()> {
         init_backtrace();
-        let mut brew_cool = Cool {
+        let mut brew_cool = Models {
             name: "homebrew".to_string(),
             description: "适用于macOS的包管理器。它使您能够从命令行安装和更新软件包，从而使您的Mac保持最新状态，而无需使用App Store。".to_string(),
             dependencies: vec![],
@@ -181,13 +181,13 @@ mod test {
         };
         let string = toml::to_string(&brew_cool)?;
         println!("{}", string);
-        let cool = toml::from_str::<Cool>(&string)?;
+        let cool = toml::from_str::<Models>(&string)?;
         println!("{:#?}", cool);
 
         brew_cool.check_tasks.0.clear();
         let string = toml::to_string(&brew_cool)?;
         println!("==========\n{}", string);
-        toml::from_str::<Cool>(&string)?;
+        toml::from_str::<Models>(&string)?;
         Ok(())
     }
 }

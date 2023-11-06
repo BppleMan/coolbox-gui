@@ -1,19 +1,19 @@
-use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use color_eyre::eyre::eyre;
+use dashmap::DashMap;
 use include_dir::{include_dir, Dir};
 use once_cell::sync::Lazy;
 use tracing::error;
 
-use crate::Cool;
+use crate::Models;
 
-pub type SafeCool = Arc<RwLock<Cool>>;
+pub type SafeCool = Arc<RwLock<Models>>;
 
 static COOL_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools");
 
-pub static COOL_LIST: Lazy<RwLock<HashMap<String, SafeCool>>> = Lazy::new(|| {
-    let mut map = HashMap::new();
+pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
+    let map = DashMap::new();
     COOL_DIR.find("**/*.toml").unwrap().for_each(|entry| {
         if cfg!(target_os = "macos") {
             let parent = entry.path().parent().unwrap().to_string_lossy().to_string();
@@ -23,7 +23,7 @@ pub static COOL_LIST: Lazy<RwLock<HashMap<String, SafeCool>>> = Lazy::new(|| {
                 || &parent == "flutter"
                 || &parent == "shell"
             {
-                match toml::from_str::<Cool>(entry.as_file().unwrap().contents_utf8().unwrap()) {
+                match toml::from_str::<Models>(entry.as_file().unwrap().contents_utf8().unwrap()) {
                     Ok(cool) => {
                         map.insert(cool.name.clone(), Arc::new(RwLock::new(cool)));
                     }
@@ -36,7 +36,7 @@ pub static COOL_LIST: Lazy<RwLock<HashMap<String, SafeCool>>> = Lazy::new(|| {
             println!("is not macos");
         }
     });
-    RwLock::new(map)
+    map
 });
 
 #[cfg(test)]
@@ -47,7 +47,7 @@ mod test {
     #[test]
     fn test_cool_list() -> CoolResult<()> {
         init_backtrace();
-        println!("{:#?}", COOL_LIST.read().unwrap());
+        println!("{:#?}", COOL_LIST);
         Ok(())
     }
 }

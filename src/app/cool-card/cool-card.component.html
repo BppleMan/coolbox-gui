@@ -1,8 +1,9 @@
 <div id="check-card"
+     matRipple
      class="flex flex-row p-6 mb-1.5 border-solid border-2 border-[#CECFD2] rounded-[16px] items-start select-none"
      (click)="toggle_selected($event)"
 >
-    <mat-checkbox color="primary" [checked]="selected"></mat-checkbox>
+    <mat-checkbox disableRipple="false" color="primary" [checked]="selected"></mat-checkbox>
     <mat-expansion-panel #expansionPanel hideToggle class="flex flex-col grow" (click)="$event.stopPropagation()">
         <mat-expansion-panel-header>
             <div class="flex flex-col grow">
@@ -17,7 +18,26 @@
                 <span>{{cool.description}}</span>
             </div>
         </mat-expansion-panel-header>
-        <div *ngFor="let task of cool.install_tasks">{{task.toString()}}</div>
-        <p>This is the primary content of the panel.</p>
+
+        <mat-stepper orientation="vertical" linear="true" #stepper>
+            <mat-step *ngFor="let task of cool.install_tasks">
+                <ng-template matStepLabel>{{task.name}}</ng-template>
+                {{task.description}}
+            </mat-step>
+<!--            <mat-step [stepControl]="secondFormGroup">-->
+<!--                <form [formGroup]="secondFormGroup">-->
+<!--                    <ng-template matStepLabel>Fill out your address</ng-template>-->
+<!--                    <mat-form-field>-->
+<!--                        <mat-label>Address</mat-label>-->
+<!--                        <input matInput formControlName="secondCtrl" placeholder="Ex. 1 Main St, New York, NY"-->
+<!--                               required>-->
+<!--                    </mat-form-field>-->
+<!--                    <div>-->
+<!--                        <button mat-button matStepperPrevious>Back</button>-->
+<!--                        <button mat-button matStepperNext>Next</button>-->
+<!--                    </div>-->
+<!--                </form>-->
+<!--            </mat-step>-->
+        </mat-stepper>
     </mat-expansion-panel>
 </div>

@@ -34,7 +34,9 @@ $cool-box-theme: palette-helper.modify-background($cool-box-theme, #101828);
 @tailwind components;
 @tailwind utilities;
 
-@import "~highlight.js/styles/monokai.css";
+//noinspection CssUnknownTarget
+@import "~highlight.js/styles/tokyo-night-dark.css";
+//@import "~highlight.js/styles/devibeans.css";
 
 html, body {
     @apply flex h-screen w-screen m-0;

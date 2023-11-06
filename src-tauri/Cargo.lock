@@ -74,6 +74,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
+name = "arbitrary"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d5a26814d8dcb93b0e5a0ff3c6d80a8843bafb21b39e8e18a6f05471870e110"
+
+[[package]]
 name = "assert-json-diff"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -508,6 +514,7 @@ dependencies = [
  "coolbox-macros",
  "copypasta",
  "crossbeam",
+ "dashmap",
  "flate2",
  "fs_extra",
  "git2",
@@ -543,6 +550,7 @@ name = "coolbox"
 version = "0.1.1"
 dependencies = [
  "cool",
+ "dashmap",
  "serde",
  "serde_json",
  "tauri",
@@ -777,6 +785,22 @@ dependencies = [
  "darling_core",
  "quote",
  "syn 2.0.38",
+]
+
+[[package]]
+name = "dashmap"
+version = "5.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "978747c1d849a7d2ee5e8adc0159961c48fb7e5db2f06af6723b80123bb53856"
+dependencies = [
+ "arbitrary",
+ "cfg-if",
+ "hashbrown 0.14.2",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+ "rayon",
+ "serde",
 ]
 
 [[package]]

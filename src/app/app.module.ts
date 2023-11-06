@@ -1,4 +1,3 @@
-import {CdkVirtualScrollViewport} from "@angular/cdk/scrolling"
 import {CommonModule} from "@angular/common"
 import {NgModule} from "@angular/core"
 import {BrowserModule} from "@angular/platform-browser"
@@ -21,7 +20,6 @@ import {InfoComponent} from "./info/info.component"
         InfoComponent,
         CoolListComponent,
         CoolCardComponent,
-        CdkVirtualScrollViewport,
         HighlightModule,
     ],
     providers: [
@@ -31,6 +29,7 @@ import {InfoComponent} from "./info/info.component"
                 coreLibraryLoader: () => import("highlight.js/lib/core"),
                 languages: {
                     typescript: () => import("highlight.js/lib/languages/typescript"),
+                    bash: () => import("highlight.js/lib/languages/bash"),
                     // css: () => import("highlight.js/lib/languages/css"),
                     // xml: () => import("highlight.js/lib/languages/xml"),
                     // bash: () => import("highlight.js/lib/languages/bash"),

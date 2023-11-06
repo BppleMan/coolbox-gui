@@ -51,14 +51,16 @@ git2 = { version = "0.18.1", features = ["vendored-libgit2", "vendored-openssl"]
 proxyconfig = "0.1.1"
 which = "5.0.0"
 include_dir = { version = "0.7.3", features = ["glob"] }
+dashmap = { version = "5.5.3", features = ["serde", "rayon", "inline", "arbitrary"] }
 
 [dependencies]
 cool = { path = "coolbox-cool" }
 
+tauri = { version = "1.5.2", features = [] }
+
 serde.workspace = true
 serde_json.workspace = true
-
-tauri = { version = "1.5.2", features = [] }
+dashmap.workspace = true
 
 [build-dependencies]
 tauri-build = { version = "1.5.0", features = [] }

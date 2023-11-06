@@ -10,7 +10,7 @@ import {MatExpansionModule} from "@angular/material/expansion"
 import {MatListModule} from "@angular/material/list"
 import {Observable} from "rxjs"
 import {CoolCardComponent} from "../cool-card/cool-card.component"
-import {Cool} from "../model/cool"
+import {Cool} from "../model/models"
 import {CoolService} from "../service/cool.service"
 
 @Component({

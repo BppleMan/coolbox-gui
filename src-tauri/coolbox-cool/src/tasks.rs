@@ -68,7 +68,7 @@ pub enum Task {
     CheckTask(CheckTask),
     CommandTask(CommandTask),
     CompressTask(CompressTask),
-    CopyTaskTask(CopyTask),
+    CopyTask(CopyTask),
     DecompressTask(DecompressTask),
     DeleteTask(DeleteTask),
     DownloadTask(DownloadTask),
@@ -81,6 +81,24 @@ pub enum Task {
 }
 
 impl Task {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Task::CheckTask(_) => "Check Task",
+            Task::CommandTask(_) => "Command Task",
+            Task::CompressTask(_) => "Compress Task",
+            Task::CopyTask(_) => "Copy Task",
+            Task::DecompressTask(_) => "Decompress Task",
+            Task::DeleteTask(_) => "Delete Task",
+            Task::DownloadTask(_) => "Download Task",
+            Task::ExistsTask(_) => "Exists Task",
+            Task::GitTask(_) => "Git Task",
+            Task::InstallTask(_) => "Install Task",
+            Task::MoveTask(_) => "Move Task",
+            Task::UninstallTask(_) => "Uninstall Task",
+            Task::WhichTask(_) => "Which Task",
+        }
+    }
+
     pub fn command(
         script: impl Into<String>,
         args: Option<Vec<impl Into<String>>>,
@@ -104,7 +122,7 @@ impl Task {
     }
 
     pub fn copy_task(source: impl Into<String>, destination: impl Into<String>) -> Self {
-        Self::CopyTaskTask(CopyTask::new(source.into(), destination.into()))
+        Self::CopyTask(CopyTask::new(source.into(), destination.into()))
     }
 
     pub fn decompress(source: impl Into<String>, destination: impl Into<String>) -> Self {
