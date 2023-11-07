@@ -1,33 +1,21 @@
+use std::fmt::{Display, Formatter};
+
 use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
 use which::which;
 
-use coolbox_macros::State;
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WhichTask {
     pub command: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl WhichTask {
     pub fn new(command: String) -> Self {
-        Self {
-            command,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { command }
     }
 }
 
@@ -44,16 +32,19 @@ impl Display for WhichTask {
 }
 
 impl Executable for WhichTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         match which(&self.command) {
             Ok(result) => {
-                self.outputs.push(result.to_string_lossy().to_string());
+                sender
+                    .outputs
+                    .send(result.to_string_lossy().to_string())
+                    .unwrap();
                 Ok(())
             }
             Err(_) => {
-                let msg = format!("{} not found", &self.command);
-                self.errors.push(msg.clone());
-                Err(eyre!(msg))
+                let report = eyre!("{} not found", &self.command);
+                sender.errors.send(format!("{:?}", report)).unwrap();
+                Err(ExecutableError::CommandNotFound(report))
             }
         }
     }

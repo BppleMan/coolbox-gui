@@ -1,8 +1,10 @@
+use std::process::Command;
+
+use log::info;
+
 use crate::installer::Installable;
 use crate::result::CoolResult;
 use crate::shell::{ShellExecutor, ShellResult};
-use log::info;
-use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Rpm;

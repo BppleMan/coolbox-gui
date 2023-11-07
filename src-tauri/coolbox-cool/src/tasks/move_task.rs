@@ -5,35 +5,20 @@ use std::str::FromStr;
 use fs_extra::dir::CopyOptions;
 use serde::{Deserialize, Serialize};
 
-use coolbox_macros::State;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MoveTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub src: String,
     #[serde(deserialize_with = "crate::render_str")]
     pub dest: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl MoveTask {
     pub fn new(src: String, dest: String) -> Self {
-        Self {
-            src,
-            dest,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { src, dest }
     }
 }
 
@@ -50,7 +35,7 @@ impl Display for MoveTask {
 }
 
 impl Executable for MoveTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, _sender: &ExecutableSender) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {

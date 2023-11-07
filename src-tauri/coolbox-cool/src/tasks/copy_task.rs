@@ -2,37 +2,23 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use fs_extra::dir::TransitProcessResult;
 use serde::{Deserialize, Serialize};
 
-use coolbox_macros::State;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CopyTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub src: String,
     #[serde(deserialize_with = "crate::render_str")]
     pub dest: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl CopyTask {
     pub fn new(src: String, dest: String) -> Self {
-        Self {
-            src,
-            dest,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { src, dest }
     }
 }
 
@@ -49,21 +35,57 @@ impl Display for CopyTask {
 }
 
 impl Executable for CopyTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {
             let options = fs_extra::dir::CopyOptions::new()
                 .skip_exist(true)
                 .copy_inside(true);
-            fs_extra::dir::copy(&self.src, &self.dest, &options)?;
+            fs_extra::dir::copy_with_progress(&self.src, &self.dest, &options, |transit| {
+                sender
+                    .outputs
+                    .send(format!(
+                        "{}({}/{}) total:{}/{}",
+                        transit.file_name,
+                        transit.copied_bytes,
+                        transit.total_bytes,
+                        transit.copied_bytes,
+                        transit.total_bytes,
+                    ))
+                    .unwrap();
+                TransitProcessResult::OverwriteAll
+            })?;
         } else {
             let options = fs_extra::file::CopyOptions::new().skip_exist(true);
             if dest.is_dir() {
                 let file_name = src.file_name().unwrap();
-                fs_extra::file::copy(&self.src, dest.join(file_name), &options)?;
+                fs_extra::file::copy_with_progress(
+                    &self.src,
+                    dest.join(file_name),
+                    &options,
+                    |transit| {
+                        sender
+                            .outputs
+                            .send(format!(
+                                "{}({}/{})",
+                                file_name.to_string_lossy(),
+                                transit.copied_bytes,
+                                transit.total_bytes,
+                            ))
+                            .unwrap();
+                    },
+                )?;
             } else {
-                fs_extra::file::copy(&self.src, &self.dest, &options)?;
+                fs_extra::file::copy_with_progress(&self.src, &self.dest, &options, |transit| {
+                    sender
+                        .outputs
+                        .send(format!(
+                            "{}({}/{})",
+                            self.src, transit.copied_bytes, transit.total_bytes,
+                        ))
+                        .unwrap();
+                })?;
             }
         }
         Ok(())
@@ -92,7 +114,7 @@ mod test {
             source_file.path().to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
         )
-        .execute()?;
+            .execute()?;
         assert!(dest_path.exists());
 
         let dest_dir = Builder::new().prefix("dest").tempdir_in(base_dir.path())?;
@@ -101,7 +123,7 @@ mod test {
             source_file.path().to_string_lossy().to_string(),
             dest_path.to_string_lossy().to_string(),
         )
-        .execute()?;
+            .execute()?;
         assert!(dest_path.exists());
 
         let dest_path = dest_dir.path().join("dest");
@@ -109,7 +131,7 @@ mod test {
             source_file.path().to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
         )
-        .execute()?;
+            .execute()?;
         assert!(dest_path.exists());
 
         Ok(())
@@ -135,7 +157,7 @@ mod test {
             source_dir.to_string_lossy().to_string(),
             dest_dir.to_string_lossy().to_string(),
         )
-        .execute()?;
+            .execute()?;
 
         assert!(dest_dir.exists());
         assert!(dest_dir.join("child_file").exists());

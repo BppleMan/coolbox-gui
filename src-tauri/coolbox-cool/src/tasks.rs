@@ -18,9 +18,8 @@ pub use uninstall_task::*;
 pub use which_task::*;
 
 use crate::installer::Installer;
-use crate::result::CoolResult;
+use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
-use crate::state::StateAble;
 
 mod check_task;
 mod command_task;
@@ -45,28 +44,52 @@ pub enum ExecutableState {
     Error,
 }
 
-pub trait Executable: StateAble + Display {
-    fn execute(
-        &mut self,
-    ) -> CoolResult<(
-        crossbeam::channel::Receiver<ExecutableState>,
-        crossbeam::channel::Receiver<String>,
-        crossbeam::channel::Receiver<String>,
-    )> {
-        *self.current_state() = ExecutableState::Running;
-        match self._run() {
+pub struct ExecutableReceiver {
+    pub state: crossbeam::channel::Receiver<ExecutableState>,
+    pub outputs: crossbeam::channel::Receiver<String>,
+    pub errors: crossbeam::channel::Receiver<String>,
+}
+
+pub struct ExecutableSender {
+    pub state: crossbeam::channel::Sender<ExecutableState>,
+    pub outputs: crossbeam::channel::Sender<String>,
+    pub errors: crossbeam::channel::Sender<String>,
+}
+
+pub fn executable_channel() -> (ExecutableSender, ExecutableReceiver) {
+    let (state_tx, state_rx) = crossbeam::channel::unbounded();
+    let (outputs_tx, outputs_rx) = crossbeam::channel::unbounded();
+    let (errors_tx, errors_rx) = crossbeam::channel::unbounded();
+    (
+        ExecutableSender {
+            state: state_tx,
+            outputs: outputs_tx,
+            errors: errors_tx,
+        },
+        ExecutableReceiver {
+            state: state_rx,
+            outputs: outputs_rx,
+            errors: errors_rx,
+        },
+    )
+}
+
+pub trait Executable: Display {
+    fn execute(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+        sender.state.send(ExecutableState::Running).unwrap();
+        match self._run(sender) {
             Ok(_) => {
-                *self.current_state() = ExecutableState::Finished;
+                sender.state.send(ExecutableState::Finished).unwrap();
                 Ok(())
             }
             Err(e) => {
-                *self.current_state() = ExecutableState::Error;
+                sender.state.send(ExecutableState::Error).unwrap();
                 Err(e)
             }
         }
     }
 
-    fn _run(&mut self) -> CoolResult<()>;
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, TaskRef)]
@@ -199,20 +222,6 @@ impl Task {
     }
 }
 
-impl StateAble for Task {
-    fn current_state(&mut self) -> &mut ExecutableState {
-        self.as_mut().current_state()
-    }
-
-    fn outputs(&mut self) -> &mut Vec<String> {
-        self.as_mut().outputs()
-    }
-
-    fn errors(&mut self) -> &mut Vec<String> {
-        self.as_mut().errors()
-    }
-}
-
 impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.as_ref().fmt(f)
@@ -220,8 +229,8 @@ impl Display for Task {
 }
 
 impl Executable for Task {
-    fn _run(&mut self) -> CoolResult<()> {
-        self.as_mut()._run()
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+        self.as_mut()._run(sender)
     }
 }
 
@@ -229,11 +238,11 @@ impl Executable for Task {
 pub struct Tasks(pub Vec<Task>);
 
 impl Tasks {
-    pub fn execute(&mut self) -> CoolResult<Vec<Vec<String>>> {
-        self.0.iter_mut().try_fold(Vec::new(), |mut results, task| {
-            task.as_mut().execute()?;
-            results.push(task.outputs().clone());
-            Ok(results)
-        })
+    pub fn execute(&mut self) -> CoolResult<ExecutableReceiver> {
+        let (sender, receiver) = executable_channel();
+        self.0
+            .iter_mut()
+            .try_for_each(|task| task.as_mut().execute(&sender))?;
+        Ok(receiver)
     }
 }

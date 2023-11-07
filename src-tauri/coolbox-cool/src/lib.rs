@@ -32,8 +32,8 @@ lazy_static! {
 }
 
 pub fn render_str<'de, D>(d: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     String::deserialize(d).map(|s| s.render(&DEFAULT_TERA_CONTEXT, false).unwrap())
 }

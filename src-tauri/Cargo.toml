@@ -27,7 +27,7 @@ color-eyre = "0.6.2"
 log = "0.4.20"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-reqwest = { version = "0.11.20", features = ["blocking"] }
+reqwest = { version = "0.11.20", features = ["stream"] }
 toml = "0.7.6"
 tar = "0.4.40"
 flate2 = "1.0.27"
@@ -52,6 +52,8 @@ proxyconfig = "0.1.1"
 which = "5.0.0"
 include_dir = { version = "0.7.3", features = ["glob"] }
 dashmap = { version = "5.5.3", features = ["serde", "rayon", "inline", "arbitrary"] }
+tokio = { version = "1.33.0", features = ["full"] }
+futures = "0.3.28"
 
 [dependencies]
 cool = { path = "coolbox-cool" }

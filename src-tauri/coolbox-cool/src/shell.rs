@@ -4,7 +4,6 @@ use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::thread;
 
-use crate::StringExt;
 use color_eyre::eyre::eyre;
 use crossbeam::channel::{Receiver, Sender};
 use log::info;
@@ -18,6 +17,7 @@ pub use sh::*;
 pub use zsh::*;
 
 use crate::result::CoolResult;
+use crate::StringExt;
 
 mod bash;
 mod linux_sudo;
@@ -67,8 +67,8 @@ impl ShellExecutor for Shell {
 
 impl Serialize for Shell {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+        where
+            S: Serializer,
     {
         match self {
             Shell::Bash(_) => serializer.serialize_str("bash"),
@@ -82,8 +82,8 @@ impl Serialize for Shell {
 
 impl<'de> Deserialize<'de> for Shell {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         let name = <String>::deserialize(deserializer)?;
         match name {
@@ -220,9 +220,9 @@ impl ShellResult {
 
 #[cfg(test)]
 mod test {
-    use crate::init_backtrace;
     use serde::{Deserialize, Serialize};
 
+    use crate::init_backtrace;
     use crate::result::CoolResult;
 
     #[test]

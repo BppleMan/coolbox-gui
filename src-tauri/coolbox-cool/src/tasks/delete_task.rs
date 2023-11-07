@@ -1,32 +1,19 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-use coolbox_macros::State;
+use serde::{Deserialize, Serialize};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DeleteTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub path: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl DeleteTask {
     pub fn new(path: String) -> Self {
-        Self {
-            path,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { path }
     }
 }
 
@@ -37,7 +24,7 @@ impl Display for DeleteTask {
 }
 
 impl Executable for DeleteTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, _sender: &ExecutableSender) -> ExecutableResult {
         fs_extra::remove_items(&[&self.path])?;
         Ok(())
     }

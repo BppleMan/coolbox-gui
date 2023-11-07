@@ -1,4 +1,3 @@
-use crate::state::State;
 use cool::Cool;
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +7,6 @@ use crate::task_data::TaskData;
 pub struct CoolData {
     pub name: String,
     pub description: String,
-    pub state: State,
     pub dependencies: Vec<String>,
     pub install_tasks: Vec<TaskData>,
     pub uninstall_tasks: Vec<TaskData>,

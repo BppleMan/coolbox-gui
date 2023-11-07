@@ -1,26 +1,19 @@
-use color_eyre::eyre::eyre;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-use coolbox_macros::State;
+use color_eyre::eyre::eyre;
+use serde::{Deserialize, Serialize};
 
+use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
-use crate::result::CoolResult;
+use crate::result::ExecutableResult;
 use crate::shell::ShellResult;
-use crate::tasks::{Executable, ExecutableState};
+use crate::tasks::{Executable, ExecutableSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InstallTask {
     pub name: String,
     pub args: Option<Vec<String>>,
     pub installer: Installer,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl InstallTask {
@@ -29,9 +22,6 @@ impl InstallTask {
             name,
             args,
             installer,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
         }
     }
 }
@@ -56,8 +46,8 @@ impl Display for InstallTask {
 }
 
 impl Executable for InstallTask {
-    fn _run(&mut self) -> CoolResult<()> {
-        let initial_result: CoolResult<()> = Err(eyre!("No attempts made"));
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+        let initial_result = Err(ExecutableError::ShellError(eyre!("No attempts made")));
 
         (0..5).fold(initial_result, |acc, _| {
             if let Err(_) = acc {
@@ -65,23 +55,26 @@ impl Executable for InstallTask {
                     input: _input,
                     output,
                     error,
-                } = self.installer.install(
-                    &self.name,
-                    self.args
-                        .as_ref()
-                        .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                        .as_deref(),
-                )?;
+                } = self
+                    .installer
+                    .install(
+                        &self.name,
+                        self.args
+                            .as_ref()
+                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                            .as_deref(),
+                    )
+                    .map_err(|e| ExecutableError::ShellError(e))?;
 
                 rayon::scope(|s| {
                     s.spawn(|_| {
                         while let Ok(r) = output.recv() {
-                            self.outputs.push(r);
+                            sender.outputs.send(r).unwrap();
                         }
                     });
                     s.spawn(|_| {
                         while let Ok(r) = error.recv() {
-                            self.errors.push(r);
+                            sender.errors.send(r).unwrap();
                         }
                     });
                 });
@@ -103,18 +96,18 @@ mod test {
         init_backtrace();
 
         #[cfg(target_os = "macos")]
-        let mut installer = Installer::Brew(Brew);
+            let mut installer = Installer::Brew(Brew);
         #[cfg(target_os = "linux")]
-        let installer = Installer::Apt(Apt);
+            let installer = Installer::Apt(Apt);
 
         if installer.check_available("bat", None)? {
             installer.uninstall("bat", None)?;
         }
 
         #[cfg(target_os = "macos")]
-        let mut install = InstallTask::new("bat".to_string(), None, Installer::Brew(Brew));
+            let mut install = InstallTask::new("bat".to_string(), None, Installer::Brew(Brew));
         #[cfg(target_os = "linux")]
-        let mut install = InstallTask::new("bat".to_string(), None, Installer::Apt(Apt));
+            let mut install = InstallTask::new("bat".to_string(), None, Installer::Apt(Apt));
 
         install.execute()?;
 

@@ -1,31 +1,21 @@
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-use color_eyre::eyre::eyre;
-use coolbox_macros::State;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::path::Path;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+use color_eyre::eyre::eyre;
+use serde::{Deserialize, Serialize};
+
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ExistsTask {
     pub path: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl ExistsTask {
     pub fn new(path: String) -> Self {
-        Self {
-            path,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { path }
     }
 }
 
@@ -42,13 +32,13 @@ impl Display for ExistsTask {
 }
 
 impl Executable for ExistsTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         if Path::new(&self.path).exists() {
             Ok(())
         } else {
-            let msg = format!("{} does not exist", self.path);
-            self.errors.push(msg.clone());
-            Err(eyre!(msg))
+            let error = ExecutableError::FileNotExists(eyre!("{} does not exist", self.path));
+            sender.errors.send(format!("{:?}", error)).unwrap();
+            Err(error)
         }
     }
 }

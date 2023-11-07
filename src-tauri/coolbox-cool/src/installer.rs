@@ -86,8 +86,8 @@ impl Installable for Installer {
 
 impl Serialize for Installer {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+        where
+            S: Serializer,
     {
         serializer.serialize_str(self.as_ref().name())
     }
@@ -95,8 +95,8 @@ impl Serialize for Installer {
 
 impl<'de> Deserialize<'de> for Installer {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
     {
         let name = String::deserialize(deserializer)?;
         match name.as_str() {

@@ -12,41 +12,27 @@ use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
-use coolbox_macros::State;
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CompressTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub src: String,
     #[serde(deserialize_with = "crate::render_str")]
     pub dest: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl CompressTask {
     pub fn new(src: String, dest: String) -> Self {
-        Self {
-            src,
-            dest,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { src, dest }
     }
-    pub fn compress_zip(&self) -> CoolResult<()> {
+    pub fn compress_zip(&self, sender: &ExecutableSender) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let parent = src
             .parent()
-            .unwrap_or_else(|| panic!("{} has no parent", src.display()));
+            .ok_or_else(|| ExecutableError::PathNoParent(eyre!("No parent: {}", src.display())))?;
         let dest = File::create(&self.dest)?;
         let mut zip = ZipWriter::new(dest);
         for entry in WalkDir::new(&self.src) {
@@ -56,6 +42,10 @@ impl CompressTask {
                     entry.path().strip_prefix(parent)?.display().to_string(),
                     FileOptions::default(),
                 )?;
+                sender
+                    .outputs
+                    .send(format!("Add directory {}", entry.path().display()))
+                    .unwrap();
             } else if entry.file_type().is_file() {
                 zip.start_file(
                     entry.path().strip_prefix(parent)?.display().to_string(),
@@ -65,12 +55,20 @@ impl CompressTask {
                 let mut buf = vec![];
                 file.read_to_end(&mut buf)?;
                 zip.write_all(&buf)?;
+                sender
+                    .outputs
+                    .send(format!("Add file {}", entry.path().display()))
+                    .unwrap();
             } else if entry.file_type().is_symlink() {
                 zip.add_symlink(
                     entry.path().strip_prefix(parent)?.display().to_string(),
                     entry.path().read_link()?.display().to_string(),
                     FileOptions::default().compression_method(CompressionMethod::Stored),
                 )?;
+                sender
+                    .outputs
+                    .send(format!("Add symlink {}", entry.path().display()))
+                    .unwrap();
             }
         }
         zip.finish()?;
@@ -78,7 +76,7 @@ impl CompressTask {
         Ok(())
     }
 
-    pub fn compress_tar_gz(&self) -> CoolResult<()> {
+    pub fn compress_tar_gz(&self, sender: &ExecutableSender) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let dest = File::create(&self.dest)?;
 
@@ -87,6 +85,10 @@ impl CompressTask {
         tar.follow_symlinks(false);
         tar.append_dir_all(src.file_name().unwrap(), &self.src)?;
         tar.finish()?;
+        sender
+            .outputs
+            .send(format!("Add directory {}", &self.src))
+            .unwrap();
 
         Ok(())
     }
@@ -105,13 +107,16 @@ impl Display for CompressTask {
 }
 
 impl Executable for CompressTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         if self.dest.ends_with(".zip") {
-            self.compress_zip()
+            self.compress_zip(sender)
         } else if self.dest.ends_with(".tar.gz") {
-            self.compress_tar_gz()
+            self.compress_tar_gz(sender)
         } else {
-            Err(eyre!("Not support"))
+            let error =
+                ExecutableError::UnsupportedCompressType(eyre!("Not support: {}", self.dest));
+            sender.errors.send(format!("{:?}", error)).unwrap();
+            Err(error)
         }
     }
 }

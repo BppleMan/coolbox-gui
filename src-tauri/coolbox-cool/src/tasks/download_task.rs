@@ -1,33 +1,22 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use std::fs::OpenOptions;
+use std::io::Write;
 
-use coolbox_macros::State;
+use futures::StreamExt;
+use serde::{Deserialize, Serialize};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DownloadTask {
     pub url: String,
     pub dest: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl DownloadTask {
     pub fn new(url: String, dest: String) -> Self {
-        Self {
-            url,
-            dest,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { url, dest }
     }
 }
 
@@ -38,9 +27,44 @@ impl Display for DownloadTask {
 }
 
 impl Executable for DownloadTask {
-    fn _run(&mut self) -> CoolResult<()> {
-        let mut bytes = reqwest::blocking::get(&self.url)?.bytes()?;
-        std::fs::write(&self.dest, &mut bytes)?;
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build();
+                let handle = if let Ok(rt) = rt {
+                    rt.handle().clone()
+                } else {
+                    tokio::runtime::Handle::current()
+                };
+                handle.block_on(async {
+                    let res = reqwest::get(&self.url).await.unwrap();
+                    let mut written = 0u64;
+                    let total_size = res.content_length();
+                    let mut bytes_stream = res.bytes_stream();
+                    let mut file = OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .open(&self.dest)
+                        .unwrap();
+                    while let Some(Ok(chunk)) = bytes_stream.next().await {
+                        written += chunk.len() as u64;
+                        file.write_all(&chunk).unwrap();
+                        sender
+                            .outputs
+                            .send(format!(
+                                "downloaded {}/{}",
+                                written,
+                                total_size.unwrap_or(0)
+                            ))
+                            .unwrap();
+                    }
+                })
+            });
+        });
+        // let mut bytes = reqwest::blocking::get(&self.url)?.bytes()?;
+        // std::fs::write(&self.dest, &mut bytes)?;
         Ok(())
     }
 }

@@ -1,22 +1,15 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::ops::Deref;
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-use crate::{SafeCool, COOL_LIST};
-use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use crossbeam::channel::Receiver;
-use dashmap::mapref::one::Ref;
 use lazy_static::lazy_static;
-use rayon::iter::IntoParallelRefIterator;
-use rayon::iter::ParallelIterator;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::error::{InstallError, TransformError};
+use crate::error::InstallError;
 use crate::result::CoolResult;
 use crate::state::CoolState;
 use crate::tasks::Tasks;
@@ -57,7 +50,7 @@ impl Cool {
         }
     }
 
-    pub fn install(&mut self) -> CoolResult<Vec<Vec<String>>> {
+    pub fn install(&mut self) -> CoolResult<()> {
         let name = self.name.clone();
         if INSTALLING.read().unwrap().contains_key(&name) {
             return Err(Report::new(InstallError::AlreadyInstalling(name)));
@@ -86,10 +79,10 @@ impl Cool {
         sender.send(())?;
         INSTALLING.write().unwrap().remove(&name);
 
-        Ok(result)
+        Ok(())
     }
 
-    pub fn uninstall(&mut self) -> CoolResult<Vec<Vec<String>>> {
+    pub fn uninstall(&mut self) -> CoolResult<()> {
         let name = self.name.clone();
         if UNINSTALLING.read().unwrap().contains_key(&name) {
             return Err(Report::new(InstallError::AlreadyUninstalling(name)));
@@ -116,36 +109,38 @@ impl Cool {
         sender.send(())?;
         UNINSTALLING.write().unwrap().remove(&name);
 
-        Ok(result)
+        Ok(())
     }
 
     fn install_dependencies(&self) -> CoolResult<Vec<Vec<String>>> {
-        let results = self
-            .dependencies
-            .par_iter()
-            .map(|d| {
-                if let Some(cool) = COOL_LIST.get(d) {
-                    Ok(cool.write().unwrap().install()?)
-                } else {
-                    Err(eyre!("{} not found", d))
-                }
-            })
-            .try_fold(Vec::new, |mut results, result| match result {
-                Ok(result) => {
-                    results.extend(result);
-                    Ok(results)
-                }
-                Err(e) => Err(e),
-            })
-            .try_reduce(Vec::new, |mut results, result| {
-                results.extend(result);
-                Ok(results)
-            })?;
-        Ok(results)
+        todo!();
+        // let results = self
+        //     .dependencies
+        //     .par_iter()
+        //     .map(|d| {
+        //         if let Some(cool) = COOL_LIST.get(d) {
+        //             Ok(cool.write().unwrap().install()?)
+        //         } else {
+        //             Err(eyre!("{} not found", d))
+        //         }
+        //     })
+        //     .try_fold(Vec::new, |mut results, result| match result {
+        //         Ok(result) => {
+        //             results.extend(result);
+        //             Ok(results)
+        //         }
+        //         Err(e) => Err(e),
+        //     })
+        //     .try_reduce(Vec::new, |mut results, result| {
+        //         results.extend(result);
+        //         Ok(results)
+        //     })?;
+        // Ok(results)
     }
 
     pub fn check(&mut self) -> CoolResult<CoolState> {
-        self.check_tasks.execute()
+        self.check_tasks.execute()?;
+        Ok(CoolState::Installed)
     }
 }
 

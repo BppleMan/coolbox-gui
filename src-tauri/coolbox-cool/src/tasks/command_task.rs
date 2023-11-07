@@ -1,28 +1,21 @@
+use std::fmt::{Display, Formatter};
+
 use color_eyre::eyre::eyre;
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
 
-use coolbox_macros::State;
-
-use crate::result::CoolResult;
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
 use crate::shell::{Shell, ShellExecutor, ShellResult};
-use crate::tasks::{Executable, ExecutableState};
+use crate::tasks::{Executable, ExecutableSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CommandTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub script: String,
     pub args: Option<Vec<String>>,
     pub envs: Option<Vec<(String, String)>>,
     pub shell: Shell,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl CommandTask {
@@ -37,9 +30,6 @@ impl CommandTask {
             args,
             envs,
             shell,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
         }
     }
 }
@@ -69,9 +59,9 @@ impl Display for CommandTask {
 }
 
 impl Executable for CommandTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         info!("{}", self);
-        let initial_result: CoolResult<()> = Err(eyre!("No attempts made"));
+        let initial_result = Err(ExecutableError::ShellError(eyre!("No attempts made")));
 
         (0..5).fold(initial_result, |acc, _| {
             if acc.is_err() {
@@ -79,30 +69,33 @@ impl Executable for CommandTask {
                     input: _input,
                     output,
                     error,
-                } = self.shell.run(
-                    &self.script,
-                    self.args
-                        .as_ref()
-                        .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                        .as_deref(),
-                    self.envs
-                        .as_ref()
-                        .map(|envs| {
-                            envs.iter()
-                                .map(|(k, v)| (k.as_str(), v.as_str()))
-                                .collect::<Vec<_>>()
-                        })
-                        .as_deref(),
-                )?;
+                } = self
+                    .shell
+                    .run(
+                        &self.script,
+                        self.args
+                            .as_ref()
+                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                            .as_deref(),
+                        self.envs
+                            .as_ref()
+                            .map(|envs| {
+                                envs.iter()
+                                    .map(|(k, v)| (k.as_str(), v.as_str()))
+                                    .collect::<Vec<_>>()
+                            })
+                            .as_deref(),
+                    )
+                    .map_err(ExecutableError::ShellError)?;
                 rayon::scope(|s| {
                     s.spawn(|_| {
                         while let Ok(r) = output.recv() {
-                            self.outputs.push(r);
+                            sender.outputs.send(r).unwrap();
                         }
                     });
                     s.spawn(|_| {
                         while let Ok(r) = error.recv() {
-                            self.errors.push(r);
+                            sender.errors.send(r).unwrap();
                         }
                     });
                 });

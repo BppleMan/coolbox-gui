@@ -1,35 +1,22 @@
-use color_eyre::eyre::eyre;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
+use color_eyre::eyre::eyre;
+use serde::{Deserialize, Serialize};
+
+use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
-use coolbox_macros::State;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, ExecutableSender};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CheckTask {
     pub name: String,
     pub installer: Installer,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl CheckTask {
     pub fn new(name: String, installer: Installer) -> Self {
-        Self {
-            name,
-            installer,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { name, installer }
     }
 }
 
@@ -40,17 +27,22 @@ impl Display for CheckTask {
 }
 
 impl Executable for CheckTask {
-    fn _run(&mut self) -> CoolResult<()> {
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         self.installer
             .check_available(&self.name, None)
+            .map_err(|r| ExecutableError::ShellError(r))
             .and_then(|result| {
                 if result {
-                    self.outputs.push(format!("{} is available", &self.name));
+                    sender
+                        .outputs
+                        .send(format!("{} is available", &self.name))
+                        .unwrap();
                     Ok(())
                 } else {
-                    let msg = format!("{} is not available", &self.name);
-                    self.errors.push(msg.clone());
-                    Err(eyre!(msg))
+                    let error =
+                        ExecutableError::NotAvailable(eyre!("{} is not available", &self.name));
+                    sender.errors.send(format!("{:?}", error)).unwrap();
+                    Err(error)
                 }
             })
     }
