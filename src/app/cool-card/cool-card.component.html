@@ -1,16 +1,16 @@
 <div id="check-card"
      matRipple
-     class="flex flex-row p-6 mb-1.5 border-solid border-2 border-[#CECFD2] rounded-[16px] items-start select-none"
+     class="flex flex-row p-6 mb-1.5 rounded-xl items-start select-none"
      (click)="toggle_selected($event)"
 >
     <mat-checkbox disableRipple="false" color="primary" [checked]="selected"></mat-checkbox>
-    <mat-expansion-panel #expansionPanel hideToggle class="flex flex-col grow" (click)="$event.stopPropagation()">
+    <mat-expansion-panel #expansionPanel hideToggle class="flex flex-col grow shadow-none" (click)="$event.stopPropagation()">
         <mat-expansion-panel-header>
             <div class="flex flex-col grow">
                 <div class="flex flex-row items-center justify-between">
                     <mat-panel-title>{{cool.name}}</mat-panel-title>
                     <mat-panel-description>
-                        <button mat-raised-button color="primary" class="flex-shrink-0" (click)="toggle_panel($event)">
+                        <button mat-raised-button color="primary" class="flex-shrink-0 rounded-md" (click)="toggle_panel($event)">
                             Install
                         </button>
                     </mat-panel-description>
