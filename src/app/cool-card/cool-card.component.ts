@@ -6,12 +6,13 @@ import {MatRippleModule} from "@angular/material/core"
 import {MatExpansionModule, MatExpansionPanel} from "@angular/material/expansion"
 import {MatIconModule} from "@angular/material/icon"
 import {MatStepperModule} from "@angular/material/stepper"
+import {Highlight} from "ngx-highlightjs"
 import {Cool} from "../model/models"
 
 @Component({
     selector: "app-cool-card",
     standalone: true,
-    imports: [CommonModule, MatButtonModule, MatCheckboxModule, MatExpansionModule, MatIconModule, MatStepperModule, MatRippleModule],
+    imports: [CommonModule, MatButtonModule, MatCheckboxModule, MatExpansionModule, MatIconModule, MatStepperModule, MatRippleModule, Highlight],
     templateUrl: "./cool-card.component.html",
     styleUrls: ["./cool-card.component.scss"],
 })
@@ -19,7 +20,6 @@ export class CoolCardComponent {
     @ViewChild("expansionPanel") panel!: MatExpansionPanel
     @Input() cool!: Cool
     selected = false
-
 
     constructor() {
     }

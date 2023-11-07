@@ -1,4 +1,5 @@
-use cool::Models;
+use crate::state::State;
+use cool::Cool;
 use serde::{Deserialize, Serialize};
 
 use crate::task_data::TaskData;
@@ -7,14 +8,15 @@ use crate::task_data::TaskData;
 pub struct CoolData {
     pub name: String,
     pub description: String,
+    pub state: State,
     pub dependencies: Vec<String>,
     pub install_tasks: Vec<TaskData>,
     pub uninstall_tasks: Vec<TaskData>,
     pub check_tasks: Vec<TaskData>,
 }
 
-impl From<&Models> for CoolData {
-    fn from(value: &Models) -> Self {
+impl From<&Cool> for CoolData {
+    fn from(value: &Cool) -> Self {
         Self {
             name: value.name.clone(),
             description: value.description.clone(),

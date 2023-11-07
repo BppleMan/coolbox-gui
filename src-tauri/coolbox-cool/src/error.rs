@@ -8,3 +8,9 @@ pub enum InstallError {
     #[error("{0} is already uninstalling")]
     AlreadyUninstalling(String),
 }
+
+#[derive(Debug, Error)]
+pub enum TransformError {
+    #[error("Not found cool: {0}")]
+    NotFoundCool(String),
+}

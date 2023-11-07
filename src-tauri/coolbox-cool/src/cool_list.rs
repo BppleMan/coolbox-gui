@@ -1,14 +1,19 @@
+use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 use color_eyre::eyre::eyre;
 use dashmap::DashMap;
 use include_dir::{include_dir, Dir};
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use tracing::error;
 
-use crate::Models;
+use crate::error::TransformError;
+use crate::Cool;
 
-pub type SafeCool = Arc<RwLock<Models>>;
+#[derive(Debug, Clone)]
+pub struct SafeCool(Arc<RwLock<Cool>>);
 
 static COOL_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools");
 
@@ -23,9 +28,9 @@ pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
                 || &parent == "flutter"
                 || &parent == "shell"
             {
-                match toml::from_str::<Models>(entry.as_file().unwrap().contents_utf8().unwrap()) {
+                match toml::from_str::<Cool>(entry.as_file().unwrap().contents_utf8().unwrap()) {
                     Ok(cool) => {
-                        map.insert(cool.name.clone(), Arc::new(RwLock::new(cool)));
+                        map.insert(cool.name.clone(), SafeCool(Arc::new(RwLock::new(cool))));
                     }
                     Err(e) => {
                         error!("{:?}\n{:?}", entry.path(), eyre!(e));
@@ -38,6 +43,25 @@ pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
     });
     map
 });
+
+impl Deref for SafeCool {
+    type Target = Arc<RwLock<Cool>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl FromStr for SafeCool {
+    type Err = TransformError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match COOL_LIST.get(s) {
+            None => Err(TransformError::NotFoundCool(s.to_string())),
+            Some(cool) => Ok(cool.value().clone()),
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {

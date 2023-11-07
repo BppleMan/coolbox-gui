@@ -1,20 +1,24 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-use crate::COOL_LIST;
+use crate::{SafeCool, COOL_LIST};
 use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use crossbeam::channel::Receiver;
+use dashmap::mapref::one::Ref;
 use lazy_static::lazy_static;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::error::InstallError;
+use crate::error::{InstallError, TransformError};
 use crate::result::CoolResult;
+use crate::state::CoolState;
 use crate::tasks::Tasks;
 
 lazy_static! {
@@ -25,7 +29,7 @@ lazy_static! {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Models {
+pub struct Cool {
     pub name: String,
     pub description: String,
     pub dependencies: Vec<String>,
@@ -34,7 +38,7 @@ pub struct Models {
     pub check_tasks: Tasks,
 }
 
-impl Models {
+impl Cool {
     pub fn new(
         name: String,
         description: String,
@@ -139,15 +143,19 @@ impl Models {
             })?;
         Ok(results)
     }
+
+    pub fn check(&mut self) -> CoolResult<CoolState> {
+        self.check_tasks.execute()
+    }
 }
 
-impl Ord for Models {
+impl Ord for Cool {
     fn cmp(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
     }
 }
 
-impl PartialOrd for Models {
+impl PartialOrd for Cool {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
@@ -158,12 +166,12 @@ mod test {
     use crate::result::CoolResult;
     use crate::shell::{MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
-    use crate::{init_backtrace, Models};
+    use crate::{init_backtrace, Cool};
 
     #[test]
     fn test_cool() -> CoolResult<()> {
         init_backtrace();
-        let mut brew_cool = Models {
+        let mut brew_cool = Cool {
             name: "homebrew".to_string(),
             description: "适用于macOS的包管理器。它使您能够从命令行安装和更新软件包，从而使您的Mac保持最新状态，而无需使用App Store。".to_string(),
             dependencies: vec![],
@@ -181,13 +189,13 @@ mod test {
         };
         let string = toml::to_string(&brew_cool)?;
         println!("{}", string);
-        let cool = toml::from_str::<Models>(&string)?;
+        let cool = toml::from_str::<Cool>(&string)?;
         println!("{:#?}", cool);
 
         brew_cool.check_tasks.0.clear();
         let string = toml::to_string(&brew_cool)?;
         println!("==========\n{}", string);
-        toml::from_str::<Models>(&string)?;
+        toml::from_str::<Cool>(&string)?;
         Ok(())
     }
 }

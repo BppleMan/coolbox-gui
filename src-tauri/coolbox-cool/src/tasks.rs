@@ -46,7 +46,13 @@ pub enum ExecutableState {
 }
 
 pub trait Executable: StateAble + Display {
-    fn execute(&mut self) -> CoolResult<()> {
+    fn execute(
+        &mut self,
+    ) -> CoolResult<(
+        crossbeam::channel::Receiver<ExecutableState>,
+        crossbeam::channel::Receiver<String>,
+        crossbeam::channel::Receiver<String>,
+    )> {
         *self.current_state() = ExecutableState::Running;
         match self._run() {
             Ok(_) => {
