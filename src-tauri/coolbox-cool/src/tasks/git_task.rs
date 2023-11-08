@@ -2,8 +2,8 @@ use std::fmt::{Display, Formatter};
 use std::path::Path;
 
 use color_eyre::eyre::eyre;
-use git2::{BranchType, Direction, FetchOptions, ProxyOptions, Repository};
 use git2::build::RepoBuilder;
+use git2::{BranchType, Direction, FetchOptions, ProxyOptions, Repository};
 use proxyconfig::{ProxyConfig, ProxyConfigProvider};
 use serde::{Deserialize, Serialize};
 use tracing::info;
@@ -11,6 +11,7 @@ use tracing::info;
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
+use crate::IntoMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GitTask {
@@ -57,6 +58,7 @@ impl GitTask {
         if repo.graph_descendant_of(remote_commit.id(), head_commit.id())? {
             repo.set_head_detached(remote_commit.id())?;
             repo.checkout_head(None)?;
+            Ok(())
         } else if remote_commit.id() != head_commit.id() {
             let error = eyre!(
                 "rebase {:?}[{}] onto {:?}[{}] cannot fast-forward",
@@ -65,12 +67,15 @@ impl GitTask {
                 remote_branch.name()?,
                 remote_commit.id(),
             );
-            sender.errors.send(format!("{:?}", error)).unwrap();
+            Err(ExecutableError::GitError(error))
         } else {
             let msg = eyre!("already up to date");
-            sender.outputs.send(format!("{:?}", msg)).unwrap();
+            sender
+                .message
+                .send(format!("{:?}", msg).into_info())
+                .unwrap();
+            Ok(())
         }
-        Ok(())
     }
 
     pub fn checkout(&mut self, src: &str, branch: &str, create: bool) -> ExecutableResult {
@@ -241,7 +246,7 @@ git remote -v
         GitTask::new(GitCommand::Pull {
             src: test_repo.to_string_lossy().to_string(),
         })
-            .execute()?;
+        .execute()?;
         println!("12");
         Ok(())
     }
@@ -278,7 +283,7 @@ git commit -m 'init'
             branch: "dev".to_string(),
             create: true,
         })
-            .execute()?;
+        .execute()?;
 
         let repo = Repository::open(&checkout_dir)?;
         assert!(repo.find_branch("dev", git2::BranchType::Local).is_ok());
@@ -289,7 +294,7 @@ git commit -m 'init'
             branch: "main".to_string(),
             create: false,
         })
-            .execute()?;
+        .execute()?;
         pretty_assertions::assert_eq!(repo.head()?.shorthand(), Some("main"));
         Ok(())
     }

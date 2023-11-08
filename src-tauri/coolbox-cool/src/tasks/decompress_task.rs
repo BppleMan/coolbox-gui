@@ -1,20 +1,21 @@
-use std::{fmt, fs, io};
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{fmt, fs, io};
 
 use color_eyre::eyre::eyre;
-use serde::{Deserialize, Serialize};
 use serde::ser::Error;
+use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 use zip::ZipArchive;
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
+use crate::IntoMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DecompressTask {
@@ -43,12 +44,12 @@ impl DecompressTask {
         })?;
         let root_dir = if root_dirs.len() == 1
             && !root_dirs
-            .iter()
-            .next()
-            .unwrap()
-            .display()
-            .to_string()
-            .is_empty()
+                .iter()
+                .next()
+                .unwrap()
+                .display()
+                .to_string()
+                .is_empty()
         {
             root_dirs.into_iter().next()
         } else {
@@ -67,16 +68,16 @@ impl DecompressTask {
                     if file.name().ends_with('/') {
                         fs::create_dir_all(&out_path)?;
                         sender
-                            .outputs
-                            .send(format!("create dir: {}", out_path.display()))
+                            .message
+                            .send(format!("create dir: {}", out_path.display()).into_info())
                             .unwrap();
                     } else {
                         if let Some(parent) = out_path.parent() {
                             if !parent.exists() {
                                 fs::create_dir_all(parent)?;
                                 sender
-                                    .outputs
-                                    .send(format!("create dir: {}", parent.display()))
+                                    .message
+                                    .send(format!("create dir: {}", parent.display()).into_info())
                                     .unwrap();
                             }
                         }
@@ -93,16 +94,16 @@ impl DecompressTask {
                                 fs::Permissions::from_mode(file.unix_mode().unwrap()),
                             )?;
                             sender
-                                .outputs
-                                .send(format!("create symlink: {}", out_path.display()))
+                                .message
+                                .send(format!("create symlink: {}", out_path.display()).into_info())
                                 .unwrap();
                             continue;
                         }
                         let mut outfile = File::create(&out_path)?;
                         io::copy(&mut file, &mut outfile)?;
                         sender
-                            .outputs
-                            .send(format!("create file: {}", out_path.display()))
+                            .message
+                            .send(format!("create file: {}", out_path.display()).into_info())
                             .unwrap();
                     }
                 }
@@ -123,8 +124,8 @@ impl DecompressTask {
         if !parent.exists() {
             fs::create_dir_all(parent)?;
             sender
-                .outputs
-                .send(format!("create dir: {}", parent.display()))
+                .message
+                .send(format!("create dir: {}", parent.display()).into_info())
                 .unwrap();
         }
 
@@ -132,8 +133,8 @@ impl DecompressTask {
         let mut archive = tar::Archive::new(decoder);
         fs::create_dir_all(&dest)?;
         sender
-            .outputs
-            .send(format!("create dir: {}", dest.display()))
+            .message
+            .send(format!("create dir: {}", dest.display()).into_info())
             .unwrap();
         let entries = archive.entries()?.flatten().collect::<Vec<_>>();
         let root_dirs = entries.iter().try_fold(HashSet::new(), |mut set, entry| {
@@ -146,12 +147,12 @@ impl DecompressTask {
         })?;
         let root_dir = if root_dirs.len() == 1
             && !root_dirs
-            .iter()
-            .next()
-            .unwrap()
-            .display()
-            .to_string()
-            .is_empty()
+                .iter()
+                .next()
+                .unwrap()
+                .display()
+                .to_string()
+                .is_empty()
         {
             root_dirs.into_iter().next()
         } else {
@@ -162,16 +163,16 @@ impl DecompressTask {
                 None => {
                     entry.unpack_in(&dest)?;
                     sender
-                        .outputs
-                        .send(format!("create file: {}", entry.path()?.display()))
+                        .message
+                        .send(format!("create file: {}", entry.path()?.display()).into_info())
                         .unwrap();
                 }
                 Some(root_dir) => {
                     let dest_path = dest.join(entry.path()?.strip_prefix(root_dir)?);
                     entry.unpack(&dest_path)?;
                     sender
-                        .outputs
-                        .send(format!("create file: {}", dest_path.display()))
+                        .message
+                        .send(format!("create file: {}", dest_path.display()).into_info())
                         .unwrap();
                 }
             }
@@ -199,10 +200,10 @@ impl Executable for DecompressTask {
         } else if self.src.ends_with(".tar.gz") {
             self.decompress_tar_gz(sender)
         } else {
-            let error =
-                ExecutableError::UnsupportedCompressType(eyre!("Not support: {}", self.src));
-            sender.errors.send(format!("{:?}", error)).unwrap();
-            Err(error)
+            Err(ExecutableError::UnsupportedCompressType(eyre!(
+                "Not support: {}",
+                self.src
+            )))
         }
     }
 }

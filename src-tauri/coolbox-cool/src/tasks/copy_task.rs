@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use crate::IntoMessage;
 use fs_extra::dir::TransitProcessResult;
 use serde::{Deserialize, Serialize};
 
@@ -44,15 +45,18 @@ impl Executable for CopyTask {
                 .copy_inside(true);
             fs_extra::dir::copy_with_progress(&self.src, &self.dest, &options, |transit| {
                 sender
-                    .outputs
-                    .send(format!(
-                        "{}({}/{}) total:{}/{}",
-                        transit.file_name,
-                        transit.copied_bytes,
-                        transit.total_bytes,
-                        transit.copied_bytes,
-                        transit.total_bytes,
-                    ))
+                    .message
+                    .send(
+                        format!(
+                            "{}({}/{}) total:{}/{}",
+                            transit.file_name,
+                            transit.copied_bytes,
+                            transit.total_bytes,
+                            transit.copied_bytes,
+                            transit.total_bytes,
+                        )
+                        .into_info(),
+                    )
                     .unwrap();
                 TransitProcessResult::OverwriteAll
             })?;
@@ -66,24 +70,30 @@ impl Executable for CopyTask {
                     &options,
                     |transit| {
                         sender
-                            .outputs
-                            .send(format!(
-                                "{}({}/{})",
-                                file_name.to_string_lossy(),
-                                transit.copied_bytes,
-                                transit.total_bytes,
-                            ))
+                            .message
+                            .send(
+                                format!(
+                                    "{}({}/{})",
+                                    file_name.to_string_lossy(),
+                                    transit.copied_bytes,
+                                    transit.total_bytes,
+                                )
+                                .into_info(),
+                            )
                             .unwrap();
                     },
                 )?;
             } else {
                 fs_extra::file::copy_with_progress(&self.src, &self.dest, &options, |transit| {
                     sender
-                        .outputs
-                        .send(format!(
-                            "{}({}/{})",
-                            self.src, transit.copied_bytes, transit.total_bytes,
-                        ))
+                        .message
+                        .send(
+                            format!(
+                                "{}({}/{})",
+                                self.src, transit.copied_bytes, transit.total_bytes,
+                            )
+                            .into_info(),
+                        )
                         .unwrap();
                 })?;
             }
@@ -114,7 +124,7 @@ mod test {
             source_file.path().to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
         )
-            .execute()?;
+        .execute()?;
         assert!(dest_path.exists());
 
         let dest_dir = Builder::new().prefix("dest").tempdir_in(base_dir.path())?;
@@ -123,7 +133,7 @@ mod test {
             source_file.path().to_string_lossy().to_string(),
             dest_path.to_string_lossy().to_string(),
         )
-            .execute()?;
+        .execute()?;
         assert!(dest_path.exists());
 
         let dest_path = dest_dir.path().join("dest");
@@ -131,7 +141,7 @@ mod test {
             source_file.path().to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
         )
-            .execute()?;
+        .execute()?;
         assert!(dest_path.exists());
 
         Ok(())
@@ -157,7 +167,7 @@ mod test {
             source_dir.to_string_lossy().to_string(),
             dest_dir.to_string_lossy().to_string(),
         )
-            .execute()?;
+        .execute()?;
 
         assert!(dest_dir.exists());
         assert!(dest_dir.join("child_file").exists());

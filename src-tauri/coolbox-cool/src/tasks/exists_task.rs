@@ -36,9 +36,10 @@ impl Executable for ExistsTask {
         if Path::new(&self.path).exists() {
             Ok(())
         } else {
-            let error = ExecutableError::FileNotExists(eyre!("{} does not exist", self.path));
-            sender.errors.send(format!("{:?}", error)).unwrap();
-            Err(error)
+            Err(ExecutableError::FileNotExists(eyre!(
+                "{} does not exist",
+                self.path
+            )))
         }
     }
 }

@@ -7,6 +7,7 @@ use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
+use crate::IntoMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CheckTask {
@@ -34,15 +35,15 @@ impl Executable for CheckTask {
             .and_then(|result| {
                 if result {
                     sender
-                        .outputs
-                        .send(format!("{} is available", &self.name))
+                        .message
+                        .send(format!("{} is available", &self.name).into_info())
                         .unwrap();
                     Ok(())
                 } else {
-                    let error =
-                        ExecutableError::NotAvailable(eyre!("{} is not available", &self.name));
-                    sender.errors.send(format!("{:?}", error)).unwrap();
-                    Err(error)
+                    Err(ExecutableError::NotAvailable(eyre!(
+                        "{} is not available",
+                        &self.name
+                    )))
                 }
             })
     }

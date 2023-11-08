@@ -7,7 +7,7 @@ use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
 use crate::shell::ShellResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{redirect_output, Executable, ExecutableSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InstallTask {
@@ -66,18 +66,7 @@ impl Executable for InstallTask {
                     )
                     .map_err(|e| ExecutableError::ShellError(e))?;
 
-                rayon::scope(|s| {
-                    s.spawn(|_| {
-                        while let Ok(r) = output.recv() {
-                            sender.outputs.send(r).unwrap();
-                        }
-                    });
-                    s.spawn(|_| {
-                        while let Ok(r) = error.recv() {
-                            sender.errors.send(r).unwrap();
-                        }
-                    });
-                });
+                redirect_output(sender, &output, &error);
             }
             Ok(())
         })
@@ -96,18 +85,18 @@ mod test {
         init_backtrace();
 
         #[cfg(target_os = "macos")]
-            let mut installer = Installer::Brew(Brew);
+        let mut installer = Installer::Brew(Brew);
         #[cfg(target_os = "linux")]
-            let installer = Installer::Apt(Apt);
+        let installer = Installer::Apt(Apt);
 
         if installer.check_available("bat", None)? {
             installer.uninstall("bat", None)?;
         }
 
         #[cfg(target_os = "macos")]
-            let mut install = InstallTask::new("bat".to_string(), None, Installer::Brew(Brew));
+        let mut install = InstallTask::new("bat".to_string(), None, Installer::Brew(Brew));
         #[cfg(target_os = "linux")]
-            let mut install = InstallTask::new("bat".to_string(), None, Installer::Apt(Apt));
+        let mut install = InstallTask::new("bat".to_string(), None, Installer::Apt(Apt));
 
         install.execute()?;
 

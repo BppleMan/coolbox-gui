@@ -7,6 +7,7 @@ use which::which;
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
+use crate::IntoMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WhichTask {
@@ -36,14 +37,13 @@ impl Executable for WhichTask {
         match which(&self.command) {
             Ok(result) => {
                 sender
-                    .outputs
-                    .send(result.to_string_lossy().to_string())
+                    .message
+                    .send(result.to_string_lossy().into_info())
                     .unwrap();
                 Ok(())
             }
             Err(_) => {
                 let report = eyre!("{} not found", &self.command);
-                sender.errors.send(format!("{:?}", report)).unwrap();
                 Err(ExecutableError::CommandNotFound(report))
             }
         }

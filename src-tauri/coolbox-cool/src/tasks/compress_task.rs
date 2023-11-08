@@ -15,6 +15,7 @@ use zip::{CompressionMethod, ZipWriter};
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
+use crate::IntoMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CompressTask {
@@ -43,8 +44,8 @@ impl CompressTask {
                     FileOptions::default(),
                 )?;
                 sender
-                    .outputs
-                    .send(format!("Add directory {}", entry.path().display()))
+                    .message
+                    .send(format!("Add directory {}", entry.path().display()).into_info())
                     .unwrap();
             } else if entry.file_type().is_file() {
                 zip.start_file(
@@ -56,8 +57,8 @@ impl CompressTask {
                 file.read_to_end(&mut buf)?;
                 zip.write_all(&buf)?;
                 sender
-                    .outputs
-                    .send(format!("Add file {}", entry.path().display()))
+                    .message
+                    .send(format!("Add file {}", entry.path().display()).into_info())
                     .unwrap();
             } else if entry.file_type().is_symlink() {
                 zip.add_symlink(
@@ -66,8 +67,8 @@ impl CompressTask {
                     FileOptions::default().compression_method(CompressionMethod::Stored),
                 )?;
                 sender
-                    .outputs
-                    .send(format!("Add symlink {}", entry.path().display()))
+                    .message
+                    .send(format!("Add symlink {}", entry.path().display()).into_info())
                     .unwrap();
             }
         }
@@ -86,8 +87,8 @@ impl CompressTask {
         tar.append_dir_all(src.file_name().unwrap(), &self.src)?;
         tar.finish()?;
         sender
-            .outputs
-            .send(format!("Add directory {}", &self.src))
+            .message
+            .send(format!("Add directory {}", &self.src).into_info())
             .unwrap();
 
         Ok(())
@@ -115,7 +116,10 @@ impl Executable for CompressTask {
         } else {
             let error =
                 ExecutableError::UnsupportedCompressType(eyre!("Not support: {}", self.dest));
-            sender.errors.send(format!("{:?}", error)).unwrap();
+            sender
+                .message
+                .send(format!("{:?}", error).into_error())
+                .unwrap();
             Err(error)
         }
     }

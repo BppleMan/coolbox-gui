@@ -2,7 +2,8 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use fs_extra::dir::CopyOptions;
+use crate::IntoMessage;
+use fs_extra::dir::{CopyOptions, TransitProcessResult};
 use serde::{Deserialize, Serialize};
 
 use crate::result::ExecutableResult;
@@ -35,22 +36,75 @@ impl Display for MoveTask {
 }
 
 impl Executable for MoveTask {
-    fn _run(&mut self, _sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {
-            fs_extra::dir::move_dir(
+            fs_extra::dir::move_dir_with_progress(
                 &self.src,
                 &self.dest,
                 &CopyOptions::new().skip_exist(true).copy_inside(true),
+                |transit| {
+                    sender
+                        .message
+                        .send(
+                            format!(
+                                "{}({}/{}) total:{}/{}",
+                                transit.file_name,
+                                transit.copied_bytes,
+                                transit.total_bytes,
+                                transit.copied_bytes,
+                                transit.total_bytes,
+                            )
+                            .into_info(),
+                        )
+                        .unwrap();
+                    TransitProcessResult::OverwriteAll
+                },
             )?;
         } else {
             let options = fs_extra::file::CopyOptions::new().skip_exist(true);
             if dest.is_dir() {
                 let file_name = src.file_name().unwrap();
-                fs_extra::file::move_file(&self.src, dest.join(file_name), &options)?;
+                fs_extra::file::move_file_with_progress(
+                    &self.src,
+                    dest.join(file_name),
+                    &options,
+                    |transit| {
+                        sender
+                            .message
+                            .send(
+                                format!(
+                                    "{}({}/{})",
+                                    dest.to_string_lossy(),
+                                    transit.copied_bytes,
+                                    transit.total_bytes,
+                                )
+                                .into_info(),
+                            )
+                            .unwrap();
+                    },
+                )?;
             } else {
-                fs_extra::file::move_file(&self.src, &self.dest, &options)?;
+                fs_extra::file::move_file_with_progress(
+                    &self.src,
+                    &self.dest,
+                    &options,
+                    |transit| {
+                        sender
+                            .message
+                            .send(
+                                format!(
+                                    "{}({}/{})",
+                                    dest.to_string_lossy(),
+                                    transit.copied_bytes,
+                                    transit.total_bytes,
+                                )
+                                .into_info(),
+                            )
+                            .unwrap();
+                    },
+                )?;
             }
         }
         Ok(())

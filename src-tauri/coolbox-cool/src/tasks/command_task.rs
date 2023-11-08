@@ -8,6 +8,7 @@ use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::shell::{Shell, ShellExecutor, ShellResult};
 use crate::tasks::{Executable, ExecutableSender};
+use crate::IntoMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CommandTask {
@@ -62,7 +63,15 @@ impl Executable for CommandTask {
     fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
         info!("{}", self);
         let initial_result = Err(ExecutableError::ShellError(eyre!("No attempts made")));
-
+        let args = self
+            .args
+            .as_ref()
+            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>());
+        let envs = self.envs.as_ref().map(|envs| {
+            envs.iter()
+                .map(|(k, v)| (k.as_str(), v.as_str()))
+                .collect::<Vec<_>>()
+        });
         (0..5).fold(initial_result, |acc, _| {
             if acc.is_err() {
                 let ShellResult {
@@ -71,38 +80,32 @@ impl Executable for CommandTask {
                     error,
                 } = self
                     .shell
-                    .run(
-                        &self.script,
-                        self.args
-                            .as_ref()
-                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                            .as_deref(),
-                        self.envs
-                            .as_ref()
-                            .map(|envs| {
-                                envs.iter()
-                                    .map(|(k, v)| (k.as_str(), v.as_str()))
-                                    .collect::<Vec<_>>()
-                            })
-                            .as_deref(),
-                    )
+                    .run(&self.script, args.as_deref(), envs.as_deref())
                     .map_err(ExecutableError::ShellError)?;
-                rayon::scope(|s| {
-                    s.spawn(|_| {
-                        while let Ok(r) = output.recv() {
-                            sender.outputs.send(r).unwrap();
-                        }
-                    });
-                    s.spawn(|_| {
-                        while let Ok(r) = error.recv() {
-                            sender.errors.send(r).unwrap();
-                        }
-                    });
-                });
+                redirect_output(sender, &output, &error)
             }
             Ok(())
         })
     }
+}
+
+pub fn redirect_output(
+    sender: &ExecutableSender,
+    output: &crossbeam::channel::Receiver<String>,
+    error: &crossbeam::channel::Receiver<String>,
+) {
+    rayon::scope(|s| {
+        s.spawn(|_| {
+            while let Ok(r) = output.recv() {
+                sender.message.send(r.into_info()).unwrap();
+            }
+        });
+        s.spawn(|_| {
+            while let Ok(r) = error.recv() {
+                sender.message.send(r.into_error()).unwrap();
+            }
+        });
+    });
 }
 
 #[cfg(test)]

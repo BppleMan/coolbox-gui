@@ -7,7 +7,7 @@ use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
 use crate::shell::ShellResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{redirect_output, Executable, ExecutableSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UninstallTask {
@@ -72,18 +72,7 @@ impl Executable for UninstallTask {
                     )
                     .map_err(|e| ExecutableError::ShellError(e))?;
 
-                rayon::scope(|s| {
-                    s.spawn(|_| {
-                        while let Ok(r) = output.recv() {
-                            sender.outputs.send(r).unwrap();
-                        }
-                    });
-                    s.spawn(|_| {
-                        while let Ok(r) = error.recv() {
-                            sender.errors.send(r).unwrap();
-                        }
-                    });
-                });
+                redirect_output(sender, &output, &error);
             }
             Ok(())
         })

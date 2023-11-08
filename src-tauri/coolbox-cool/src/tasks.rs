@@ -20,6 +20,7 @@ pub use which_task::*;
 use crate::installer::Installer;
 use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
+use crate::{ExecutableReceiver, ExecutableSender, ExecutableState};
 
 mod check_task;
 mod command_task;
@@ -35,56 +36,30 @@ mod move_task;
 mod uninstall_task;
 mod which_task;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub enum ExecutableState {
-    #[default]
-    NotStarted,
-    Running,
-    Finished,
-    Error,
-}
-
-pub struct ExecutableReceiver {
-    pub state: crossbeam::channel::Receiver<ExecutableState>,
-    pub outputs: crossbeam::channel::Receiver<String>,
-    pub errors: crossbeam::channel::Receiver<String>,
-}
-
-pub struct ExecutableSender {
-    pub state: crossbeam::channel::Sender<ExecutableState>,
-    pub outputs: crossbeam::channel::Sender<String>,
-    pub errors: crossbeam::channel::Sender<String>,
-}
-
 pub fn executable_channel() -> (ExecutableSender, ExecutableReceiver) {
     let (state_tx, state_rx) = crossbeam::channel::unbounded();
     let (outputs_tx, outputs_rx) = crossbeam::channel::unbounded();
-    let (errors_tx, errors_rx) = crossbeam::channel::unbounded();
     (
         ExecutableSender {
             state: state_tx,
-            outputs: outputs_tx,
-            errors: errors_tx,
+            message: outputs_tx,
         },
         ExecutableReceiver {
             state: state_rx,
-            outputs: outputs_rx,
-            errors: errors_rx,
+            message: outputs_rx,
         },
     )
 }
 
 pub trait Executable: Display {
-    fn execute(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn execute(&mut self, sender: &ExecutableSender) {
         sender.state.send(ExecutableState::Running).unwrap();
         match self._run(sender) {
             Ok(_) => {
                 sender.state.send(ExecutableState::Finished).unwrap();
-                Ok(())
             }
             Err(e) => {
                 sender.state.send(ExecutableState::Error).unwrap();
-                Err(e)
             }
         }
     }
@@ -242,7 +217,8 @@ impl Tasks {
         let (sender, receiver) = executable_channel();
         self.0
             .iter_mut()
-            .try_for_each(|task| task.as_mut().execute(&sender))?;
+            .enumerate()
+            .for_each(|(i, task)| task.as_mut().execute(&sender));
         Ok(receiver)
     }
 }

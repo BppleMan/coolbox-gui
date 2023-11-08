@@ -6,6 +6,7 @@ pub use tracing::*;
 pub use cool::*;
 pub use cool_list::*;
 pub use extension::*;
+pub use task_state::*;
 pub use trace::*;
 
 mod cool;
@@ -16,6 +17,7 @@ pub mod installer;
 pub mod result;
 pub mod shell;
 pub mod state;
+mod task_state;
 pub mod tasks;
 mod trace;
 
@@ -32,8 +34,8 @@ lazy_static! {
 }
 
 pub fn render_str<'de, D>(d: D) -> Result<String, D::Error>
-    where
-        D: Deserializer<'de>,
+where
+    D: Deserializer<'de>,
 {
     String::deserialize(d).map(|s| s.render(&DEFAULT_TERA_CONTEXT, false).unwrap())
 }

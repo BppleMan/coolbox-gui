@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
 
+use crate::IntoMessage;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 
@@ -52,12 +53,11 @@ impl Executable for DownloadTask {
                         written += chunk.len() as u64;
                         file.write_all(&chunk).unwrap();
                         sender
-                            .outputs
-                            .send(format!(
-                                "downloaded {}/{}",
-                                written,
-                                total_size.unwrap_or(0)
-                            ))
+                            .message
+                            .send(
+                                format!("downloaded {}/{}", written, total_size.unwrap_or(0))
+                                    .into_info(),
+                            )
                             .unwrap();
                     }
                 })
