@@ -16,3 +16,9 @@ mat-checkbox {
 #check-card {
     border: 1px solid rgb(31,36,47) !important;
 }
+::ng-deep .mat-expansion-panel-body{
+    padding: 0 !important;
+}
+::ng-deep .mat-step-header {
+    padding: 8px !important
+}
