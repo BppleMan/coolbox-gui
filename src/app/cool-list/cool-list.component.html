@@ -1,7 +1,14 @@
-<div class="flex-1">
-    <mat-accordion multi displayMode="flat">
+<div class="mx-10">
+    <mat-checkbox
+    [checked]="allSelected"
+    [indeterminate]="someSelected"
+    (change)="selectAll($event.checked)"
+          class="-ml-3 flex-shrink-0" >
+        已选{{selectedCount}}项
+      </mat-checkbox>
+    <mat-accordion class="grow" multi displayMode="flat">
         <mat-list>
-            <app-cool-card *ngFor="let cool of cool_list$ | async" [cool]="cool"></app-cool-card>
+            <app-cool-card *ngFor="let cool of all_cool_list$ |async" [coolListItem]="cool" (selectEvent)="updateSelectedCount($event)"></app-cool-card>
         </mat-list>
     </mat-accordion>
 </div>

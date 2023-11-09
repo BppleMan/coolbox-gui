@@ -8,9 +8,9 @@ import {MatCheckboxModule} from "@angular/material/checkbox"
 import {MatDividerModule} from "@angular/material/divider"
 import {MatExpansionModule} from "@angular/material/expansion"
 import {MatListModule} from "@angular/material/list"
-import {Observable} from "rxjs"
+import {BehaviorSubject, Observable} from "rxjs"
 import {CoolCardComponent} from "../cool-card/cool-card.component"
-import {Cool} from "../model/models"
+import {Cool, CoolListItem} from "../model/models"
 import {CoolService} from "../service/cool.service"
 
 @Component({
@@ -23,7 +23,8 @@ import {CoolService} from "../service/cool.service"
 })
 export class CoolListComponent implements OnInit {
     cool_list$!: Observable<Cool[]>;
-
+    all_cool_list$ = new BehaviorSubject<CoolListItem[]>([]);
+    allSelected = false;
     constructor(private cool_service: CoolService) {
     }
 
@@ -31,6 +32,30 @@ export class CoolListComponent implements OnInit {
         this.cool_list$ = this.cool_service.cool_list();
         this.cool_list$.subscribe((cool_list: Cool[]) => {
             console.log("cool_list", cool_list);
+            const newAllCoolList = cool_list.map((cool: Cool) => ({item: cool, selected: false}));
+            this.all_cool_list$.next(newAllCoolList);
         });
     }
+    get selectedCount(): number {
+        return this.all_cool_list$.value.filter(item => item.selected).length;
+    }
+    get someSelected() {
+        return this.selectedCount > 0 && !this.allSelected;
+    }
+    updateSelectedCount(selectedItem: CoolListItem) {
+        // update the all_cool_list array
+        const newAllCoolList = this.all_cool_list$.value.map(item => {
+            if (item.item.name === selectedItem.item.name) {
+                return { ...item, selected: selectedItem.selected };
+            }
+            return item;
+        });
+        this.all_cool_list$.next(newAllCoolList);
+    }
+    selectAll(isSelected: boolean) {
+        this.allSelected = isSelected;
+        const newAllCoolList = this.all_cool_list$.value.map(item => ({ ...item, selected: isSelected }));
+        this.all_cool_list$.next(newAllCoolList);
+    }
+    
 }

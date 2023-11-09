@@ -1,26 +1,25 @@
-<div id="check-card"
-     class="relative flex flex-row p-2 mb-2 rounded-xl items-start select-none bg-[#101828]"
+<div
+     class="cool-card box-border relative flex flex-row p-4 pb-12 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{selected ? 'selected' : ''}}"
+     (click)="toggle_select($event)"
 >
-    
-    <mat-expansion-panel #expansionPanel hideToggle class="grow shadow-none">
-        <mat-expansion-panel-header class="p-0 h-auto {{expanded ? 'pb-6' : 'pb-12' }}" (click)="$event.preventDefault()">
+    <mat-expansion-panel #expansionPanel hideToggle class="grow shadow-none" [expanded]="expanded" (opened)="setOpened()" (closed)="setClosed()">
+        <mat-expansion-panel-header class="p-0 h-auto  " #panelH (click)="panelH._toggle()">
             <div class="flex grow">
-                <mat-checkbox class="self-start" disableRipple="false" color="primary" [checked]="selected" (click)="$event.stopPropagation()"></mat-checkbox>
-                <div class="flex grow flex-col pt-1">
-                    <div class="text-lg">{{cool.name}}</div>
-                    <div class="text-base text-[#CECFD2] font-normal leading-6">{{cool.description}}</div>
+                <div class="flex grow flex-col">
+                    <div class="text-lg">{{coolListItem.item.name}}</div>
+                    <div class="text-base text-[#CECFD2] font-normal leading-6">{{coolListItem.item.description}}</div>
                     
                 </div>
             </div>
                 
-            <button mat-raised-button color="primary" class="mt-2 ml-auto flex-shrink-0 rounded-md " (click)="$event.stopPropagation()">
+            <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="$event.stopPropagation()">
                 Install
             </button>
             
         </mat-expansion-panel-header>
-        <mat-divider ></mat-divider>
+        <mat-divider class="my-2"></mat-divider>
         <mat-stepper orientation="vertical" linear="true" #stepper >
-            <mat-step *ngFor="let task of cool.install_tasks">
+            <mat-step *ngFor="let task of coolListItem.item.install_tasks">
                 <ng-template matStepLabel>{{task.name}}</ng-template>
                 {{task.description}}
             </mat-step>
@@ -30,7 +29,7 @@
         </div>
         
     </mat-expansion-panel>
-    <div class="absolute left-2 right-2 bottom-2 flex grow items-center justify-center py-2 bg-[#0C111D]" (click)="toggle_panel($event)">
-        <img class="w-5 h-5 block " src="assets/images/ic_expand_down.png" />
+    <div class="toggle-panel cursor-pointer absolute left-0 right-0 bottom-0 flex grow items-center justify-center py-2" (click)="toggle_panel($event)">
+        <img class="img-expand w-5 h-5 block {{expanded ? 'img-rotate' : ''}}" src="assets/images/ic_expand_down.png"/>
     </div>
 </div>

@@ -1,5 +1,5 @@
 import {CommonModule} from "@angular/common"
-import {Component, Input, ViewChild} from "@angular/core"
+import {Component, EventEmitter, Input, OnChanges, Output, ViewChild} from "@angular/core"
 import {MatButtonModule} from "@angular/material/button"
 import {MatCheckboxModule} from "@angular/material/checkbox"
 import {MatRippleModule} from "@angular/material/core"
@@ -7,7 +7,7 @@ import {MatExpansionModule, MatExpansionPanel} from "@angular/material/expansion
 import {MatIconModule} from "@angular/material/icon"
 import {MatStepperModule} from "@angular/material/stepper"
 import {MatDividerModule} from "@angular/material/divider"
-import {Cool} from "../model/models"
+import {Cool, CoolListItem} from "../model/models"
 import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
 
 @Component({
@@ -29,25 +29,36 @@ import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
         },
     ]
 })
-export class CoolCardComponent {
+export class CoolCardComponent implements OnChanges {
     @ViewChild("expansionPanel") panel!: MatExpansionPanel
-    @Input() cool!: Cool
+    @Input() coolListItem!: CoolListItem
+    @Output() selectEvent = new EventEmitter<CoolListItem>();
     selected = false
     expanded = false
     consoleCode = 'mkdir xxx-project && cp a b'
     constructor() {
     }
-
-    // toggle_panel(event: MouseEvent) {
-    //     event.preventDefault()
-    //     event.stopPropagation()
-    //     this.panel.toggle()
-    // }
+    ngOnChanges() {
+        console.log('ngOnChanges', this.coolListItem)
+        this.selected = this.coolListItem.selected
+    }
+    toggle_select(event: MouseEvent) {
+        event.preventDefault()
+        event.stopPropagation()
+        this.selected = !this.selected
+        this.selectEvent.emit({item: this.coolListItem.item, selected: this.selected})
+    }
 
     toggle_panel(event: MouseEvent) {
         console.log('toggle_selected')
         event.preventDefault()
-        this.expanded = !this.expanded
+        event.stopPropagation()
         this.panel.toggle()
+    }
+    setOpened() {
+        this.expanded = true
+    }
+    setClosed() {
+        this.expanded = false
     }
 }

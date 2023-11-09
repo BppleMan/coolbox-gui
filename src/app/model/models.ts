@@ -11,3 +11,8 @@ export interface Task {
     name: string;
     description: string;
 }
+
+export interface CoolListItem {
+    item: Cool;
+    selected: boolean;
+}
