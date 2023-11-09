@@ -32,11 +32,11 @@ impl Display for WhichTask {
     }
 }
 
-impl Executable for WhichTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for WhichTask {
+    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         match which(&self.command) {
             Ok(result) => {
-                sender.send(result.to_string_lossy().into_info()).unwrap();
+                send(result.to_string_lossy().into_info());
                 Ok(())
             }
             Err(_) => {

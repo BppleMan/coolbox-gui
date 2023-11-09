@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub enum ExecutableMessageType {
@@ -15,13 +16,18 @@ pub struct ExecutableMessage {
     pub message: String,
 }
 
-pub type ExecutableReceiver = crossbeam::channel::Receiver<ExecutableMessage>;
+// pub type ExecutableReceiver = crossbeam::channel::Receiver<ExecutableMessage>;
+//
+// pub type ExecutableSender = crossbeam::channel::Sender<ExecutableMessage>;
+//
+// pub fn executable_channel() -> (ExecutableSender, ExecutableReceiver) {
+//     crossbeam::channel::unbounded()
+// }
 
-pub type ExecutableSender = crossbeam::channel::Sender<ExecutableMessage>;
-
-pub fn executable_channel() -> (ExecutableSender, ExecutableReceiver) {
-    crossbeam::channel::unbounded()
-}
+pub type ExecutableSender<'a> = dyn FnMut(ExecutableMessage) + 'a;
+// pub trait ExecutableSender {
+//     fn send(&mut self, message: ExecutableMessage);
+// }
 
 pub trait IntoInfo {
     fn into_info(self) -> ExecutableMessage;

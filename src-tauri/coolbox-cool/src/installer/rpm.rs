@@ -1,10 +1,12 @@
 use std::process::Command;
 
+use crossbeam::channel::Sender;
 use log::info;
 
 use crate::installer::Installable;
 use crate::result::CoolResult;
-use crate::shell::{ShellExecutor, ShellResult};
+use crate::shell::ShellExecutor;
+use crate::ExecutableMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Rpm;
@@ -22,7 +24,12 @@ impl Installable for Rpm {
         "rpm"
     }
 
-    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
         info!("installing {} with rpm", name);
 
         let mut arguments = vec![];
@@ -31,10 +38,15 @@ impl Installable for Rpm {
         }
         arguments.push(name);
 
-        self.run("-i", Some(&arguments), None)
+        self.run("-i", Some(&arguments), None, Some(sender))
     }
 
-    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
         info!("uninstalling {} with rpm", name);
 
         let mut arguments = vec![];
@@ -43,13 +55,13 @@ impl Installable for Rpm {
         }
         arguments.push(name);
 
-        self.run("-e", Some(&arguments), None)
+        self.run("-e", Some(&arguments), None, Some(sender))
     }
 
     fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {}", name);
 
-        self.run("-q", Some(vec![name].as_slice()), None)
+        self.run("-q", Some(vec![name].as_slice()), None, None)
             .map(|_| true)
             .or_else(|_| Ok(false))
     }

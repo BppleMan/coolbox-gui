@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 
+use crossbeam::channel::Sender;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use apt::*;
@@ -11,7 +12,7 @@ pub use rpm::*;
 pub use yum::*;
 
 use crate::result::CoolResult;
-use crate::shell::ShellResult;
+use crate::ExecutableMessage;
 
 mod apt;
 mod brew;
@@ -23,9 +24,19 @@ mod yum;
 pub trait Installable {
     fn name(&self) -> &'static str;
 
-    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()>;
 
-    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()>;
 
     fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
 }
@@ -71,12 +82,22 @@ impl Installable for Installer {
         self.as_ref().name()
     }
 
-    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
-        self.as_ref().install(name, args)
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
+        self.as_ref().install(name, args, sender)
     }
 
-    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
-        self.as_ref().uninstall(name, args)
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
+        self.as_ref().uninstall(name, args, sender)
     }
 
     fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool> {

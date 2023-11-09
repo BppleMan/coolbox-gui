@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
-use crate::shell::{Shell, ShellExecutor, ShellResult};
+use crate::shell::{Shell, ShellExecutor};
 use crate::tasks::{Executable, ExecutableSender};
-use crate::{IntoError, IntoInfo};
+use crate::ExecutableMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CommandTask {
@@ -58,8 +58,8 @@ impl Display for CommandTask {
     }
 }
 
-impl Executable for CommandTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for CommandTask {
+    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         info!("{}", self);
         let args = self
             .args
@@ -71,37 +71,23 @@ impl Executable for CommandTask {
                 .collect::<Vec<_>>()
         });
 
-        let ShellResult {
-            input: _input,
-            output,
-            error,
-        } = self
-            .shell
-            .run(&self.script, args.as_deref(), envs.as_deref())
-            .map_err(ExecutableError::ShellError)?;
-        redirect_output(sender, &output, &error);
+        let (tx1, rx1) = crossbeam::channel::unbounded::<ExecutableMessage>();
+        let (tx2, rx2) = crossbeam::channel::bounded(1);
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let result = self
+                    .shell
+                    .run(&self.script, args.as_deref(), envs.as_deref(), Some(tx1))
+                    .map_err(ExecutableError::ShellError);
+                tx2.send(result).unwrap();
+            });
+        });
+        while let Ok(message) = rx1.recv() {
+            send(message);
+        }
 
-        Ok(())
+        rx2.recv().unwrap()
     }
-}
-
-pub fn redirect_output(
-    sender: &ExecutableSender,
-    output: &crossbeam::channel::Receiver<String>,
-    error: &crossbeam::channel::Receiver<String>,
-) {
-    rayon::scope(|s| {
-        s.spawn(|_| {
-            while let Ok(r) = output.recv() {
-                sender.send(r.into_info()).unwrap();
-            }
-        });
-        s.spawn(|_| {
-            while let Ok(r) = error.recv() {
-                sender.send(r.into_error()).unwrap();
-            }
-        });
-    });
 }
 
 #[cfg(test)]
@@ -109,7 +95,7 @@ mod test {
     use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::shell::{Sh, Shell};
-    use crate::tasks::{spawn_task, CommandTask};
+    use crate::tasks::{spawn_task, CommandTask, Executable};
 
     #[test]
     fn test_serialize() -> CoolResult<()> {
@@ -121,9 +107,9 @@ mod test {
         pretty_assertions::assert_eq!(expect, command);
 
         let mut outputs = String::new();
-        spawn_task(command, |msg| {
+        command.execute(Box::new(|msg| {
             outputs.push_str(&msg.message);
-        })?;
+        }))?;
         pretty_assertions::assert_eq!("hello\n".to_string(), outputs);
         Ok(())
     }
@@ -138,7 +124,8 @@ mod test {
             None,
             Shell::Sh(Sh),
         );
-        spawn_task(command, |_| {})?;
+        command.execute(Box::new(|_| {}))?;
+        // spawn_task(command, |_| {})?;
         Ok(())
     }
 

@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
-use crate::shell::ShellResult;
-use crate::tasks::{redirect_output, Executable, ExecutableSender};
+use crate::tasks::{Executable, ExecutableSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UninstallTask {
@@ -50,24 +49,29 @@ impl Display for UninstallTask {
     }
 }
 
-impl Executable for UninstallTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
-        let ShellResult {
-            input: _input,
-            output,
-            error,
-        } = self
-            .installer
-            .uninstall(
-                &self.name,
-                self.args
-                    .as_ref()
-                    .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                    .as_deref(),
-            )
-            .map_err(ExecutableError::ShellError)?;
-
-        redirect_output(sender, &output, &error);
-        Ok(())
+impl<'a> Executable<'a> for UninstallTask {
+    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+        let (tx1, rx1) = crossbeam::channel::unbounded();
+        let (tx2, rx2) = crossbeam::channel::bounded(1);
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let result = self
+                    .installer
+                    .uninstall(
+                        &self.name,
+                        self.args
+                            .as_ref()
+                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                            .as_deref(),
+                        tx1,
+                    )
+                    .map_err(ExecutableError::ShellError);
+                tx2.send(result).unwrap();
+            });
+        });
+        while let Ok(msg) = rx1.recv() {
+            send(msg);
+        }
+        rx2.recv().unwrap()
     }
 }

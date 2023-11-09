@@ -1,10 +1,9 @@
-use color_eyre::eyre::eyre;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-use crate::COOL_LIST;
+use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use crossbeam::channel::Receiver;
 use lazy_static::lazy_static;
@@ -12,6 +11,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
+use crate::COOL_LIST;
 use crate::error::InstallError;
 use crate::result::CoolResult;
 use crate::state::CoolState;
@@ -144,10 +144,10 @@ impl PartialOrd for Cool {
 
 #[cfg(test)]
 mod test {
+    use crate::{Cool, COOL_LIST, init_backtrace};
     use crate::result::CoolResult;
     use crate::shell::{MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
-    use crate::{init_backtrace, Cool, COOL_LIST};
 
     #[test]
     fn test_cool() -> CoolResult<()> {

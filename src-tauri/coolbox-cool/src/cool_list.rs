@@ -4,12 +4,12 @@ use std::sync::{Arc, RwLock};
 
 use color_eyre::eyre::eyre;
 use dashmap::DashMap;
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use once_cell::sync::Lazy;
 use tracing::error;
 
-use crate::error::TransformError;
 use crate::Cool;
+use crate::error::TransformError;
 
 #[derive(Debug, Clone)]
 pub struct SafeCool(Arc<RwLock<Cool>>);
@@ -64,8 +64,8 @@ impl FromStr for SafeCool {
 
 #[cfg(test)]
 mod test {
+    use crate::{COOL_LIST, init_backtrace};
     use crate::result::CoolResult;
-    use crate::{init_backtrace, COOL_LIST};
 
     #[test]
     fn test_cool_list() -> CoolResult<()> {

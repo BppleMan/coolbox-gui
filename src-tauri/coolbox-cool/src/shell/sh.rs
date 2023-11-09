@@ -21,9 +21,15 @@ mod test {
     fn test() -> CoolResult<()> {
         init_backtrace();
         let script = reqwest::blocking::get("https://sh.rustup.rs")?.text()?;
-        Sh.run(&script, Some(&["-h"]), None)?;
-        Bash.run(&script, Some(&["-h"]), None)?;
-        Zsh.run(&script, Some(&["-h"]), None)?;
+        let (sender, receiver) = crossbeam::channel::unbounded();
+        rayon::spawn(move || {
+            receiver.iter().for_each(|message| {
+                println!("{}", message);
+            });
+        });
+        Sh.run(&script, Some(&["-h"]), None, Some(sender.clone()))?;
+        Bash.run(&script, Some(&["-h"]), None, Some(sender.clone()))?;
+        Zsh.run(&script, Some(&["-h"]), None, Some(sender))?;
         Ok(())
     }
 }

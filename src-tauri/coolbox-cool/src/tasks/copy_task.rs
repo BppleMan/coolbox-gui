@@ -35,8 +35,8 @@ impl Display for CopyTask {
     }
 }
 
-impl Executable for CopyTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for CopyTask {
+    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {
@@ -44,7 +44,7 @@ impl Executable for CopyTask {
                 .skip_exist(true)
                 .copy_inside(true);
             fs_extra::dir::copy_with_progress(&self.src, &self.dest, &options, |transit| {
-                sender.send(transit.as_info()).unwrap();
+                send(transit.as_info());
                 TransitProcessResult::OverwriteAll
             })?;
         } else {
@@ -56,16 +56,12 @@ impl Executable for CopyTask {
                     dest.join(file_name),
                     &options,
                     |transit| {
-                        sender
-                            .send(transit.as_info(dest.to_string_lossy()))
-                            .unwrap();
+                        send(transit.as_info(dest.to_string_lossy()));
                     },
                 )?;
             } else {
                 fs_extra::file::copy_with_progress(&self.src, &self.dest, &options, |transit| {
-                    sender
-                        .send(transit.as_info(dest.to_string_lossy()))
-                        .unwrap();
+                    send(transit.as_info(dest.to_string_lossy()));
                 })?;
             }
         }

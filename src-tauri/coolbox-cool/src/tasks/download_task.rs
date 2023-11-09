@@ -1,12 +1,12 @@
-use color_eyre::eyre::eyre;
 use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
 
-use crate::error::ExecutableError;
-use futures::StreamExt;
+use color_eyre::eyre::eyre;
+use futures::stream::StreamExt;
 use serde::{Deserialize, Serialize};
 
+use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
 use crate::IntoInfo;
@@ -29,17 +29,18 @@ impl Display for DownloadTask {
     }
 }
 
-impl Executable for DownloadTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for DownloadTask {
+    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         let url = self.url.clone();
         let dest = self.dest.clone();
-        let sender = sender.clone();
-        std::thread::spawn(move || {
+        let (tx, rx) = crossbeam::channel::bounded(1);
+        let (msg_tx, msg_rx) = crossbeam::channel::unbounded();
+        rayon::spawn(move || {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .unwrap();
-            rt.block_on(async {
+            let result = rt.block_on(async {
                 let res = reqwest::get(&url)
                     .await
                     .map_err(|e| ExecutableError::ReqwestError(eyre!(e)))?;
@@ -54,7 +55,7 @@ impl Executable for DownloadTask {
                 while let Some(Ok(chunk)) = bytes_stream.next().await {
                     written += chunk.len() as u64;
                     file.write_all(&chunk).unwrap();
-                    sender
+                    msg_tx
                         .send(
                             format!("downloaded {}/{}", written, total_size.unwrap_or(0))
                                 .into_info(),
@@ -62,10 +63,13 @@ impl Executable for DownloadTask {
                         .unwrap();
                 }
                 ExecutableResult::Ok(())
-            })
-        })
-        .join()
-        .unwrap()?;
+            });
+            tx.send(result).unwrap();
+        });
+        while let Ok(msg) = msg_rx.recv() {
+            send(msg);
+        }
+        rx.recv().unwrap()?;
         Ok(())
     }
 }

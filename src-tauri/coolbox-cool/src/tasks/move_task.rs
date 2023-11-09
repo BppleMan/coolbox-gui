@@ -35,8 +35,8 @@ impl Display for MoveTask {
     }
 }
 
-impl Executable for MoveTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for MoveTask {
+    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {
@@ -45,7 +45,7 @@ impl Executable for MoveTask {
                 &self.dest,
                 &CopyOptions::new().skip_exist(true).copy_inside(true),
                 |transit| {
-                    sender.send(transit.as_info()).unwrap();
+                    send(transit.as_info());
                     TransitProcessResult::OverwriteAll
                 },
             )?;
@@ -58,9 +58,7 @@ impl Executable for MoveTask {
                     dest.join(file_name),
                     &options,
                     |transit| {
-                        sender
-                            .send(transit.as_info(dest.to_string_lossy()))
-                            .unwrap();
+                        send(transit.as_info(dest.to_string_lossy()));
                     },
                 )?;
             } else {
@@ -69,9 +67,7 @@ impl Executable for MoveTask {
                     &self.dest,
                     &options,
                     |transit| {
-                        sender
-                            .send(transit.as_info(dest.to_string_lossy()))
-                            .unwrap();
+                        send(transit.as_info(dest.to_string_lossy()));
                     },
                 )?;
             }

@@ -30,7 +30,7 @@ impl DecompressTask {
         Self { src, dest }
     }
 
-    pub fn decompress_zip(&self, sender: &ExecutableSender) -> ExecutableResult {
+    pub fn decompress_zip(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
         let mut archive = ZipArchive::new(File::open(&self.src)?)?;
         let root_dirs = (0..archive.len()).try_fold(HashSet::new(), |mut set, i| {
             let entry = archive.by_index(i)?;
@@ -67,16 +67,12 @@ impl DecompressTask {
                     let out_path = dest.join(file_path.strip_prefix(root_dir)?);
                     if file.name().ends_with('/') {
                         fs::create_dir_all(&out_path)?;
-                        sender
-                            .send(format!("create dir: {}", out_path.display()).into_info())
-                            .unwrap();
+                        send(format!("create dir: {}", out_path.display()).into_info());
                     } else {
                         if let Some(parent) = out_path.parent() {
                             if !parent.exists() {
                                 fs::create_dir_all(parent)?;
-                                sender
-                                    .send(format!("create dir: {}", parent.display()).into_info())
-                                    .unwrap();
+                                send(format!("create dir: {}", parent.display()).into_info());
                             }
                         }
                         if cfg!(unix)
@@ -91,16 +87,12 @@ impl DecompressTask {
                                 &out_path,
                                 fs::Permissions::from_mode(file.unix_mode().unwrap()),
                             )?;
-                            sender
-                                .send(format!("create symlink: {}", out_path.display()).into_info())
-                                .unwrap();
+                            send(format!("create symlink: {}", out_path.display()).into_info());
                             continue;
                         }
                         let mut outfile = File::create(&out_path)?;
                         io::copy(&mut file, &mut outfile)?;
-                        sender
-                            .send(format!("create file: {}", out_path.display()).into_info())
-                            .unwrap();
+                        send(format!("create file: {}", out_path.display()).into_info());
                     }
                 }
             }
@@ -108,7 +100,7 @@ impl DecompressTask {
         Ok(())
     }
 
-    pub fn decompress_tar_gz(&self, sender: &ExecutableSender) -> ExecutableResult {
+    pub fn decompress_tar_gz(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
         let file = fs::File::open(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if dest.is_file() {
@@ -119,17 +111,13 @@ impl DecompressTask {
             .ok_or_else(|| ExecutableError::PathNoParent(eyre!("{}", dest.display())))?;
         if !parent.exists() {
             fs::create_dir_all(parent)?;
-            sender
-                .send(format!("create dir: {}", parent.display()).into_info())
-                .unwrap();
+            send(format!("create dir: {}", parent.display()).into_info());
         }
 
         let decoder = flate2::read::GzDecoder::new(file);
         let mut archive = tar::Archive::new(decoder);
         fs::create_dir_all(&dest)?;
-        sender
-            .send(format!("create dir: {}", dest.display()).into_info())
-            .unwrap();
+        send(format!("create dir: {}", dest.display()).into_info());
         let entries = archive.entries()?.flatten().collect::<Vec<_>>();
         let root_dirs = entries.iter().try_fold(HashSet::new(), |mut set, entry| {
             if let Some(parent) = entry.path()?.parent() {
@@ -156,16 +144,12 @@ impl DecompressTask {
             match root_dir.as_ref() {
                 None => {
                     entry.unpack_in(&dest)?;
-                    sender
-                        .send(format!("create file: {}", entry.path()?.display()).into_info())
-                        .unwrap();
+                    send(format!("create file: {}", entry.path()?.display()).into_info());
                 }
                 Some(root_dir) => {
                     let dest_path = dest.join(entry.path()?.strip_prefix(root_dir)?);
                     entry.unpack(&dest_path)?;
-                    sender
-                        .send(format!("create file: {}", dest_path.display()).into_info())
-                        .unwrap();
+                    send(format!("create file: {}", dest_path.display()).into_info());
                 }
             }
         }
@@ -185,12 +169,12 @@ impl Display for DecompressTask {
     }
 }
 
-impl Executable for DecompressTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for DecompressTask {
+    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         if self.src.ends_with(".zip") {
-            self.decompress_zip(sender)
+            self.decompress_zip(send)
         } else if self.src.ends_with(".tar.gz") {
-            self.decompress_tar_gz(sender)
+            self.decompress_tar_gz(send)
         } else {
             Err(ExecutableError::UnsupportedCompressType(eyre!(
                 "Not support: {}",

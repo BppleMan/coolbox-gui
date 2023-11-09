@@ -31,8 +31,8 @@ impl Display for ExistsTask {
     }
 }
 
-impl Executable for ExistsTask {
-    fn _run(&self, _sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for ExistsTask {
+    fn _run(&self, _send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         if Path::new(&self.path).exists() {
             Ok(())
         } else {

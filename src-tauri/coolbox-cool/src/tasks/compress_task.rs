@@ -29,7 +29,8 @@ impl CompressTask {
     pub fn new(src: String, dest: String) -> Self {
         Self { src, dest }
     }
-    pub fn compress_zip(&self, sender: &ExecutableSender) -> ExecutableResult {
+
+    pub fn compress_zip(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let parent = src
             .parent()
@@ -43,9 +44,7 @@ impl CompressTask {
                     entry.path().strip_prefix(parent)?.display().to_string(),
                     FileOptions::default(),
                 )?;
-                sender
-                    .send(format!("Add directory {}", entry.path().display()).into_info())
-                    .unwrap();
+                send(format!("Add directory {}", entry.path().display()).into_info());
             } else if entry.file_type().is_file() {
                 zip.start_file(
                     entry.path().strip_prefix(parent)?.display().to_string(),
@@ -55,18 +54,14 @@ impl CompressTask {
                 let mut buf = vec![];
                 file.read_to_end(&mut buf)?;
                 zip.write_all(&buf)?;
-                sender
-                    .send(format!("Add file {}", entry.path().display()).into_info())
-                    .unwrap();
+                send(format!("Add file {}", entry.path().display()).into_info());
             } else if entry.file_type().is_symlink() {
                 zip.add_symlink(
                     entry.path().strip_prefix(parent)?.display().to_string(),
                     entry.path().read_link()?.display().to_string(),
                     FileOptions::default().compression_method(CompressionMethod::Stored),
                 )?;
-                sender
-                    .send(format!("Add symlink {}", entry.path().display()).into_info())
-                    .unwrap();
+                send(format!("Add symlink {}", entry.path().display()).into_info());
             }
         }
         zip.finish()?;
@@ -74,7 +69,7 @@ impl CompressTask {
         Ok(())
     }
 
-    pub fn compress_tar_gz(&self, sender: &ExecutableSender) -> ExecutableResult {
+    pub fn compress_tar_gz(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let dest = File::create(&self.dest)?;
 
@@ -83,9 +78,7 @@ impl CompressTask {
         tar.follow_symlinks(false);
         tar.append_dir_all(src.file_name().unwrap(), &self.src)?;
         tar.finish()?;
-        sender
-            .send(format!("Add directory {}", &self.src).into_info())
-            .unwrap();
+        send(format!("Add directory {}", &self.src).into_info());
 
         Ok(())
     }
@@ -103,12 +96,12 @@ impl Display for CompressTask {
     }
 }
 
-impl Executable for CompressTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for CompressTask {
+    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         if self.dest.ends_with(".zip") {
-            self.compress_zip(sender)
+            self.compress_zip(send)
         } else if self.dest.ends_with(".tar.gz") {
-            self.compress_tar_gz(sender)
+            self.compress_tar_gz(send)
         } else {
             let error =
                 ExecutableError::UnsupportedCompressType(eyre!("Not support: {}", self.dest));

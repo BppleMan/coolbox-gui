@@ -1,10 +1,12 @@
 use std::process::Command;
 
+use crossbeam::channel::Sender;
 use tracing::info;
 
 use crate::installer::Installable;
 use crate::result::CoolResult;
-use crate::shell::{Sh, ShellExecutor, ShellResult};
+use crate::shell::{Sh, ShellExecutor};
+use crate::ExecutableMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Apt;
@@ -22,7 +24,12 @@ impl Installable for Apt {
         "apt"
     }
 
-    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
         info!("installing {} with apt-get", name);
 
         let mut arguments = vec!["-y"];
@@ -31,10 +38,15 @@ impl Installable for Apt {
         }
         arguments.push(name);
 
-        self.run("install", Some(&arguments), None)
+        self.run("install", Some(&arguments), None, Some(sender))
     }
 
-    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
         info!("uninstalling {} with apt-get", name);
 
         let mut arguments = vec!["-y", "--purge"];
@@ -43,14 +55,14 @@ impl Installable for Apt {
         }
         arguments.push(name);
 
-        self.run("remove", Some(&arguments), None)?;
-        self.run("autoremove", None, None)
+        self.run("remove", Some(&arguments), None, Some(sender.clone()))?;
+        self.run("autoremove", None, None, Some(sender))
     }
 
     fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {}", name);
 
-        Ok(Sh.run("dpkg", Some(&["-L", name]), None).is_ok())
+        Ok(Sh.run("dpkg", Some(&["-L", name]), None, None).is_ok())
     }
 }
 

@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
-use tracing::info;
 
 pub use check_task::*;
 pub use command_task::*;
@@ -18,13 +17,10 @@ pub use move_task::*;
 pub use uninstall_task::*;
 pub use which_task::*;
 
-use crate::error::ExecutableError;
 use crate::installer::Installer;
-use crate::result::{CoolResult, ExecutableResult};
+use crate::result::ExecutableResult;
 use crate::shell::Shell;
-use crate::{
-    executable_channel, ExecutableMessage, ExecutableReceiver, ExecutableSender, IntoError,
-};
+use crate::{ExecutableMessage, ExecutableSender};
 
 mod check_task;
 mod command_task;
@@ -40,35 +36,19 @@ mod move_task;
 mod uninstall_task;
 mod which_task;
 
-pub trait Executable: Display + Send + Sync {
-    fn execute(&self, sender: &ExecutableSender) -> ExecutableResult {
-        match self._run(sender) {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                sender.send(format!("{:?}", e).into_error()).unwrap();
-                Err(e)
-            }
-        }
+pub trait Executable<'a>: Display + Send + Sync {
+    fn execute(&self, sender: Box<ExecutableSender<'a>>) -> ExecutableResult {
+        self._run(sender)
     }
 
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult;
+    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult;
 }
 
-pub fn spawn_task(
-    task: impl Executable + Send + Sync + 'static,
-    mut message_cb: impl FnMut(ExecutableMessage),
-) -> CoolResult<(), ExecutableError> {
-    let (sender, receiver) = executable_channel();
-    let (tx, rx) = crossbeam::channel::bounded(1);
-    rayon::spawn(move || {
-        let sender = sender;
-        let tx = tx;
-        tx.send(task.execute(&sender)).unwrap()
-    });
-    while let Ok(message) = receiver.recv() {
-        message_cb(message);
-    }
-    rx.recv().unwrap()
+pub fn spawn_task<'a, F>(task: impl Executable<'a>, send: F) -> ExecutableResult
+where
+    F: FnMut(ExecutableMessage) + 'a,
+{
+    task.execute(Box::new(send))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, TaskRef)]
@@ -207,9 +187,9 @@ impl Display for Task {
     }
 }
 
-impl Executable for Task {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
-        self.as_ref()._run(sender)
+impl<'a> Executable<'a> for Task {
+    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+        self.as_ref()._run(send)
     }
 }
 
@@ -217,56 +197,10 @@ impl Executable for Task {
 pub struct Tasks(pub Vec<Task>);
 
 impl Tasks {
-    pub fn execute(&mut self) -> CoolResult<ExecutableReceiver> {
-        let (sender, receiver) = executable_channel();
-        let mut result = Ok(receiver.clone());
-        rayon::scope(|s| {
-            s.spawn(|_| {
-                if let Err(e) = self
-                    .0
-                    .iter_mut()
-                    .enumerate()
-                    .try_for_each(|(i, task)| task.as_mut().execute(&sender))
-                {
-                    result = Err(e.into());
-                }
-            });
-            s.spawn(|_| {
-                while let Ok(message) = receiver.recv() {
-                    info!("Message: {:?}", message);
-                }
-            });
-        });
-        result
+    pub fn execute(&self) -> ExecutableResult {
+        self.0
+            .iter()
+            .enumerate()
+            .try_for_each(|(i, task)| task.execute(Box::new(|message| {})))
     }
-
-    // fn wait<StateCB, MessageCB>(
-    //     &mut self,
-    //     state_cb: StateCB,
-    //     message_cb: MessageCB,
-    // ) -> ExecutableResult
-    //     where
-    //         StateCB: Fn(ExecutableState),
-    //         MessageCB: Fn(ExecutableMessage),
-    // {
-    //     let (sender, receiver) = executable_channel();
-    //     let mut result = Ok(());
-    //     rayon::scope(|s| {
-    //         s.spawn(|_| {
-    //             if let Err(e) = self.execute(&sender) {
-    //                 result = Err(e);
-    //             }
-    //         });
-    //         s.spawn(|_| {
-    //             while let Ok(state) = receiver.state.recv() {
-    //                 state_cb(state);
-    //             }
-    //         });
-    //         s.spawn(|_| {
-    //             while let Ok(message) = receiver.message.recv() {
-    //                 message_cb(message);
-    //             }
-    //         });
-    //     });
-    // }
 }

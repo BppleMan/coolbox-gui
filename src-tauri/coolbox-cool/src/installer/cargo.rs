@@ -1,10 +1,12 @@
 use std::process::Command;
 
+use crossbeam::channel::Sender;
 use tracing::info;
 
 use crate::installer::Installable;
 use crate::result::CoolResult;
-use crate::shell::{ShellExecutor, ShellResult};
+use crate::shell::ShellExecutor;
+use crate::ExecutableMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Cargo;
@@ -29,7 +31,12 @@ impl Installable for Cargo {
         "cargo"
     }
 
-    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
         info!("installing {} with cargo", name);
 
         let args = match args {
@@ -41,10 +48,15 @@ impl Installable for Cargo {
             }
         };
 
-        self.run("install", Some(&args), None)
+        self.run("install", Some(&args), None, Some(sender))
     }
 
-    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<ExecutableMessage>,
+    ) -> CoolResult<()> {
         info!("uninstalling {} with cargo", name);
 
         let args = match args {
@@ -56,13 +68,18 @@ impl Installable for Cargo {
             }
         };
 
-        self.run("uninstall", Some(&args), None)
+        self.run("uninstall", Some(&args), None, Some(sender))
     }
 
     fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {} with cargo", name);
-        let ShellResult { output, .. } = self.run("install", Some(&["--list"]), None)?;
-        let result = output.iter().collect::<Vec<_>>().join("\n");
+        let (sender, receiver) = crossbeam::channel::unbounded::<ExecutableMessage>();
+        self.run("install", Some(&["--list"]), None, Some(sender))?;
+        let result = receiver
+            .iter()
+            .map(|m| m.message)
+            .collect::<Vec<_>>()
+            .join("\n");
         Ok(result.contains(name))
     }
 }
@@ -76,11 +93,12 @@ mod test {
     #[test]
     fn install_bat() -> CoolResult<()> {
         init_backtrace();
+        let (sender, _) = crossbeam::channel::unbounded();
         if Cargo.check_available("zoxide", None)? {
-            Cargo.uninstall("zoxide", None)?;
+            Cargo.uninstall("zoxide", None, sender.clone())?;
         }
-        Cargo.install("zoxide", None)?;
-        Cargo.uninstall("zoxide", None)?;
+        Cargo.install("zoxide", None, sender.clone())?;
+        Cargo.uninstall("zoxide", None, sender.clone())?;
         Ok(())
     }
 }

@@ -27,16 +27,14 @@ impl Display for CheckTask {
     }
 }
 
-impl Executable for CheckTask {
-    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+impl<'a> Executable<'a> for CheckTask {
+    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
         self.installer
             .check_available(&self.name, None)
             .map_err(ExecutableError::ShellError)
             .and_then(|result| {
                 if result {
-                    sender
-                        .send(format!("{} is available", &self.name).into_info())
-                        .unwrap();
+                    send(format!("{} is available", &self.name).into_info());
                     Ok(())
                 } else {
                     Err(ExecutableError::NotAvailable(eyre!(
