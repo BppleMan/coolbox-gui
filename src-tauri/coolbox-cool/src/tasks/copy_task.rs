@@ -2,12 +2,12 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::IntoMessage;
 use fs_extra::dir::TransitProcessResult;
 use serde::{Deserialize, Serialize};
 
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
+use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CopyTask {
@@ -36,7 +36,7 @@ impl Display for CopyTask {
 }
 
 impl Executable for CopyTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {
@@ -44,20 +44,7 @@ impl Executable for CopyTask {
                 .skip_exist(true)
                 .copy_inside(true);
             fs_extra::dir::copy_with_progress(&self.src, &self.dest, &options, |transit| {
-                sender
-                    .message
-                    .send(
-                        format!(
-                            "{}({}/{}) total:{}/{}",
-                            transit.file_name,
-                            transit.copied_bytes,
-                            transit.total_bytes,
-                            transit.copied_bytes,
-                            transit.total_bytes,
-                        )
-                        .into_info(),
-                    )
-                    .unwrap();
+                sender.send(transit.as_info()).unwrap();
                 TransitProcessResult::OverwriteAll
             })?;
         } else {
@@ -70,30 +57,14 @@ impl Executable for CopyTask {
                     &options,
                     |transit| {
                         sender
-                            .message
-                            .send(
-                                format!(
-                                    "{}({}/{})",
-                                    file_name.to_string_lossy(),
-                                    transit.copied_bytes,
-                                    transit.total_bytes,
-                                )
-                                .into_info(),
-                            )
+                            .send(transit.as_info(dest.to_string_lossy()))
                             .unwrap();
                     },
                 )?;
             } else {
                 fs_extra::file::copy_with_progress(&self.src, &self.dest, &options, |transit| {
                     sender
-                        .message
-                        .send(
-                            format!(
-                                "{}({}/{})",
-                                self.src, transit.copied_bytes, transit.total_bytes,
-                            )
-                            .into_info(),
-                        )
+                        .send(transit.as_info(dest.to_string_lossy()))
                         .unwrap();
                 })?;
             }
@@ -110,7 +81,7 @@ mod test {
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::Executable;
+    use crate::tasks::spawn_task;
 
     #[test]
     fn copy_file() -> CoolResult<()> {
@@ -120,28 +91,28 @@ mod test {
         let source_file = NamedTempFile::with_prefix_in("source", base_dir.path())?;
 
         let dest_path = base_dir.path().join("dest");
-        super::CopyTask::new(
+        let task = super::CopyTask::new(
             source_file.path().to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
-        )
-        .execute()?;
+        );
+        spawn_task(task, |_| {})?;
         assert!(dest_path.exists());
 
         let dest_dir = Builder::new().prefix("dest").tempdir_in(base_dir.path())?;
         let dest_path = dest_dir.path();
-        super::CopyTask::new(
+        let task = super::CopyTask::new(
             source_file.path().to_string_lossy().to_string(),
             dest_path.to_string_lossy().to_string(),
-        )
-        .execute()?;
+        );
+        spawn_task(task, |_| {})?;
         assert!(dest_path.exists());
 
         let dest_path = dest_dir.path().join("dest");
-        super::CopyTask::new(
+        let task = super::CopyTask::new(
             source_file.path().to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
-        )
-        .execute()?;
+        );
+        spawn_task(task, |_| {})?;
         assert!(dest_path.exists());
 
         Ok(())
@@ -162,12 +133,11 @@ mod test {
         let _child_file2 = File::create(child_dir.join("child_file2"))?;
 
         let dest_dir = base_dir.path().join("dest");
-        // fs_extra::dir::create(&dest_dir, true)?;
-        super::CopyTask::new(
+        let task = super::CopyTask::new(
             source_dir.to_string_lossy().to_string(),
             dest_dir.to_string_lossy().to_string(),
-        )
-        .execute()?;
+        );
+        spawn_task(task, |_| {})?;
 
         assert!(dest_dir.exists());
         assert!(dest_dir.join("child_file").exists());

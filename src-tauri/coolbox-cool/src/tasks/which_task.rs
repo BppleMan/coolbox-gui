@@ -7,7 +7,7 @@ use which::which;
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
-use crate::IntoMessage;
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WhichTask {
@@ -33,13 +33,10 @@ impl Display for WhichTask {
 }
 
 impl Executable for WhichTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
         match which(&self.command) {
             Ok(result) => {
-                sender
-                    .message
-                    .send(result.to_string_lossy().into_info())
-                    .unwrap();
+                sender.send(result.to_string_lossy().into_info()).unwrap();
                 Ok(())
             }
             Err(_) => {
@@ -52,14 +49,21 @@ impl Executable for WhichTask {
 
 #[cfg(test)]
 mod test {
+    use crate::init_backtrace;
+    use crate::result::CoolResult;
+    use crate::tasks::spawn_task;
+
     use super::*;
 
     #[test]
     fn test_which() -> CoolResult<()> {
-        let mut which = WhichTask::new("ls".to_string());
-        which.execute()?;
-        assert_eq!(which.outputs.len(), 1);
-        pretty_assertions::assert_eq!(which.outputs[0], "/bin/ls");
+        init_backtrace();
+        let which = WhichTask::new("ls".to_string());
+        let mut outputs = String::new();
+        spawn_task(which, |msg| {
+            outputs.push_str(&msg.message);
+        })?;
+        pretty_assertions::assert_eq!(outputs, "/bin/ls");
         Ok(())
     }
 }

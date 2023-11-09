@@ -22,7 +22,7 @@ impl Installable for Apt {
         "apt"
     }
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("installing {} with apt-get", name);
 
         let mut arguments = vec!["-y"];
@@ -34,7 +34,7 @@ impl Installable for Apt {
         self.run("install", Some(&arguments), None)
     }
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("uninstalling {} with apt-get", name);
 
         let mut arguments = vec!["-y", "--purge"];
@@ -47,7 +47,7 @@ impl Installable for Apt {
         self.run("autoremove", None, None)
     }
 
-    fn check_available(&mut self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {}", name);
 
         Ok(Sh.run("dpkg", Some(&["-L", name]), None).is_ok())

@@ -29,7 +29,7 @@ impl Installable for Brew {
         "brew"
     }
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("installing {} with brew", name);
 
         let args = match args {
@@ -44,7 +44,7 @@ impl Installable for Brew {
         self.run("install", Some(&args), None)
     }
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("uninstalling {} with brew", name);
 
         let args = match args {
@@ -59,7 +59,7 @@ impl Installable for Brew {
         self.run("uninstall", Some(&args), None)
     }
 
-    fn check_available(&mut self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {} with brew", name);
 
         Ok(self.run("list", Some(&[name]), None).is_ok())

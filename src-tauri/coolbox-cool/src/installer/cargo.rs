@@ -29,7 +29,7 @@ impl Installable for Cargo {
         "cargo"
     }
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("installing {} with cargo", name);
 
         let args = match args {
@@ -44,7 +44,7 @@ impl Installable for Cargo {
         self.run("install", Some(&args), None)
     }
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("uninstalling {} with cargo", name);
 
         let args = match args {
@@ -59,7 +59,7 @@ impl Installable for Cargo {
         self.run("uninstall", Some(&args), None)
     }
 
-    fn check_available(&mut self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {} with cargo", name);
         let ShellResult { output, .. } = self.run("install", Some(&["--list"]), None)?;
         let result = output.iter().collect::<Vec<_>>().join("\n");

@@ -1,6 +1,6 @@
 name = "curl"
 description = "一个命令行http客户端"
-dependencies = ["brew"]
+dependencies = ["homebrew"]
 
 [[install_tasks]]
 [install_tasks.InstallTask]

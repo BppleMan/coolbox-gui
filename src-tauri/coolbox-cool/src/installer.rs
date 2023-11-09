@@ -23,11 +23,11 @@ mod yum;
 pub trait Installable {
     fn name(&self) -> &'static str;
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
+    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
+    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
 
-    fn check_available(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
+    fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -71,23 +71,23 @@ impl Installable for Installer {
         self.as_ref().name()
     }
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
-        self.as_mut().install(name, args)
+    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+        self.as_ref().install(name, args)
     }
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
-        self.as_mut().install(name, args)
+    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+        self.as_ref().uninstall(name, args)
     }
 
-    fn check_available(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<bool> {
-        self.as_mut().check_available(name, args)
+    fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool> {
+        self.as_ref().check_available(name, args)
     }
 }
 
 impl Serialize for Installer {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         serializer.serialize_str(self.as_ref().name())
     }
@@ -95,8 +95,8 @@ impl Serialize for Installer {
 
 impl<'de> Deserialize<'de> for Installer {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let name = String::deserialize(deserializer)?;
         match name.as_str() {

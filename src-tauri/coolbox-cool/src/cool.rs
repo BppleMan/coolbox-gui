@@ -1,11 +1,14 @@
+use color_eyre::eyre::eyre;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
+use crate::COOL_LIST;
 use color_eyre::Report;
 use crossbeam::channel::Receiver;
 use lazy_static::lazy_static;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -70,10 +73,7 @@ impl Cool {
 
         let (sender, receiver) = crossbeam::channel::bounded(1);
 
-        INSTALLING
-            .write()
-            .unwrap()
-            .insert(name.clone(), receiver.clone());
+        INSTALLING.write().unwrap().insert(name.clone(), receiver);
 
         let result = handle.join().unwrap()?;
         sender.send(())?;
@@ -100,10 +100,7 @@ impl Cool {
 
         let (sender, receiver) = crossbeam::channel::bounded(1);
 
-        UNINSTALLING
-            .write()
-            .unwrap()
-            .insert(name.clone(), receiver.clone());
+        UNINSTALLING.write().unwrap().insert(name.clone(), receiver);
 
         let result = handle.join().unwrap()?;
         sender.send(())?;
@@ -112,30 +109,19 @@ impl Cool {
         Ok(())
     }
 
-    fn install_dependencies(&self) -> CoolResult<Vec<Vec<String>>> {
-        todo!();
-        // let results = self
-        //     .dependencies
-        //     .par_iter()
-        //     .map(|d| {
-        //         if let Some(cool) = COOL_LIST.get(d) {
-        //             Ok(cool.write().unwrap().install()?)
-        //         } else {
-        //             Err(eyre!("{} not found", d))
-        //         }
-        //     })
-        //     .try_fold(Vec::new, |mut results, result| match result {
-        //         Ok(result) => {
-        //             results.extend(result);
-        //             Ok(results)
-        //         }
-        //         Err(e) => Err(e),
-        //     })
-        //     .try_reduce(Vec::new, |mut results, result| {
-        //         results.extend(result);
-        //         Ok(results)
-        //     })?;
-        // Ok(results)
+    fn install_dependencies(&self) -> CoolResult<()> {
+        self.dependencies.par_iter().try_for_each(|d| {
+            if let Some(cool) = COOL_LIST.get(d) {
+                Ok(cool.write().unwrap().install()?)
+            } else {
+                Err(eyre!(
+                    "Install dependency {} for {:?}, but not found",
+                    d,
+                    self
+                ))
+            }
+        })?;
+        Ok(())
     }
 
     pub fn check(&mut self) -> CoolResult<CoolState> {
@@ -161,7 +147,7 @@ mod test {
     use crate::result::CoolResult;
     use crate::shell::{MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
-    use crate::{init_backtrace, Cool};
+    use crate::{init_backtrace, Cool, COOL_LIST};
 
     #[test]
     fn test_cool() -> CoolResult<()> {
@@ -191,6 +177,14 @@ mod test {
         let string = toml::to_string(&brew_cool)?;
         println!("==========\n{}", string);
         toml::from_str::<Cool>(&string)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_install_curl() -> CoolResult<()> {
+        init_backtrace();
+        let curl = COOL_LIST.get("curl").unwrap();
+        curl.write().unwrap().install()?;
         Ok(())
     }
 }

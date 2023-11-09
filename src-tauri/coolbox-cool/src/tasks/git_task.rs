@@ -11,7 +11,7 @@ use tracing::info;
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
-use crate::IntoMessage;
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GitTask {
@@ -23,14 +23,14 @@ impl GitTask {
         Self { command }
     }
 
-    pub fn clone(&mut self, url: &str, dest: &str) -> ExecutableResult {
+    pub fn clone(&self, url: &str, dest: &str) -> ExecutableResult {
         let mut repo_builder = RepoBuilder::new();
         repo_builder.fetch_options(default_fetch_options());
         repo_builder.clone(url, Path::new(dest))?;
         Ok(())
     }
 
-    pub fn pull(&mut self, src: &str, sender: &ExecutableSender) -> ExecutableResult {
+    pub fn pull(&self, src: &str, sender: &ExecutableSender) -> ExecutableResult {
         let repo = Repository::open(src).map_err(|e| ExecutableError::GitError(eyre!(e)))?;
         let remotes = repo.remotes()?;
         let remote = match remotes.iter().find(|r| r == &Some("origin")) {
@@ -70,15 +70,12 @@ impl GitTask {
             Err(ExecutableError::GitError(error))
         } else {
             let msg = eyre!("already up to date");
-            sender
-                .message
-                .send(format!("{:?}", msg).into_info())
-                .unwrap();
+            sender.send(format!("{:?}", msg).into_info()).unwrap();
             Ok(())
         }
     }
 
-    pub fn checkout(&mut self, src: &str, branch: &str, create: bool) -> ExecutableResult {
+    pub fn checkout(&self, src: &str, branch: &str, create: bool) -> ExecutableResult {
         let repo = Repository::open(src)?;
         let branch = match repo.find_branch(branch, BranchType::Local) {
             Ok(branch) => Ok(branch),
@@ -148,7 +145,7 @@ impl Display for GitTask {
 }
 
 impl Executable for GitTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
         match self.command.clone() {
             GitCommand::Clone { .. } => {}
             GitCommand::Pull { src } => self.pull(&src, sender)?,
@@ -209,13 +206,14 @@ fn default_proxy_options<'po>() -> ProxyOptions<'po> {
 
 #[cfg(test)]
 mod test {
+    use std::env;
     use std::process::{Command, Stdio};
 
     use git2::Repository;
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::{Executable, GitCommand, GitTask};
+    use crate::tasks::{spawn_task, GitCommand, GitTask};
 
     #[test]
     fn test_pull() -> CoolResult<()> {
@@ -229,13 +227,14 @@ mod test {
         fs_extra::dir::create(&test_repo, true)?;
         let output = Command::new("bash")
             .arg("-c")
-            .arg(
+            .arg(format!(
                 "git init -b main
-git remote add origin https://bppleman:4875c8b28457f4b7c2535eb12bbc66d6@gitee.com/bppleman/proxy_config.git
+git remote add origin https://bppleman:{}@gitee.com/bppleman/proxy_config.git
 git fetch
 git remote -v
             ",
-            )
+                env::var("GITEE_TOKEN").unwrap()
+            ))
             .current_dir(&test_repo)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -243,11 +242,10 @@ git remote -v
             .wait_with_output()?;
         println!("{}", String::from_utf8(output.stdout)?);
 
-        GitTask::new(GitCommand::Pull {
+        let task = GitTask::new(GitCommand::Pull {
             src: test_repo.to_string_lossy().to_string(),
-        })
-        .execute()?;
-        println!("12");
+        });
+        spawn_task(task, |_| {})?;
         Ok(())
     }
 
@@ -278,23 +276,23 @@ git commit -m 'init'
             .wait_with_output()?;
         println!("{}", String::from_utf8(output.stdout)?);
 
-        GitTask::new(GitCommand::Checkout {
+        let task = GitTask::new(GitCommand::Checkout {
             src: checkout_dir.to_string_lossy().to_string(),
             branch: "dev".to_string(),
             create: true,
-        })
-        .execute()?;
+        });
+        spawn_task(task, |_| {})?;
 
         let repo = Repository::open(&checkout_dir)?;
         assert!(repo.find_branch("dev", git2::BranchType::Local).is_ok());
         pretty_assertions::assert_eq!(repo.head()?.shorthand(), Some("dev"));
 
-        GitTask::new(GitCommand::Checkout {
+        let task = GitTask::new(GitCommand::Checkout {
             src: checkout_dir.to_string_lossy().to_string(),
             branch: "main".to_string(),
             create: false,
-        })
-        .execute()?;
+        });
+        spawn_task(task, |_| {})?;
         pretty_assertions::assert_eq!(repo.head()?.shorthand(), Some("main"));
         Ok(())
     }

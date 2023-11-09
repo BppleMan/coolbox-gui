@@ -22,7 +22,7 @@ impl Installable for Rpm {
         "rpm"
     }
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("installing {} with rpm", name);
 
         let mut arguments = vec![];
@@ -34,7 +34,7 @@ impl Installable for Rpm {
         self.run("-i", Some(&arguments), None)
     }
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(&self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
         info!("uninstalling {} with rpm", name);
 
         let mut arguments = vec![];
@@ -46,7 +46,7 @@ impl Installable for Rpm {
         self.run("-e", Some(&arguments), None)
     }
 
-    fn check_available(&mut self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {}", name);
 
         self.run("-q", Some(vec![name].as_slice()), None)

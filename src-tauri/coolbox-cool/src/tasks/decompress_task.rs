@@ -15,7 +15,7 @@ use zip::ZipArchive;
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
-use crate::IntoMessage;
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DecompressTask {
@@ -68,7 +68,6 @@ impl DecompressTask {
                     if file.name().ends_with('/') {
                         fs::create_dir_all(&out_path)?;
                         sender
-                            .message
                             .send(format!("create dir: {}", out_path.display()).into_info())
                             .unwrap();
                     } else {
@@ -76,12 +75,11 @@ impl DecompressTask {
                             if !parent.exists() {
                                 fs::create_dir_all(parent)?;
                                 sender
-                                    .message
                                     .send(format!("create dir: {}", parent.display()).into_info())
                                     .unwrap();
                             }
                         }
-                        if cfg!(target_os = "unix")
+                        if cfg!(unix)
                             && file.unix_mode().is_some()
                             && file.unix_mode().unwrap() & 0o120000 == 0o120000
                         {
@@ -94,7 +92,6 @@ impl DecompressTask {
                                 fs::Permissions::from_mode(file.unix_mode().unwrap()),
                             )?;
                             sender
-                                .message
                                 .send(format!("create symlink: {}", out_path.display()).into_info())
                                 .unwrap();
                             continue;
@@ -102,7 +99,6 @@ impl DecompressTask {
                         let mut outfile = File::create(&out_path)?;
                         io::copy(&mut file, &mut outfile)?;
                         sender
-                            .message
                             .send(format!("create file: {}", out_path.display()).into_info())
                             .unwrap();
                     }
@@ -124,7 +120,6 @@ impl DecompressTask {
         if !parent.exists() {
             fs::create_dir_all(parent)?;
             sender
-                .message
                 .send(format!("create dir: {}", parent.display()).into_info())
                 .unwrap();
         }
@@ -133,7 +128,6 @@ impl DecompressTask {
         let mut archive = tar::Archive::new(decoder);
         fs::create_dir_all(&dest)?;
         sender
-            .message
             .send(format!("create dir: {}", dest.display()).into_info())
             .unwrap();
         let entries = archive.entries()?.flatten().collect::<Vec<_>>();
@@ -163,7 +157,6 @@ impl DecompressTask {
                 None => {
                     entry.unpack_in(&dest)?;
                     sender
-                        .message
                         .send(format!("create file: {}", entry.path()?.display()).into_info())
                         .unwrap();
                 }
@@ -171,7 +164,6 @@ impl DecompressTask {
                     let dest_path = dest.join(entry.path()?.strip_prefix(root_dir)?);
                     entry.unpack(&dest_path)?;
                     sender
-                        .message
                         .send(format!("create file: {}", dest_path.display()).into_info())
                         .unwrap();
                 }
@@ -194,7 +186,7 @@ impl Display for DecompressTask {
 }
 
 impl Executable for DecompressTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
         if self.src.ends_with(".zip") {
             self.decompress_zip(sender)
         } else if self.src.ends_with(".tar.gz") {

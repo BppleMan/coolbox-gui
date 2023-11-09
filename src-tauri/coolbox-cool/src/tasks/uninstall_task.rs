@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
@@ -52,29 +51,23 @@ impl Display for UninstallTask {
 }
 
 impl Executable for UninstallTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
-        let initial_result = Err(ExecutableError::ShellError(eyre!("No attempts made")));
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+        let ShellResult {
+            input: _input,
+            output,
+            error,
+        } = self
+            .installer
+            .uninstall(
+                &self.name,
+                self.args
+                    .as_ref()
+                    .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                    .as_deref(),
+            )
+            .map_err(ExecutableError::ShellError)?;
 
-        (0..5).fold(initial_result, |acc, _| {
-            if let Err(_) = acc {
-                let ShellResult {
-                    input: _input,
-                    output,
-                    error,
-                } = self
-                    .installer
-                    .uninstall(
-                        &self.name,
-                        self.args
-                            .as_ref()
-                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                            .as_deref(),
-                    )
-                    .map_err(|e| ExecutableError::ShellError(e))?;
-
-                redirect_output(sender, &output, &error);
-            }
-            Ok(())
-        })
+        redirect_output(sender, &output, &error);
+        Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
@@ -46,30 +45,23 @@ impl Display for InstallTask {
 }
 
 impl Executable for InstallTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
-        let initial_result = Err(ExecutableError::ShellError(eyre!("No attempts made")));
-
-        (0..5).fold(initial_result, |acc, _| {
-            if let Err(_) = acc {
-                let ShellResult {
-                    input: _input,
-                    output,
-                    error,
-                } = self
-                    .installer
-                    .install(
-                        &self.name,
-                        self.args
-                            .as_ref()
-                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                            .as_deref(),
-                    )
-                    .map_err(|e| ExecutableError::ShellError(e))?;
-
-                redirect_output(sender, &output, &error);
-            }
-            Ok(())
-        })
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+        let ShellResult {
+            input: _input,
+            output,
+            error,
+        } = self
+            .installer
+            .install(
+                &self.name,
+                self.args
+                    .as_ref()
+                    .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                    .as_deref(),
+            )
+            .map_err(ExecutableError::ShellError)?;
+        redirect_output(sender, &output, &error);
+        Ok(())
     }
 }
 
@@ -78,14 +70,15 @@ mod test {
     use crate::init_backtrace;
     use crate::installer::{Brew, Installable, Installer};
     use crate::result::CoolResult;
-    use crate::tasks::{Executable, InstallTask};
+    use crate::tasks::{spawn_task, InstallTask};
+    use tracing::info;
 
     #[test]
     fn install_bat() -> CoolResult<()> {
         init_backtrace();
 
         #[cfg(target_os = "macos")]
-        let mut installer = Installer::Brew(Brew);
+        let installer = Installer::Brew(Brew);
         #[cfg(target_os = "linux")]
         let installer = Installer::Apt(Apt);
 
@@ -94,11 +87,13 @@ mod test {
         }
 
         #[cfg(target_os = "macos")]
-        let mut install = InstallTask::new("bat".to_string(), None, Installer::Brew(Brew));
+        let install = InstallTask::new("bat".to_string(), None, Installer::Brew(Brew));
         #[cfg(target_os = "linux")]
         let mut install = InstallTask::new("bat".to_string(), None, Installer::Apt(Apt));
 
-        install.execute()?;
+        spawn_task(install, |msg| {
+            info!("{}", msg);
+        })?;
 
         installer.uninstall("bat", None)?;
 

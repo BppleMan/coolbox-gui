@@ -15,7 +15,7 @@ use zip::{CompressionMethod, ZipWriter};
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
-use crate::IntoMessage;
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CompressTask {
@@ -44,7 +44,6 @@ impl CompressTask {
                     FileOptions::default(),
                 )?;
                 sender
-                    .message
                     .send(format!("Add directory {}", entry.path().display()).into_info())
                     .unwrap();
             } else if entry.file_type().is_file() {
@@ -57,7 +56,6 @@ impl CompressTask {
                 file.read_to_end(&mut buf)?;
                 zip.write_all(&buf)?;
                 sender
-                    .message
                     .send(format!("Add file {}", entry.path().display()).into_info())
                     .unwrap();
             } else if entry.file_type().is_symlink() {
@@ -67,7 +65,6 @@ impl CompressTask {
                     FileOptions::default().compression_method(CompressionMethod::Stored),
                 )?;
                 sender
-                    .message
                     .send(format!("Add symlink {}", entry.path().display()).into_info())
                     .unwrap();
             }
@@ -87,7 +84,6 @@ impl CompressTask {
         tar.append_dir_all(src.file_name().unwrap(), &self.src)?;
         tar.finish()?;
         sender
-            .message
             .send(format!("Add directory {}", &self.src).into_info())
             .unwrap();
 
@@ -108,7 +104,7 @@ impl Display for CompressTask {
 }
 
 impl Executable for CompressTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
         if self.dest.ends_with(".zip") {
             self.compress_zip(sender)
         } else if self.dest.ends_with(".tar.gz") {
@@ -116,10 +112,6 @@ impl Executable for CompressTask {
         } else {
             let error =
                 ExecutableError::UnsupportedCompressType(eyre!("Not support: {}", self.dest));
-            sender
-                .message
-                .send(format!("{:?}", error).into_error())
-                .unwrap();
             Err(error)
         }
     }
@@ -136,7 +128,7 @@ mod test {
     use crate::result::CoolResult;
     use crate::tasks::compress_task::CompressTask;
     use crate::tasks::decompress_task::DecompressTask;
-    use crate::tasks::Executable;
+    use crate::tasks::spawn_task;
 
     fn create_dir(base_dir: &TempDir) -> CoolResult<PathBuf> {
         let source_dir = base_dir.path().join("source");
@@ -175,19 +167,19 @@ mod test {
         let source_dir = create_dir(&base_dir)?;
 
         let zip_dest = base_dir.path().join("dest.zip");
-        let mut compress = CompressTask::new(
+        let compress = CompressTask::new(
             source_dir.to_string_lossy().to_string(),
             zip_dest.to_string_lossy().to_string(),
         );
-        compress.execute()?;
+        spawn_task(compress, |msg| println!("{}", msg))?;
         assert!(zip_dest.exists());
 
         let dest = base_dir.path().join("dest");
-        let mut decompress = DecompressTask::new(
+        let decompress = DecompressTask::new(
             zip_dest.to_string_lossy().to_string(),
             dest.to_string_lossy().to_string(),
         );
-        decompress.execute()?;
+        spawn_task(decompress, |msg| println!("{}", msg))?;
         assert_result(&dest);
 
         Ok(())
@@ -204,19 +196,19 @@ mod test {
         let source_dir = create_dir(&base_dir)?;
 
         let tgz_dest = base_dir.path().join("dest.tar.gz");
-        let mut compress = CompressTask::new(
+        let compress = CompressTask::new(
             source_dir.to_string_lossy().to_string(),
             tgz_dest.to_string_lossy().to_string(),
         );
-        compress.execute()?;
+        spawn_task(compress, |_| {})?;
         assert!(tgz_dest.exists());
 
         let dest = base_dir.path().join("dest");
-        let mut decompress = DecompressTask::new(
+        let decompress = DecompressTask::new(
             tgz_dest.to_string_lossy().to_string(),
             dest.to_string_lossy().to_string(),
         );
-        decompress.execute()?;
+        spawn_task(decompress, |_| {})?;
         assert_result(&dest);
 
         Ok(())

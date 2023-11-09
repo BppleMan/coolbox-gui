@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 pub use check_task::*;
 pub use command_task::*;
@@ -17,10 +18,13 @@ pub use move_task::*;
 pub use uninstall_task::*;
 pub use which_task::*;
 
+use crate::error::ExecutableError;
 use crate::installer::Installer;
 use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
-use crate::{ExecutableReceiver, ExecutableSender, ExecutableState};
+use crate::{
+    executable_channel, ExecutableMessage, ExecutableReceiver, ExecutableSender, IntoError,
+};
 
 mod check_task;
 mod command_task;
@@ -36,35 +40,35 @@ mod move_task;
 mod uninstall_task;
 mod which_task;
 
-pub fn executable_channel() -> (ExecutableSender, ExecutableReceiver) {
-    let (state_tx, state_rx) = crossbeam::channel::unbounded();
-    let (outputs_tx, outputs_rx) = crossbeam::channel::unbounded();
-    (
-        ExecutableSender {
-            state: state_tx,
-            message: outputs_tx,
-        },
-        ExecutableReceiver {
-            state: state_rx,
-            message: outputs_rx,
-        },
-    )
-}
-
-pub trait Executable: Display {
-    fn execute(&mut self, sender: &ExecutableSender) {
-        sender.state.send(ExecutableState::Running).unwrap();
+pub trait Executable: Display + Send + Sync {
+    fn execute(&self, sender: &ExecutableSender) -> ExecutableResult {
         match self._run(sender) {
-            Ok(_) => {
-                sender.state.send(ExecutableState::Finished).unwrap();
-            }
+            Ok(_) => Ok(()),
             Err(e) => {
-                sender.state.send(ExecutableState::Error).unwrap();
+                sender.send(format!("{:?}", e).into_error()).unwrap();
+                Err(e)
             }
         }
     }
 
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult;
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult;
+}
+
+pub fn spawn_task(
+    task: impl Executable + Send + Sync + 'static,
+    mut message_cb: impl FnMut(ExecutableMessage),
+) -> CoolResult<(), ExecutableError> {
+    let (sender, receiver) = executable_channel();
+    let (tx, rx) = crossbeam::channel::bounded(1);
+    rayon::spawn(move || {
+        let sender = sender;
+        let tx = tx;
+        tx.send(task.execute(&sender)).unwrap()
+    });
+    while let Ok(message) = receiver.recv() {
+        message_cb(message);
+    }
+    rx.recv().unwrap()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, TaskRef)]
@@ -204,8 +208,8 @@ impl Display for Task {
 }
 
 impl Executable for Task {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
-        self.as_mut()._run(sender)
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
+        self.as_ref()._run(sender)
     }
 }
 
@@ -215,10 +219,54 @@ pub struct Tasks(pub Vec<Task>);
 impl Tasks {
     pub fn execute(&mut self) -> CoolResult<ExecutableReceiver> {
         let (sender, receiver) = executable_channel();
-        self.0
-            .iter_mut()
-            .enumerate()
-            .for_each(|(i, task)| task.as_mut().execute(&sender));
-        Ok(receiver)
+        let mut result = Ok(receiver.clone());
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                if let Err(e) = self
+                    .0
+                    .iter_mut()
+                    .enumerate()
+                    .try_for_each(|(i, task)| task.as_mut().execute(&sender))
+                {
+                    result = Err(e.into());
+                }
+            });
+            s.spawn(|_| {
+                while let Ok(message) = receiver.recv() {
+                    info!("Message: {:?}", message);
+                }
+            });
+        });
+        result
     }
+
+    // fn wait<StateCB, MessageCB>(
+    //     &mut self,
+    //     state_cb: StateCB,
+    //     message_cb: MessageCB,
+    // ) -> ExecutableResult
+    //     where
+    //         StateCB: Fn(ExecutableState),
+    //         MessageCB: Fn(ExecutableMessage),
+    // {
+    //     let (sender, receiver) = executable_channel();
+    //     let mut result = Ok(());
+    //     rayon::scope(|s| {
+    //         s.spawn(|_| {
+    //             if let Err(e) = self.execute(&sender) {
+    //                 result = Err(e);
+    //             }
+    //         });
+    //         s.spawn(|_| {
+    //             while let Ok(state) = receiver.state.recv() {
+    //                 state_cb(state);
+    //             }
+    //         });
+    //         s.spawn(|_| {
+    //             while let Ok(message) = receiver.message.recv() {
+    //                 message_cb(message);
+    //             }
+    //         });
+    //     });
+    // }
 }

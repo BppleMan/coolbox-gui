@@ -7,7 +7,7 @@ use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, ExecutableSender};
-use crate::IntoMessage;
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CheckTask {
@@ -28,14 +28,13 @@ impl Display for CheckTask {
 }
 
 impl Executable for CheckTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, sender: &ExecutableSender) -> ExecutableResult {
         self.installer
             .check_available(&self.name, None)
-            .map_err(|r| ExecutableError::ShellError(r))
+            .map_err(ExecutableError::ShellError)
             .and_then(|result| {
                 if result {
                     sender
-                        .message
                         .send(format!("{} is available", &self.name).into_info())
                         .unwrap();
                     Ok(())

@@ -24,7 +24,7 @@ impl Display for DeleteTask {
 }
 
 impl Executable for DeleteTask {
-    fn _run(&mut self, _sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, _sender: &ExecutableSender) -> ExecutableResult {
         fs_extra::remove_items(&[&self.path])?;
         Ok(())
     }
@@ -39,7 +39,7 @@ mod test {
     use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::tasks::delete_task::DeleteTask;
-    use crate::tasks::Executable;
+    use crate::tasks::spawn_task;
 
     #[test]
     fn delete_file() -> CoolResult<()> {
@@ -47,7 +47,8 @@ mod test {
         let base_dir = Builder::new().prefix("cool").suffix("delete").tempdir()?;
         let path = NamedTempFile::new_in(base_dir.path())?;
         assert!(path.path().exists());
-        DeleteTask::new(path.path().to_string_lossy().to_string()).execute()?;
+        let task = DeleteTask::new(path.path().to_string_lossy().to_string());
+        spawn_task(task, |_| {})?;
         assert!(!path.path().exists());
         Ok(())
     }
@@ -65,8 +66,8 @@ mod test {
         let _child_file1 = File::create(child_dir.join("child_file1"))?;
         let _child_file2 = File::create(child_dir.join("child_file2"))?;
 
-        DeleteTask::new(source_dir.to_string_lossy().to_string()).execute()?;
-
+        let task = DeleteTask::new(source_dir.to_string_lossy().to_string());
+        spawn_task(task, |_| {})?;
         assert!(!source_dir.exists());
 
         Ok(())

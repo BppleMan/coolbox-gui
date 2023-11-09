@@ -8,7 +8,6 @@ use color_eyre::eyre::eyre;
 use crossbeam::channel::{Receiver, Sender};
 use log::info;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use tracing::debug;
 
 pub use bash::*;
 pub use linux_sudo::*;
@@ -67,8 +66,8 @@ impl ShellExecutor for Shell {
 
 impl Serialize for Shell {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         match self {
             Shell::Bash(_) => serializer.serialize_str("bash"),
@@ -82,8 +81,8 @@ impl Serialize for Shell {
 
 impl<'de> Deserialize<'de> for Shell {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let name = <String>::deserialize(deserializer)?;
         match name {
@@ -125,7 +124,6 @@ pub trait ShellExecutor {
         envs: Option<&[(&str, &str)]>,
     ) -> CoolResult<Command> {
         let mut command = self.command(cmd, args)?;
-        debug!("{}", format!("{:?}", command).truncate_string(100));
         if let Some(envs) = envs {
             command.envs(envs.to_vec());
         }

@@ -32,7 +32,7 @@ impl Display for ExistsTask {
 }
 
 impl Executable for ExistsTask {
-    fn _run(&mut self, sender: &ExecutableSender) -> ExecutableResult {
+    fn _run(&self, _sender: &ExecutableSender) -> ExecutableResult {
         if Path::new(&self.path).exists() {
             Ok(())
         } else {
