@@ -1,6 +1,7 @@
 export interface Cool {
     name: string;
     description: string;
+    state: State;
     dependencies: string[];
     install_tasks: Task[];
     uninstall_tasks: Task[];

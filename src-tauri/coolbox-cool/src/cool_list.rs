@@ -9,7 +9,7 @@ use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use tracing::error;
 
-use crate::error::{CoolError, TransformError};
+use crate::error::CoolError;
 use crate::state::CoolState;
 use crate::Cool;
 

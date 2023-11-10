@@ -163,12 +163,15 @@ impl<'a> Executable<'a> for GitTask {
 pub enum GitCommand {
     Clone {
         url: String,
+        #[serde(deserialize_with = "crate::render_str")]
         dest: String,
     },
     Pull {
+        #[serde(deserialize_with = "crate::render_str")]
         src: String,
     },
     Checkout {
+        #[serde(deserialize_with = "crate::render_str")]
         src: String,
         branch: String,
         create: bool,

@@ -14,6 +14,7 @@ use crate::IntoInfo;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DownloadTask {
     pub url: String,
+    #[serde(deserialize_with = "crate::render_str")]
     pub dest: String,
 }
 

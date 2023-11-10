@@ -165,7 +165,8 @@ impl Cool {
             let cool = COOL_LIST.get(d).ok_or(CoolError::NotFoundCool {
                 cool_name: d.clone(),
             })?;
-            cool.lock().unwrap().install(sender)
+            cool.lock().unwrap().install(sender)?;
+            Ok(())
         })?;
         Ok(())
     }
