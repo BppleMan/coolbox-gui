@@ -36,7 +36,7 @@ impl Display for MoveTask {
 }
 
 impl<'a> Executable<'a> for MoveTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {

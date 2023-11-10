@@ -17,16 +17,35 @@ pub struct Message {
     pub message: String,
 }
 
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub enum TaskState {
+    #[default]
+    Running,
+    Finished,
+    Failed,
+}
+
 pub type MessageSender<'a> = dyn FnMut(Message) + 'a;
 
-pub type TasksMessageSender<'a> = dyn FnMut(usize, &'a Task, Message) + 'a;
+pub type TasksMessageSender<'a> = dyn FnMut(usize, &'a Task, TaskState, Message) + 'a;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TaskEvent {
     pub cool_name: String,
     pub task_name: String,
     pub task_index: usize,
+    pub task_state: TaskState,
     pub message: Message,
+}
+
+impl Display for TaskEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{:?} - {} [{}]: {}",
+            self.task_state, self.cool_name, self.task_name, self.message
+        )
+    }
 }
 
 pub enum CoolEvent {}
@@ -63,6 +82,14 @@ impl Message {
             message_type: MessageType::Error,
             message: message.into(),
         }
+    }
+
+    pub fn finished() -> Self {
+        Self::info("Finished\n")
+    }
+
+    pub fn failed() -> Self {
+        Self::error("Failed\n")
     }
 }
 

@@ -21,7 +21,7 @@ use crate::error::ExecutableError;
 use crate::installer::Installer;
 use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
-use crate::{Message, MessageSender, TasksMessageSender};
+use crate::{Message, MessageSender, TaskState, TasksMessageSender};
 
 mod check_task;
 mod command_task;
@@ -38,11 +38,7 @@ mod uninstall_task;
 mod which_task;
 
 pub trait Executable<'a>: Display + Send + Sync {
-    fn execute(&self, sender: Box<MessageSender<'a>>) -> ExecutableResult {
-        self._run(sender)
-    }
-
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult;
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult;
 }
 
 pub fn spawn_task<'a, F>(task: impl Executable<'a>, send: F) -> ExecutableResult
@@ -189,8 +185,8 @@ impl Display for Task {
 }
 
 impl<'a> Executable<'a> for Task {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
-        self.as_ref()._run(send)
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+        self.as_ref().execute(send)
     }
 }
 
@@ -203,10 +199,16 @@ impl Tasks {
         mut sender: Box<TasksMessageSender<'a>>,
     ) -> CoolResult<(), (String, usize, ExecutableError)> {
         self.0.iter().enumerate().try_for_each(|(i, task)| {
-            task.execute(Box::new(|message| {
-                sender(i, task, message);
-            }))
-            .map_err(|e| (task.name().to_string(), i, e))
+            let result = task
+                .execute(Box::new(|message| {
+                    sender(i, task, TaskState::Running, message);
+                }))
+                .map_err(|e| {
+                    sender(i, task, TaskState::Failed, Message::failed());
+                    (task.name().to_string(), i, e)
+                });
+            sender(i, task, TaskState::Finished, Message::finished());
+            result
         })
     }
 }

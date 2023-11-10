@@ -1,18 +1,19 @@
 pub use color_eyre::*;
+pub use crossbeam::*;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Deserializer};
 pub use tracing::*;
 
 pub use cool::*;
+pub use cool_event::*;
 pub use cool_list::*;
-pub use event::*;
 pub use extension::*;
 pub use trace::*;
 
 mod cool;
+mod cool_event;
 mod cool_list;
 pub mod error;
-mod event;
 mod extension;
 pub mod installer;
 pub mod result;

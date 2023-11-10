@@ -33,7 +33,7 @@ impl Display for WhichTask {
 }
 
 impl<'a> Executable<'a> for WhichTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         match which(&self.command) {
             Ok(result) => {
                 send(result.to_string_lossy().into_info());

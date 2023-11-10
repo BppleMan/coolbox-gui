@@ -13,6 +13,13 @@ export interface Task {
     description: string;
 }
 
+export enum State {
+    Ready = "Ready",
+    Installed = "Installed",
+    Installing = "Installing",
+    Uninstalling = "Uninstalling",
+}
+
 export interface CoolListItem {
     item: Cool;
     selected: boolean;

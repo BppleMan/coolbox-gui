@@ -59,7 +59,7 @@ impl Display for CommandTask {
 }
 
 impl<'a> Executable<'a> for CommandTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         info!("{}", self);
         let args = self
             .args

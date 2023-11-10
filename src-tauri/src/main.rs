@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use cool::init_backtrace;
+use cool::result::CoolResult;
 use serde::Serialize;
 use tauri::Manager;
 
@@ -12,7 +14,8 @@ mod task_data;
 #[derive(Clone, Serialize)]
 pub struct Payload(String);
 
-fn main() {
+fn main() -> CoolResult<()> {
+    init_backtrace();
     tauri::Builder::default()
         .setup(|app| {
             let main_window = app.get_window("main").unwrap();
@@ -26,4 +29,5 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+    Ok(())
 }

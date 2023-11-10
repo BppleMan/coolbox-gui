@@ -1,8 +1,6 @@
 import {Injectable} from "@angular/core"
 
 import {invoke} from "@tauri-apps/api"
-import {InvokeArgs} from "@tauri-apps/api/tauri"
-import {from, map, Observable} from "rxjs"
 import {Cool} from "../model/models"
 
 @Injectable({
@@ -12,12 +10,15 @@ export class CoolService {
     constructor() {
     }
 
-    cool_list(): Observable<Cool[]> {
-        let promise: Promise<Cool[]> = invoke("serialize_cool_list")
-        return from(promise)
+    async cool_list(): Promise<Cool[]> {
+        return invoke("serialize_cool_list")
     }
 
-    install_cool(cools: Cool[]) {
-        let promise: Promise<Cool[]> = invoke("install_cools", cools as any as InvokeArgs)
+    async install_cool(cools: Cool[]): Promise<void> {
+        return invoke("install_cools", {cools: cools.map((c) => c.name)}).then((result) => {
+        })
+        .catch((err) => {
+            console.log(err)
+        })
     }
 }

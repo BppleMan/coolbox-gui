@@ -145,7 +145,7 @@ impl Display for GitTask {
 }
 
 impl<'a> Executable<'a> for GitTask {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         match self.command.clone() {
             GitCommand::Clone { .. } => {}
             GitCommand::Pull { src } => self.pull(&src, send)?,

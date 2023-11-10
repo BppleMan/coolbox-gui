@@ -1,24 +1,24 @@
 <div
-     class="cool-card box-border relative flex flex-row p-4 pb-10 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{selected ? 'selected' : ''}}"
+     class="cool-card box-border relative flex flex-row p-4 pb-10 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{selected.value ? 'selected' : ''}}"
 >
     <mat-expansion-panel #expansionPanel hideToggle class="grow shadow-none" [expanded]="expanded" (opened)="setOpened()" (closed)="setClosed()">
         <mat-expansion-panel-header class="relative p-0 h-auto pb-2 " #panelH (click)="toggle_select($event)">
             <div class="flex grow">
                 <div class="flex grow flex-col">
-                    <div class="text-lg">{{coolListItem.item.name}}</div>
-                    <div class="text-base text-[#CECFD2] font-normal leading-6">{{coolListItem.item.description}}</div>
-                    
+                    <div class="text-lg">{{cool.name}}</div>
+                    <div class="text-base text-[#CECFD2] font-normal leading-6">{{cool.description}}</div>
+
                 </div>
             </div>
-                
-            <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="$event.stopPropagation()">
+
+            <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="install($event)">
                 Install
             </button>
             <mat-progress-bar class="absolute left-0 right-0 bottom-0" [value]="50"></mat-progress-bar>
         </mat-expansion-panel-header>
         <mat-divider class="my-2"></mat-divider>
         <mat-stepper orientation="vertical" linear="true" #stepper >
-            <mat-step class="-mx-4" *ngFor="let task of coolListItem.item.install_tasks" class="relative">
+            <mat-step class="-mx-4" *ngFor="let task of cool.install_tasks" class="relative">
                 <ng-template matStepLabel>{{task.name}}</ng-template>
                 <div class="code-container border-solid border border-[#1F242F] rounded-lg p-2 bg-[#191A22] divide-y divide-solid divide-[#1F242F]">
                     <code class="block select-text pt-2" [highlight]="task.description" [languages]="['bash']"></code>
@@ -27,7 +27,7 @@
                 <img class="absolute right-2 top-2 w-4 h-4 cursor-pointer" src="assets/images/btn_copy.png" (click)="copy(task.description)"/>
             </mat-step>
         </mat-stepper>
-        
+
     </mat-expansion-panel>
     <div class="toggle-panel cursor-pointer absolute left-0 right-0 bottom-0 flex grow items-center justify-center py-2" (click)="toggle_panel($event)">
         <img class="img-expand w-5 h-5 block {{expanded ? 'img-rotate' : ''}}" src="assets/images/ic_expand_down.png"/>

@@ -8,8 +8,10 @@ import {MatIconModule} from "@angular/material/icon"
 import {MatStepperModule} from "@angular/material/stepper"
 import {MatDividerModule} from "@angular/material/divider"
 import {MatProgressBarModule} from "@angular/material/progress-bar"
+import {BehaviorSubject} from "rxjs"
 import {Cool, CoolListItem} from "../model/models"
 import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
+import {CoolService} from "../service/cool.service"
 
 @Component({
     selector: "app-cool-card",
@@ -30,24 +32,20 @@ import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
         },
     ]
 })
-export class CoolCardComponent implements OnChanges {
+export class CoolCardComponent {
     @ViewChild("expansionPanel") panel!: MatExpansionPanel
-    @Input() coolListItem!: CoolListItem
-    @Output() selectEvent = new EventEmitter<CoolListItem>();
-    selected = false
+    @Input() cool!: Cool
+    @Input() selected!: BehaviorSubject<boolean>
     expanded = false
     consoleCode = 'mkdir xxx-project && cp a b'
-    constructor() {
+
+    constructor(private cool_service: CoolService) {
     }
-    ngOnChanges() {
-        console.log('ngOnChanges', this.coolListItem)
-        this.selected = this.coolListItem.selected
-    }
+
     toggle_select(event: MouseEvent) {
         event.preventDefault()
         event.stopPropagation()
-        this.selected = !this.selected
-        this.selectEvent.emit({item: this.coolListItem.item, selected: this.selected})
+        this.selected.next(!this.selected.value)
     }
 
     toggle_panel(event: MouseEvent) {
@@ -56,15 +54,23 @@ export class CoolCardComponent implements OnChanges {
         event.stopPropagation()
         this.panel.toggle()
     }
+
     setOpened() {
         this.expanded = true
     }
+
     setClosed() {
         this.expanded = false
     }
+
     copy(content: string) {
         console.log('copy', content)
         navigator.clipboard.writeText(content)
         // TODO we should show toast here to indicate the copy action
+    }
+
+    install(event: MouseEvent) {
+        event.stopPropagation()
+        this.cool_service.install_cool([this.cool]).then()
     }
 }

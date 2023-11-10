@@ -50,7 +50,7 @@ impl Display for UninstallTask {
 }
 
 impl<'a> Executable<'a> for UninstallTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let (tx1, rx1) = crossbeam::channel::unbounded();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
         rayon::scope(|s| {

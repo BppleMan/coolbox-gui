@@ -170,7 +170,7 @@ impl Display for DecompressTask {
 }
 
 impl<'a> Executable<'a> for DecompressTask {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         if self.src.ends_with(".zip") {
             self.decompress_zip(send)
         } else if self.src.ends_with(".tar.gz") {

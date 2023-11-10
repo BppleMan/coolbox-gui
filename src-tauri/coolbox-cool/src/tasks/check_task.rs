@@ -28,7 +28,7 @@ impl Display for CheckTask {
 }
 
 impl<'a> Executable<'a> for CheckTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         self.installer
             .check_available(&self.name, None)
             .map_err(ExecutableError::ShellError)

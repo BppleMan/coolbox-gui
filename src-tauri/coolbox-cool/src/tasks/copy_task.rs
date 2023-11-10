@@ -36,7 +36,7 @@ impl Display for CopyTask {
 }
 
 impl<'a> Executable<'a> for CopyTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {

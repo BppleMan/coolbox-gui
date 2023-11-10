@@ -24,7 +24,7 @@ impl Display for DeleteTask {
 }
 
 impl<'a> Executable<'a> for DeleteTask {
-    fn _run(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
         fs_extra::remove_items(&[&self.path])?;
         Ok(())
     }

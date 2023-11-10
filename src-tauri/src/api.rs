@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::ops::Deref;
 use std::str::FromStr;
 
@@ -10,7 +11,7 @@ use cool::{SafeCool, COOL_LIST};
 
 use crate::cool_data::CoolData;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn serialize_cool_list() -> Vec<CoolData> {
     let mut cool_list = COOL_LIST
         .par_iter()
@@ -20,16 +21,23 @@ pub fn serialize_cool_list() -> Vec<CoolData> {
     cool_list
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn install_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
     cools.par_iter().try_for_each(|c| {
         let cool = SafeCool::from_str(c)?;
-        cool.lock().unwrap().install(&None)?;
+        let (tx, rx) = cool::channel::unbounded();
+
+        rayon::spawn(move || {
+            while let Ok(event) = rx.recv() {
+                print!("{}", event);
+            }
+        });
+        cool.lock().unwrap().install(&Some(tx))?;
         Ok(())
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn uninstall_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
     cools.par_iter().try_for_each(|c| {
         let cool = SafeCool::from_str(c)?;
@@ -38,7 +46,7 @@ pub fn uninstall_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn check_cools(cools: Vec<String>) -> Vec<CoolResult<CoolState, CoolError>> {
     cools
         .par_iter()

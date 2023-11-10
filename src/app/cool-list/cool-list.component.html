@@ -1,19 +1,24 @@
 <div class="mx-10">
     <div class="flex justify-between">
-      <mat-checkbox
-      [checked]="allSelected"
-      [indeterminate]="someSelected"
-      (change)="selectAll($event.checked)"
-            class="-ml-3 flex-shrink-0" >
-          已选{{selectedCount}}项
+        <mat-checkbox
+            [checked]="all_selected"
+            [indeterminate]="some_selected"
+            (change)="toggleSelectAll($event.checked)"
+            class="-ml-3 flex-shrink-0 select-none"
+        >
+            已选{{selected_count}}项
         </mat-checkbox>
-      <button mat-raised-button color="primary" class="btn-all rounded-lg ml-auto relative pl-10">
-        Install All
-      </button>
+        <button mat-raised-button color="primary" class="btn-all rounded-lg ml-auto relative pl-10">
+            Install All
+        </button>
     </div>
     <mat-accordion class="grow" multi displayMode="flat">
         <mat-list>
-            <app-cool-card *ngFor="let cool of all_cool_list$ |async" [coolListItem]="cool" (selectEvent)="updateSelectedCount($event)"></app-cool-card>
+            <app-cool-card
+                *ngFor="let cool of cool_list$ |async; let index = index"
+                [cool]="cool"
+                [selected]="selected_cools[index]"
+            ></app-cool-card>
         </mat-list>
     </mat-accordion>
 </div>

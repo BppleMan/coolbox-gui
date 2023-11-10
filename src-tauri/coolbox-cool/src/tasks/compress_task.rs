@@ -97,7 +97,7 @@ impl Display for CompressTask {
 }
 
 impl<'a> Executable<'a> for CompressTask {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         if self.dest.ends_with(".zip") {
             self.compress_zip(send)
         } else if self.dest.ends_with(".tar.gz") {

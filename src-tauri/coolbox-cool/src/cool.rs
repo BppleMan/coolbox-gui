@@ -6,13 +6,14 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{error, info, warn};
 
+use crate::channel::TrySendError;
 use crate::error::CoolError;
 use crate::result::CoolResult;
 use crate::state::CoolState;
 use crate::tasks::Tasks;
-use crate::{TaskEvent, COOL_LIST};
+use crate::{TaskEvent, TaskState, COOL_LIST};
 
 static INSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
 static UNINSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
@@ -80,18 +81,20 @@ impl Cool {
         let (tx, rx) = crossbeam::channel::bounded(1);
         rayon::scope(|s| {
             s.spawn(|_| {
-                let result = self.install_tasks.execute(Box::new(|i, task, message| {
-                    if let Some(sender) = event_sender.as_ref() {
-                        sender
-                            .send(TaskEvent {
+                let result = self
+                    .install_tasks
+                    .execute(Box::new(|i, task, state, message| {
+                        if let Some(sender) = event_sender.as_ref() {
+                            let event = TaskEvent {
                                 cool_name: name.clone(),
                                 task_name: task.name().to_string(),
                                 task_index: i,
+                                task_state: state,
                                 message,
-                            })
-                            .unwrap();
-                    }
-                }));
+                            };
+                            sender.send(event).unwrap();
+                        }
+                    }));
                 lock_sender.send(()).unwrap();
                 INSTALLING.remove(&name);
                 tx.send(result).unwrap();
@@ -134,18 +137,21 @@ impl Cool {
         let (tx, rx) = crossbeam::channel::bounded(1);
         rayon::scope(|s| {
             s.spawn(|_| {
-                let result = self.uninstall_tasks.execute(Box::new(|i, task, message| {
-                    if let Some(sender) = event_sender.as_ref() {
-                        sender
-                            .send(TaskEvent {
-                                cool_name: name.clone(),
-                                task_name: task.name().to_string(),
-                                task_index: i,
-                                message,
-                            })
-                            .unwrap();
-                    }
-                }));
+                let result = self
+                    .uninstall_tasks
+                    .execute(Box::new(|i, task, state, message| {
+                        if let Some(sender) = event_sender.as_ref() {
+                            sender
+                                .send(TaskEvent {
+                                    cool_name: name.clone(),
+                                    task_name: task.name().to_string(),
+                                    task_index: i,
+                                    task_state: state,
+                                    message,
+                                })
+                                .unwrap();
+                        }
+                    }));
                 lock_sender.send(()).unwrap();
                 UNINSTALLING.remove(&name);
                 tx.send(result).unwrap();
@@ -172,9 +178,11 @@ impl Cool {
     }
 
     pub fn check(&self) -> CoolState {
-        let check = self.check_tasks.execute(Box::new(|i, task, message| {
-            info!("[{}]{}: {}", i, task, message);
-        }));
+        let check = self
+            .check_tasks
+            .execute(Box::new(|i, task, state, message| {
+                info!("{:?} - [{}]{}: {}", state, i, task, message);
+            }));
         if check.is_ok() {
             CoolState::Installed
         } else {

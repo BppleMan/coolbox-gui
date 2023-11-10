@@ -31,7 +31,7 @@ impl Display for DownloadTask {
 }
 
 impl<'a> Executable<'a> for DownloadTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let url = self.url.clone();
         let dest = self.dest.clone();
         let (tx, rx) = crossbeam::channel::bounded(1);
