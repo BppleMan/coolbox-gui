@@ -8,48 +8,36 @@ use proxyconfig::{ProxyConfig, ProxyConfigProvider};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use coolbox_macros::State;
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct GitTask {
     pub command: GitCommand,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl GitTask {
     pub fn new(command: GitCommand) -> Self {
-        Self {
-            command,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { command }
     }
 
-    pub fn clone(&mut self, url: &str, dest: &str) -> CoolResult<()> {
+    pub fn clone(&self, url: &str, dest: &str) -> ExecutableResult {
         let mut repo_builder = RepoBuilder::new();
         repo_builder.fetch_options(default_fetch_options());
         repo_builder.clone(url, Path::new(dest))?;
         Ok(())
     }
 
-    pub fn pull(&mut self, src: &str) -> CoolResult<()> {
-        let repo = Repository::open(src)?;
+    pub fn pull(&self, src: &str, mut send: Box<MessageSender>) -> ExecutableResult {
+        let repo = Repository::open(src).map_err(|e| ExecutableError::GitError(eyre!(e)))?;
         let remotes = repo.remotes()?;
         let remote = match remotes.iter().find(|r| r == &Some("origin")) {
             Some(o) => o.unwrap(),
             None => match remotes.iter().find(|r| r.is_some()) {
                 None => {
-                    return Err(eyre!("no remote found"));
+                    return Err(ExecutableError::GitError(eyre!("no remote found")));
                 }
                 Some(o) => o.unwrap(),
             },
@@ -70,23 +58,24 @@ impl GitTask {
         if repo.graph_descendant_of(remote_commit.id(), head_commit.id())? {
             repo.set_head_detached(remote_commit.id())?;
             repo.checkout_head(None)?;
+            Ok(())
         } else if remote_commit.id() != head_commit.id() {
-            let err = format!(
+            let error = eyre!(
                 "rebase {:?}[{}] onto {:?}[{}] cannot fast-forward",
                 head_branch.name()?,
                 head_commit.id(),
                 remote_branch.name()?,
                 remote_commit.id(),
             );
-            self.errors.push(err.clone());
+            Err(ExecutableError::GitError(error))
         } else {
-            let msg = "already up to date".to_string();
-            self.outputs.push(msg.clone());
+            let msg = eyre!("already up to date");
+            send(format!("{:?}", msg).into_info());
+            Ok(())
         }
-        Ok(())
     }
 
-    pub fn checkout(&mut self, src: &str, branch: &str, create: bool) -> CoolResult<()> {
+    pub fn checkout(&self, src: &str, branch: &str, create: bool) -> ExecutableResult {
         let repo = Repository::open(src)?;
         let branch = match repo.find_branch(branch, BranchType::Local) {
             Ok(branch) => Ok(branch),
@@ -96,7 +85,7 @@ impl GitTask {
                     let head_commit = head.peel_to_commit()?;
                     Ok(repo.branch(branch, &head_commit, true)?)
                 } else {
-                    Err(eyre!(e))
+                    Err(ExecutableError::GitError(eyre!(e)))
                 }
             }
         }?;
@@ -107,10 +96,11 @@ impl GitTask {
         Ok(())
     }
 
-    fn checkout_empty(&self, repo: &Repository, remote: &str) -> CoolResult<()> {
+    fn checkout_empty(&self, repo: &Repository, remote: &str) -> ExecutableResult {
         let mut remote = repo.find_remote(remote)?;
         remote.connect(Direction::Fetch)?;
-        let default_branch = String::from_utf8(remote.default_branch()?.to_vec())?;
+        let default_branch = String::from_utf8(remote.default_branch()?.to_vec())
+            .map_err(|e| ExecutableError::GitError(eyre!(e)))?;
         let short_name = Path::new(&default_branch)
             .file_name()
             .unwrap()
@@ -154,11 +144,11 @@ impl Display for GitTask {
     }
 }
 
-impl Executable for GitTask {
-    fn _run(&mut self) -> CoolResult<()> {
+impl<'a> Executable<'a> for GitTask {
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         match self.command.clone() {
             GitCommand::Clone { .. } => {}
-            GitCommand::Pull { src } => self.pull(&src)?,
+            GitCommand::Pull { src } => self.pull(&src, send)?,
             GitCommand::Checkout {
                 src,
                 branch,
@@ -173,12 +163,15 @@ impl Executable for GitTask {
 pub enum GitCommand {
     Clone {
         url: String,
+        #[serde(deserialize_with = "crate::render_str")]
         dest: String,
     },
     Pull {
+        #[serde(deserialize_with = "crate::render_str")]
         src: String,
     },
     Checkout {
+        #[serde(deserialize_with = "crate::render_str")]
         src: String,
         branch: String,
         create: bool,
@@ -216,13 +209,14 @@ fn default_proxy_options<'po>() -> ProxyOptions<'po> {
 
 #[cfg(test)]
 mod test {
+    use std::env;
     use std::process::{Command, Stdio};
 
     use git2::Repository;
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::{Executable, GitCommand, GitTask};
+    use crate::tasks::{spawn_task, GitCommand, GitTask};
 
     #[test]
     fn test_pull() -> CoolResult<()> {
@@ -236,13 +230,14 @@ mod test {
         fs_extra::dir::create(&test_repo, true)?;
         let output = Command::new("bash")
             .arg("-c")
-            .arg(
+            .arg(format!(
                 "git init -b main
-git remote add origin https://bppleman:4875c8b28457f4b7c2535eb12bbc66d6@gitee.com/bppleman/proxy_config.git
+git remote add origin https://bppleman:{}@gitee.com/bppleman/proxy_config.git
 git fetch
 git remote -v
             ",
-            )
+                env::var("GITEE_TOKEN").unwrap()
+            ))
             .current_dir(&test_repo)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -250,11 +245,10 @@ git remote -v
             .wait_with_output()?;
         println!("{}", String::from_utf8(output.stdout)?);
 
-        GitTask::new(GitCommand::Pull {
+        let task = GitTask::new(GitCommand::Pull {
             src: test_repo.to_string_lossy().to_string(),
-        })
-        .execute()?;
-        println!("12");
+        });
+        spawn_task(task, |_| {})?;
         Ok(())
     }
 
@@ -285,23 +279,23 @@ git commit -m 'init'
             .wait_with_output()?;
         println!("{}", String::from_utf8(output.stdout)?);
 
-        GitTask::new(GitCommand::Checkout {
+        let task = GitTask::new(GitCommand::Checkout {
             src: checkout_dir.to_string_lossy().to_string(),
             branch: "dev".to_string(),
             create: true,
-        })
-        .execute()?;
+        });
+        spawn_task(task, |_| {})?;
 
         let repo = Repository::open(&checkout_dir)?;
         assert!(repo.find_branch("dev", git2::BranchType::Local).is_ok());
         pretty_assertions::assert_eq!(repo.head()?.shorthand(), Some("dev"));
 
-        GitTask::new(GitCommand::Checkout {
+        let task = GitTask::new(GitCommand::Checkout {
             src: checkout_dir.to_string_lossy().to_string(),
             branch: "main".to_string(),
             create: false,
-        })
-        .execute()?;
+        });
+        spawn_task(task, |_| {})?;
         pretty_assertions::assert_eq!(repo.head()?.shorthand(), Some("main"));
         Ok(())
     }

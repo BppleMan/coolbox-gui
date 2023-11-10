@@ -1,33 +1,22 @@
+use std::fmt::{Display, Formatter};
+
 use color_eyre::eyre::eyre;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
 use which::which;
 
-use coolbox_macros::State;
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WhichTask {
     pub command: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl WhichTask {
     pub fn new(command: String) -> Self {
-        Self {
-            command,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { command }
     }
 }
 
@@ -43,17 +32,16 @@ impl Display for WhichTask {
     }
 }
 
-impl Executable for WhichTask {
-    fn _run(&mut self) -> CoolResult<()> {
+impl<'a> Executable<'a> for WhichTask {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         match which(&self.command) {
             Ok(result) => {
-                self.outputs.push(result.to_string_lossy().to_string());
+                send(result.to_string_lossy().into_info());
                 Ok(())
             }
             Err(_) => {
-                let msg = format!("{} not found", &self.command);
-                self.errors.push(msg.clone());
-                Err(eyre!(msg))
+                let report = eyre!("{} not found", &self.command);
+                Err(ExecutableError::CommandNotFound(report))
             }
         }
     }
@@ -61,14 +49,21 @@ impl Executable for WhichTask {
 
 #[cfg(test)]
 mod test {
+    use crate::init_backtrace;
+    use crate::result::CoolResult;
+    use crate::tasks::spawn_task;
+
     use super::*;
 
     #[test]
     fn test_which() -> CoolResult<()> {
-        let mut which = WhichTask::new("ls".to_string());
-        which.execute()?;
-        assert_eq!(which.outputs.len(), 1);
-        pretty_assertions::assert_eq!(which.outputs[0], "/bin/ls");
+        init_backtrace();
+        let which = WhichTask::new("ls".to_string());
+        let mut outputs = String::new();
+        spawn_task(which, |msg| {
+            outputs.push_str(&msg.message);
+        })?;
+        pretty_assertions::assert_eq!(outputs, "/bin/ls");
         Ok(())
     }
 }

@@ -1,33 +1,26 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use std::fs::OpenOptions;
+use std::io::Write;
 
-use coolbox_macros::State;
+use color_eyre::eyre::eyre;
+use futures::stream::StreamExt;
+use serde::{Deserialize, Serialize};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DownloadTask {
     pub url: String,
+    #[serde(deserialize_with = "crate::render_str")]
     pub dest: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl DownloadTask {
     pub fn new(url: String, dest: String) -> Self {
-        Self {
-            url,
-            dest,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { url, dest }
     }
 }
 
@@ -37,10 +30,47 @@ impl Display for DownloadTask {
     }
 }
 
-impl Executable for DownloadTask {
-    fn _run(&mut self) -> CoolResult<()> {
-        let mut bytes = reqwest::blocking::get(&self.url)?.bytes()?;
-        std::fs::write(&self.dest, &mut bytes)?;
+impl<'a> Executable<'a> for DownloadTask {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+        let url = self.url.clone();
+        let dest = self.dest.clone();
+        let (tx, rx) = crossbeam::channel::bounded(1);
+        let (msg_tx, msg_rx) = crossbeam::channel::unbounded();
+        rayon::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            let result = rt.block_on(async {
+                let res = reqwest::get(&url)
+                    .await
+                    .map_err(|e| ExecutableError::ReqwestError(eyre!(e)))?;
+                let mut written = 0u64;
+                let total_size = res.content_length();
+                let mut bytes_stream = res.bytes_stream();
+                let mut file = OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .open(&dest)
+                    .unwrap();
+                while let Some(Ok(chunk)) = bytes_stream.next().await {
+                    written += chunk.len() as u64;
+                    file.write_all(&chunk).unwrap();
+                    msg_tx
+                        .send(
+                            format!("downloaded {}/{}", written, total_size.unwrap_or(0))
+                                .into_info(),
+                        )
+                        .unwrap();
+                }
+                ExecutableResult::Ok(())
+            });
+            tx.send(result).unwrap();
+        });
+        while let Ok(msg) = msg_rx.recv() {
+            send(msg);
+        }
+        rx.recv().unwrap()?;
         Ok(())
     }
 }
@@ -51,7 +81,7 @@ mod test {
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::{DownloadTask, Executable, ExecutableState};
+    use crate::tasks::{spawn_task, DownloadTask};
 
     #[test]
     fn smoke() -> CoolResult<()> {
@@ -69,13 +99,12 @@ mod test {
 
         let base_dir = Builder::new().prefix("cool").suffix("download").tempdir()?;
         let path = NamedTempFile::new_in(base_dir.path())?;
-        let mut download = DownloadTask::new(
+        let download = DownloadTask::new(
             format!("{}/download", url),
             path.path().display().to_string(),
         );
-        download.execute()?;
+        spawn_task(download, |_| {})?;
         mock.assert();
-        pretty_assertions::assert_eq!(ExecutableState::Finished, download.state);
         assert!(path.path().exists());
         Ok(())
     }

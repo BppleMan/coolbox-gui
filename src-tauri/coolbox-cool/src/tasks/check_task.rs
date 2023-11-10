@@ -1,35 +1,23 @@
-use color_eyre::eyre::eyre;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
+use color_eyre::eyre::eyre;
+use serde::{Deserialize, Serialize};
+
+use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
-use coolbox_macros::State;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CheckTask {
     pub name: String,
     pub installer: Installer,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl CheckTask {
     pub fn new(name: String, installer: Installer) -> Self {
-        Self {
-            name,
-            installer,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { name, installer }
     }
 }
 
@@ -39,18 +27,20 @@ impl Display for CheckTask {
     }
 }
 
-impl Executable for CheckTask {
-    fn _run(&mut self) -> CoolResult<()> {
+impl<'a> Executable<'a> for CheckTask {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         self.installer
             .check_available(&self.name, None)
+            .map_err(ExecutableError::ShellError)
             .and_then(|result| {
                 if result {
-                    self.outputs.push(format!("{} is available", &self.name));
+                    send(format!("{} is available", &self.name).into_info());
                     Ok(())
                 } else {
-                    let msg = format!("{} is not available", &self.name);
-                    self.errors.push(msg.clone());
-                    Err(eyre!(msg))
+                    Err(ExecutableError::NotAvailable(eyre!(
+                        "{} is not available",
+                        &self.name
+                    )))
                 }
             })
     }

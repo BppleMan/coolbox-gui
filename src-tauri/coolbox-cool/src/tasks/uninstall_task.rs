@@ -1,24 +1,17 @@
-use crate::installer::{Installable, Installer};
-use crate::result::CoolResult;
-use crate::shell::ShellResult;
-use crate::tasks::{Executable, ExecutableState};
-use color_eyre::eyre::eyre;
-use coolbox_macros::State;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+use serde::{Deserialize, Serialize};
+
+use crate::error::ExecutableError;
+use crate::installer::{Installable, Installer};
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UninstallTask {
     pub name: String,
     pub args: Option<Vec<String>>,
     pub installer: Installer,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl UninstallTask {
@@ -27,9 +20,6 @@ impl UninstallTask {
             name,
             args,
             installer,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
         }
     }
 }
@@ -59,38 +49,29 @@ impl Display for UninstallTask {
     }
 }
 
-impl Executable for UninstallTask {
-    fn _run(&mut self) -> CoolResult<()> {
-        let initial_result: CoolResult<()> = Err(eyre!("No attempts made"));
-
-        (0..5).fold(initial_result, |acc, _| {
-            if let Err(_) = acc {
-                let ShellResult {
-                    input: _input,
-                    output,
-                    error,
-                } = self.installer.uninstall(
-                    &self.name,
-                    self.args
-                        .as_ref()
-                        .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                        .as_deref(),
-                )?;
-
-                rayon::scope(|s| {
-                    s.spawn(|_| {
-                        while let Ok(r) = output.recv() {
-                            self.outputs.push(r);
-                        }
-                    });
-                    s.spawn(|_| {
-                        while let Ok(r) = error.recv() {
-                            self.errors.push(r);
-                        }
-                    });
-                });
-            }
-            Ok(())
-        })
+impl<'a> Executable<'a> for UninstallTask {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+        let (tx1, rx1) = crossbeam::channel::unbounded();
+        let (tx2, rx2) = crossbeam::channel::bounded(1);
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let result = self
+                    .installer
+                    .uninstall(
+                        &self.name,
+                        self.args
+                            .as_ref()
+                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                            .as_deref(),
+                        tx1,
+                    )
+                    .map_err(ExecutableError::ShellError);
+                tx2.send(result).unwrap();
+            });
+        });
+        while let Ok(msg) = rx1.recv() {
+            send(msg);
+        }
+        rx2.recv().unwrap()
     }
 }

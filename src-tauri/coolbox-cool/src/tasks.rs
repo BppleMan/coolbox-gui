@@ -17,10 +17,11 @@ pub use move_task::*;
 pub use uninstall_task::*;
 pub use which_task::*;
 
+use crate::error::ExecutableError;
 use crate::installer::Installer;
-use crate::result::CoolResult;
+use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
-use crate::state::StateAble;
+use crate::{Message, MessageSender, TasksMessageSender};
 
 mod check_task;
 mod command_task;
@@ -36,31 +37,19 @@ mod move_task;
 mod uninstall_task;
 mod which_task;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub enum ExecutableState {
-    #[default]
-    NotStarted,
-    Running,
-    Finished,
-    Error,
-}
-
-pub trait Executable: StateAble + Display {
-    fn execute(&mut self) -> CoolResult<()> {
-        *self.current_state() = ExecutableState::Running;
-        match self._run() {
-            Ok(_) => {
-                *self.current_state() = ExecutableState::Finished;
-                Ok(())
-            }
-            Err(e) => {
-                *self.current_state() = ExecutableState::Error;
-                Err(e)
-            }
-        }
+pub trait Executable<'a>: Display + Send + Sync {
+    fn execute(&self, sender: Box<MessageSender<'a>>) -> ExecutableResult {
+        self._run(sender)
     }
 
-    fn _run(&mut self) -> CoolResult<()>;
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult;
+}
+
+pub fn spawn_task<'a, F>(task: impl Executable<'a>, send: F) -> ExecutableResult
+where
+    F: FnMut(Message) + 'a,
+{
+    task.execute(Box::new(send))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, TaskRef)]
@@ -193,29 +182,15 @@ impl Task {
     }
 }
 
-impl StateAble for Task {
-    fn current_state(&mut self) -> &mut ExecutableState {
-        self.as_mut().current_state()
-    }
-
-    fn outputs(&mut self) -> &mut Vec<String> {
-        self.as_mut().outputs()
-    }
-
-    fn errors(&mut self) -> &mut Vec<String> {
-        self.as_mut().errors()
-    }
-}
-
 impl Display for Task {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.as_ref().fmt(f)
     }
 }
 
-impl Executable for Task {
-    fn _run(&mut self) -> CoolResult<()> {
-        self.as_mut()._run()
+impl<'a> Executable<'a> for Task {
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+        self.as_ref()._run(send)
     }
 }
 
@@ -223,11 +198,15 @@ impl Executable for Task {
 pub struct Tasks(pub Vec<Task>);
 
 impl Tasks {
-    pub fn execute(&mut self) -> CoolResult<Vec<Vec<String>>> {
-        self.0.iter_mut().try_fold(Vec::new(), |mut results, task| {
-            task.as_mut().execute()?;
-            results.push(task.outputs().clone());
-            Ok(results)
+    pub fn execute<'a>(
+        &'a self,
+        mut sender: Box<TasksMessageSender<'a>>,
+    ) -> CoolResult<(), (String, usize, ExecutableError)> {
+        self.0.iter().enumerate().try_for_each(|(i, task)| {
+            task.execute(Box::new(|message| {
+                sender(i, task, message);
+            }))
+            .map_err(|e| (task.name().to_string(), i, e))
         })
     }
 }

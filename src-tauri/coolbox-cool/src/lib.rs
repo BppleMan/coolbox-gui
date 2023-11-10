@@ -5,12 +5,14 @@ pub use tracing::*;
 
 pub use cool::*;
 pub use cool_list::*;
+pub use event::*;
 pub use extension::*;
 pub use trace::*;
 
 mod cool;
 mod cool_list;
-mod error;
+pub mod error;
+mod event;
 mod extension;
 pub mod installer;
 pub mod result;
@@ -25,7 +27,7 @@ lazy_static! {
         let mut ctx = tera::Context::default();
         ctx.insert(
             "TEMP_DIR",
-            &format!("{}/coolbox", &DEFAULT_TEMP_DIR.to_string_lossy()),
+            &format!("{}coolbox", &DEFAULT_TEMP_DIR.to_string_lossy()),
         );
         ctx
     };

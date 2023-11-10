@@ -28,16 +28,16 @@ pub fn derive_task(input: TokenStream) -> TokenStream {
                 .collect::<Vec<_>>();
 
             let expended = quote! {
-                impl AsRef<dyn Executable> for #enum_name {
-                    fn as_ref(&self) -> &(dyn Executable + 'static) {
+                impl<'a> AsRef<dyn Executable<'a>> for #enum_name {
+                    fn as_ref(&self) -> &(dyn Executable<'a> + 'static) {
                         match self {
                             #(#tokens),*
                         }
                     }
                 }
 
-                impl AsMut<dyn Executable> for #enum_name {
-                    fn as_mut(&mut self) -> &mut (dyn Executable + 'static) {
+                impl<'a> AsMut<dyn Executable<'a>> for #enum_name {
+                    fn as_mut(&mut self) -> &mut (dyn Executable<'a> + 'static) {
                         match self {
                             #(#tokens),*
                         }

@@ -1,15 +1,12 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
-use std::thread;
 
-use crate::StringExt;
 use color_eyre::eyre::eyre;
 use crossbeam::channel::{Receiver, Sender};
 use log::info;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use tracing::debug;
 
 pub use bash::*;
 pub use linux_sudo::*;
@@ -18,6 +15,7 @@ pub use sh::*;
 pub use zsh::*;
 
 use crate::result::CoolResult;
+use crate::{IntoInfo, Message, StringExt};
 
 mod bash;
 mod linux_sudo;
@@ -60,8 +58,9 @@ impl ShellExecutor for Shell {
         cmd: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<ShellResult> {
-        self.as_ref().run(cmd, args, envs)
+        sender: Option<Sender<Message>>,
+    ) -> CoolResult<()> {
+        self.as_ref().run(cmd, args, envs, sender)
     }
 }
 
@@ -125,7 +124,6 @@ pub trait ShellExecutor {
         envs: Option<&[(&str, &str)]>,
     ) -> CoolResult<Command> {
         let mut command = self.command(cmd, args)?;
-        debug!("{}", format!("{:?}", command).truncate_string(100));
         if let Some(envs) = envs {
             command.envs(envs.to_vec());
         }
@@ -137,7 +135,8 @@ pub trait ShellExecutor {
         cmd: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<ShellResult> {
+        sender: Option<Sender<Message>>,
+    ) -> CoolResult<()> {
         let mut command = self.prepare(cmd, args, envs)?;
         let command_desc = format!("{:?}", command);
         info!("run: {}", command_desc.truncate_string(100));
@@ -148,56 +147,38 @@ pub trait ShellExecutor {
 
         let mut child = command.spawn()?;
 
-        let (in_sender, in_receiver) = crossbeam::channel::unbounded::<String>();
-        let mut in_writer = child.stdin.take().unwrap();
-        thread::spawn(move || {
-            while let Ok(line) = in_receiver.recv() {
-                in_writer.write_all(line.as_bytes()).unwrap();
-                in_writer.write_all(b"\n").unwrap();
-                in_writer.flush().unwrap();
-            }
+        let out_reader = BufReader::new(child.stdout.take().unwrap());
+        let err_reader = BufReader::new(child.stderr.take().unwrap());
+        let (tx, rx) = crossbeam::channel::bounded(1);
+        rayon::scope(|s| {
+            s.spawn(|_| redirect(out_reader, &sender));
+            s.spawn(|_| redirect(err_reader, &sender));
+            s.spawn(|_| {
+                let result = child.wait_with_output();
+                tx.send(result).unwrap();
+            })
         });
 
-        let (out_sender, out_receiver) = crossbeam::channel::unbounded::<String>();
-        let mut out_reader = BufReader::new(child.stdout.take().unwrap());
-        let output = thread::spawn(move || {
-            let mut buf = String::new();
-            while let Ok(size) = out_reader.read_line(&mut buf) {
-                if size == 0 {
-                    break;
-                }
-                out_sender
-                    .send(std::mem::take(&mut buf))
-                    .map_err(|e| eyre!(e))
-                    .unwrap();
-                buf.clear();
-            }
-        });
-
-        let (err_sender, err_receiver) = crossbeam::channel::unbounded::<String>();
-        let mut err_reader = BufReader::new(child.stderr.take().unwrap());
-        let error = thread::spawn(move || {
-            let mut buf = String::new();
-            while let Ok(size) = err_reader.read_line(&mut buf) {
-                if size == 0 {
-                    break;
-                }
-                err_sender
-                    .send(std::mem::take(&mut buf))
-                    .map_err(|e| eyre!(e))
-                    .unwrap();
-                buf.clear();
-            }
-        });
-
-        output.join().unwrap();
-        error.join().unwrap();
-
-        let result = child.wait_with_output()?;
+        let result = rx.recv().unwrap()?;
         match result.status.success() {
-            true => Ok(ShellResult::new(in_sender, out_receiver, err_receiver)),
+            true => Ok(()),
             false => Err(eyre!("run command failed: {}", command_desc)),
         }
+    }
+}
+
+fn redirect(mut reader: impl BufRead, sender: &Option<Sender<Message>>) {
+    let mut buf = String::new();
+    while let Ok(size) = reader.read_line(&mut buf) {
+        if size == 0 {
+            break;
+        }
+        if let Some(sender) = sender.as_ref() {
+            sender
+                .try_send(std::mem::take(&mut buf).into_info())
+                .unwrap();
+        }
+        buf.clear();
     }
 }
 
@@ -220,9 +201,9 @@ impl ShellResult {
 
 #[cfg(test)]
 mod test {
-    use crate::init_backtrace;
     use serde::{Deserialize, Serialize};
 
+    use crate::init_backtrace;
     use crate::result::CoolResult;
 
     #[test]

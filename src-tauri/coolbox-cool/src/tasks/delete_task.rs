@@ -1,32 +1,19 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-use coolbox_macros::State;
+use serde::{Deserialize, Serialize};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DeleteTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub path: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl DeleteTask {
     pub fn new(path: String) -> Self {
-        Self {
-            path,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { path }
     }
 }
 
@@ -36,8 +23,8 @@ impl Display for DeleteTask {
     }
 }
 
-impl Executable for DeleteTask {
-    fn _run(&mut self) -> CoolResult<()> {
+impl<'a> Executable<'a> for DeleteTask {
+    fn _run(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
         fs_extra::remove_items(&[&self.path])?;
         Ok(())
     }
@@ -52,7 +39,7 @@ mod test {
     use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::tasks::delete_task::DeleteTask;
-    use crate::tasks::Executable;
+    use crate::tasks::spawn_task;
 
     #[test]
     fn delete_file() -> CoolResult<()> {
@@ -60,7 +47,8 @@ mod test {
         let base_dir = Builder::new().prefix("cool").suffix("delete").tempdir()?;
         let path = NamedTempFile::new_in(base_dir.path())?;
         assert!(path.path().exists());
-        DeleteTask::new(path.path().to_string_lossy().to_string()).execute()?;
+        let task = DeleteTask::new(path.path().to_string_lossy().to_string());
+        spawn_task(task, |_| {})?;
         assert!(!path.path().exists());
         Ok(())
     }
@@ -78,8 +66,8 @@ mod test {
         let _child_file1 = File::create(child_dir.join("child_file1"))?;
         let _child_file2 = File::create(child_dir.join("child_file2"))?;
 
-        DeleteTask::new(source_dir.to_string_lossy().to_string()).execute()?;
-
+        let task = DeleteTask::new(source_dir.to_string_lossy().to_string());
+        spawn_task(task, |_| {})?;
         assert!(!source_dir.exists());
 
         Ok(())

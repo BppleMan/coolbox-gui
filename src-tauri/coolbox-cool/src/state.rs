@@ -1,9 +1,9 @@
-use crate::tasks::ExecutableState;
+use serde::{Deserialize, Serialize};
 
-pub trait StateAble {
-    fn current_state(&mut self) -> &mut ExecutableState;
-
-    fn outputs(&mut self) -> &mut Vec<String>;
-
-    fn errors(&mut self) -> &mut Vec<String>;
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+pub enum CoolState {
+    Ready,
+    Installing,
+    Uninstalling,
+    Installed,
 }

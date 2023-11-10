@@ -12,41 +12,29 @@ use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
-use coolbox_macros::State;
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CompressTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub src: String,
     #[serde(deserialize_with = "crate::render_str")]
     pub dest: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl CompressTask {
     pub fn new(src: String, dest: String) -> Self {
-        Self {
-            src,
-            dest,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { src, dest }
     }
-    pub fn compress_zip(&self) -> CoolResult<()> {
+
+    pub fn compress_zip(&self, mut send: Box<MessageSender>) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let parent = src
             .parent()
-            .unwrap_or_else(|| panic!("{} has no parent", src.display()));
+            .ok_or_else(|| ExecutableError::PathNoParent(eyre!("No parent: {}", src.display())))?;
         let dest = File::create(&self.dest)?;
         let mut zip = ZipWriter::new(dest);
         for entry in WalkDir::new(&self.src) {
@@ -56,6 +44,7 @@ impl CompressTask {
                     entry.path().strip_prefix(parent)?.display().to_string(),
                     FileOptions::default(),
                 )?;
+                send(format!("Add directory {}", entry.path().display()).into_info());
             } else if entry.file_type().is_file() {
                 zip.start_file(
                     entry.path().strip_prefix(parent)?.display().to_string(),
@@ -65,12 +54,14 @@ impl CompressTask {
                 let mut buf = vec![];
                 file.read_to_end(&mut buf)?;
                 zip.write_all(&buf)?;
+                send(format!("Add file {}", entry.path().display()).into_info());
             } else if entry.file_type().is_symlink() {
                 zip.add_symlink(
                     entry.path().strip_prefix(parent)?.display().to_string(),
                     entry.path().read_link()?.display().to_string(),
                     FileOptions::default().compression_method(CompressionMethod::Stored),
                 )?;
+                send(format!("Add symlink {}", entry.path().display()).into_info());
             }
         }
         zip.finish()?;
@@ -78,7 +69,7 @@ impl CompressTask {
         Ok(())
     }
 
-    pub fn compress_tar_gz(&self) -> CoolResult<()> {
+    pub fn compress_tar_gz(&self, mut send: Box<MessageSender>) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let dest = File::create(&self.dest)?;
 
@@ -87,6 +78,7 @@ impl CompressTask {
         tar.follow_symlinks(false);
         tar.append_dir_all(src.file_name().unwrap(), &self.src)?;
         tar.finish()?;
+        send(format!("Add directory {}", &self.src).into_info());
 
         Ok(())
     }
@@ -104,14 +96,16 @@ impl Display for CompressTask {
     }
 }
 
-impl Executable for CompressTask {
-    fn _run(&mut self) -> CoolResult<()> {
+impl<'a> Executable<'a> for CompressTask {
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         if self.dest.ends_with(".zip") {
-            self.compress_zip()
+            self.compress_zip(send)
         } else if self.dest.ends_with(".tar.gz") {
-            self.compress_tar_gz()
+            self.compress_tar_gz(send)
         } else {
-            Err(eyre!("Not support"))
+            let error =
+                ExecutableError::UnsupportedCompressType(eyre!("Not support: {}", self.dest));
+            Err(error)
         }
     }
 }
@@ -127,7 +121,7 @@ mod test {
     use crate::result::CoolResult;
     use crate::tasks::compress_task::CompressTask;
     use crate::tasks::decompress_task::DecompressTask;
-    use crate::tasks::Executable;
+    use crate::tasks::spawn_task;
 
     fn create_dir(base_dir: &TempDir) -> CoolResult<PathBuf> {
         let source_dir = base_dir.path().join("source");
@@ -166,19 +160,19 @@ mod test {
         let source_dir = create_dir(&base_dir)?;
 
         let zip_dest = base_dir.path().join("dest.zip");
-        let mut compress = CompressTask::new(
+        let compress = CompressTask::new(
             source_dir.to_string_lossy().to_string(),
             zip_dest.to_string_lossy().to_string(),
         );
-        compress.execute()?;
+        spawn_task(compress, |msg| println!("{}", msg))?;
         assert!(zip_dest.exists());
 
         let dest = base_dir.path().join("dest");
-        let mut decompress = DecompressTask::new(
+        let decompress = DecompressTask::new(
             zip_dest.to_string_lossy().to_string(),
             dest.to_string_lossy().to_string(),
         );
-        decompress.execute()?;
+        spawn_task(decompress, |msg| println!("{}", msg))?;
         assert_result(&dest);
 
         Ok(())
@@ -195,19 +189,19 @@ mod test {
         let source_dir = create_dir(&base_dir)?;
 
         let tgz_dest = base_dir.path().join("dest.tar.gz");
-        let mut compress = CompressTask::new(
+        let compress = CompressTask::new(
             source_dir.to_string_lossy().to_string(),
             tgz_dest.to_string_lossy().to_string(),
         );
-        compress.execute()?;
+        spawn_task(compress, |_| {})?;
         assert!(tgz_dest.exists());
 
         let dest = base_dir.path().join("dest");
-        let mut decompress = DecompressTask::new(
+        let decompress = DecompressTask::new(
             tgz_dest.to_string_lossy().to_string(),
             dest.to_string_lossy().to_string(),
         );
-        decompress.execute()?;
+        spawn_task(decompress, |_| {})?;
         assert_result(&dest);
 
         Ok(())

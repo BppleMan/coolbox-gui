@@ -42,21 +42,22 @@ impl ShellExecutor for MacOSSudo {
 mod test {
     use std::io::Write;
 
+    use crate::init_backtrace;
     use tempfile::NamedTempFile;
 
-    use crate::cool_test::init_test;
     use crate::result::CoolResult;
     use crate::shell::{MacOSSudo, ShellExecutor};
 
     #[test]
     fn test() -> CoolResult<()> {
-        init_test();
+        init_backtrace();
         let script = reqwest::blocking::get("https://sh.rustup.rs")?.text()?;
         let mut script_file = NamedTempFile::new()?;
         script_file.write_all(script.as_bytes())?;
         MacOSSudo.run(
             &format!("{}", script_file.path().display()),
             Some(&["-h"]),
+            None,
             None,
         )?;
         Ok(())

@@ -1,5 +1,6 @@
-use crate::shell::ShellExecutor;
 use std::process::Command;
+
+use crate::shell::ShellExecutor;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Zsh;

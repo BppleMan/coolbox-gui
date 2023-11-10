@@ -1,10 +1,12 @@
 use std::process::Command;
 
+use crossbeam::channel::Sender;
 use tracing::info;
 
 use crate::installer::Installable;
 use crate::result::CoolResult;
-use crate::shell::{ShellExecutor, ShellResult};
+use crate::shell::ShellExecutor;
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Brew;
@@ -29,7 +31,12 @@ impl Installable for Brew {
         "brew"
     }
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<Message>,
+    ) -> CoolResult<()> {
         info!("installing {} with brew", name);
 
         let args = match args {
@@ -41,10 +48,15 @@ impl Installable for Brew {
             }
         };
 
-        self.run("install", Some(&args), None)
+        self.run("install", Some(&args), None, Some(sender))
     }
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<Message>,
+    ) -> CoolResult<()> {
         info!("uninstalling {} with brew", name);
 
         let args = match args {
@@ -56,13 +68,13 @@ impl Installable for Brew {
             }
         };
 
-        self.run("uninstall", Some(&args), None)
+        self.run("uninstall", Some(&args), None, Some(sender))
     }
 
-    fn check_available(&mut self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {} with brew", name);
 
-        Ok(self.run("list", Some(&[name]), None).is_ok())
+        Ok(self.run("list", Some(&[name]), None, None).is_ok())
     }
 }
 
@@ -75,11 +87,17 @@ mod test {
     #[test]
     fn install_wget() -> CoolResult<()> {
         init_backtrace();
+        let (sender, receiver) = crossbeam::channel::unbounded();
+        rayon::spawn(|| {
+            for msg in receiver {
+                println!("{}", msg);
+            }
+        });
         if Brew.check_available("wget", None)? {
-            Brew.uninstall("wget", None)?;
+            Brew.uninstall("wget", None, sender.clone())?;
         }
-        Brew.install("wget", None)?;
-        Brew.uninstall("wget", None)?;
+        Brew.install("wget", None, sender.clone())?;
+        Brew.uninstall("wget", None, sender.clone())?;
         Ok(())
     }
 }

@@ -1,6 +1,6 @@
-name = "curl"
+name = "git"
 description = "一个命令行版本控制工具"
-dependencies = ["brew"]
+dependencies = ["homebrew"]
 
 [[install_tasks]]
 [install_tasks.InstallTask]

@@ -1,28 +1,21 @@
-use color_eyre::eyre::eyre;
-use log::info;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-use coolbox_macros::State;
+use log::info;
+use serde::{Deserialize, Serialize};
 
-use crate::result::CoolResult;
-use crate::shell::{Shell, ShellExecutor, ShellResult};
-use crate::tasks::{Executable, ExecutableState};
+use crate::error::ExecutableError;
+use crate::result::ExecutableResult;
+use crate::shell::{Shell, ShellExecutor};
+use crate::tasks::{Executable, MessageSender};
+use crate::Message;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CommandTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub script: String,
     pub args: Option<Vec<String>>,
     pub envs: Option<Vec<(String, String)>>,
     pub shell: Shell,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl CommandTask {
@@ -37,9 +30,6 @@ impl CommandTask {
             args,
             envs,
             shell,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
         }
     }
 }
@@ -68,47 +58,35 @@ impl Display for CommandTask {
     }
 }
 
-impl Executable for CommandTask {
-    fn _run(&mut self) -> CoolResult<()> {
+impl<'a> Executable<'a> for CommandTask {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         info!("{}", self);
-        let initial_result: CoolResult<()> = Err(eyre!("No attempts made"));
+        let args = self
+            .args
+            .as_ref()
+            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>());
+        let envs = self.envs.as_ref().map(|envs| {
+            envs.iter()
+                .map(|(k, v)| (k.as_str(), v.as_str()))
+                .collect::<Vec<_>>()
+        });
 
-        (0..5).fold(initial_result, |acc, _| {
-            if acc.is_err() {
-                let ShellResult {
-                    input: _input,
-                    output,
-                    error,
-                } = self.shell.run(
-                    &self.script,
-                    self.args
-                        .as_ref()
-                        .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                        .as_deref(),
-                    self.envs
-                        .as_ref()
-                        .map(|envs| {
-                            envs.iter()
-                                .map(|(k, v)| (k.as_str(), v.as_str()))
-                                .collect::<Vec<_>>()
-                        })
-                        .as_deref(),
-                )?;
-                rayon::scope(|s| {
-                    s.spawn(|_| {
-                        while let Ok(r) = output.recv() {
-                            self.outputs.push(r);
-                        }
-                    });
-                    s.spawn(|_| {
-                        while let Ok(r) = error.recv() {
-                            self.errors.push(r);
-                        }
-                    });
-                });
-            }
-            Ok(())
-        })
+        let (tx1, rx1) = crossbeam::channel::unbounded::<Message>();
+        let (tx2, rx2) = crossbeam::channel::bounded(1);
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let result = self
+                    .shell
+                    .run(&self.script, args.as_deref(), envs.as_deref(), Some(tx1))
+                    .map_err(ExecutableError::ShellError);
+                tx2.send(result).unwrap();
+            });
+        });
+        while let Ok(message) = rx1.recv() {
+            send(message);
+        }
+
+        rx2.recv().unwrap()
     }
 }
 
@@ -117,19 +95,22 @@ mod test {
     use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::shell::{Sh, Shell};
-    use crate::tasks::{CommandTask, Executable};
+    use crate::tasks::{spawn_task, CommandTask, Executable};
 
     #[test]
     fn test_serialize() -> CoolResult<()> {
         init_backtrace();
 
-        let mut expect = CommandTask::new("echo hello".to_string(), None, None, Shell::Sh(Sh));
+        let expect = CommandTask::new("echo hello".to_string(), None, None, Shell::Sh(Sh));
         let toml = toml::to_string(&expect)?;
         let command: CommandTask = toml::from_str(&toml)?;
         pretty_assertions::assert_eq!(expect, command);
 
-        expect.execute()?;
-        pretty_assertions::assert_eq!("hello\n".to_string(), expect.outputs.join("\n"));
+        let mut outputs = String::new();
+        command.execute(Box::new(|msg| {
+            outputs.push_str(&msg.message);
+        }))?;
+        pretty_assertions::assert_eq!("hello\n".to_string(), outputs);
         Ok(())
     }
 
@@ -137,14 +118,14 @@ mod test {
     fn ping() -> CoolResult<()> {
         init_backtrace();
 
-        let mut command = CommandTask::new(
+        let command = CommandTask::new(
             "ping -c 1 www.baidu.com".to_string(),
             None,
             None,
             Shell::Sh(Sh),
         );
-        let result = command.execute();
-        assert!(result.is_ok());
+        command.execute(Box::new(|_| {}))?;
+        // spawn_task(command, |_| {})?;
         Ok(())
     }
 
@@ -162,29 +143,29 @@ mod test {
         echo second:$2
         "#;
         std::fs::write(&script_file, script)?;
-        let mut command = CommandTask::new(
+        let command = CommandTask::new(
             script_file.to_string_lossy().to_string(),
             Some(vec!["hello".to_string(), "world".to_string()]),
             None,
             Shell::Sh(Sh),
         );
-        command.execute()?;
-        pretty_assertions::assert_eq!(
-            "first:hello\nsecond:world\n".to_string(),
-            command.outputs.join("")
-        );
+        let mut outputs = String::new();
+        spawn_task(command, |msg| {
+            outputs.push_str(&msg.message);
+        })?;
+        pretty_assertions::assert_eq!("first:hello\nsecond:world\n".to_string(), outputs);
 
-        let mut command = CommandTask::new(
+        let command = CommandTask::new(
             script.to_string(),
             Some(vec!["hello".to_string(), "world".to_string()]),
             None,
             Shell::Sh(Sh),
         );
-        command.execute()?;
-        pretty_assertions::assert_eq!(
-            "first:hello\nsecond:world\n".to_string(),
-            command.outputs.join("")
-        );
+        outputs.clear();
+        spawn_task(command, |msg| {
+            outputs.push_str(&msg.message);
+        })?;
+        pretty_assertions::assert_eq!("first:hello\nsecond:world\n".to_string(), outputs,);
 
         Ok(())
     }

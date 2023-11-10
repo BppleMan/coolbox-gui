@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 
+use crossbeam::channel::Sender;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use apt::*;
@@ -11,7 +12,7 @@ pub use rpm::*;
 pub use yum::*;
 
 use crate::result::CoolResult;
-use crate::shell::ShellResult;
+use crate::Message;
 
 mod apt;
 mod brew;
@@ -23,11 +24,17 @@ mod yum;
 pub trait Installable {
     fn name(&self) -> &'static str;
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
+    fn install(&self, name: &str, args: Option<&[&str]>, sender: Sender<Message>)
+        -> CoolResult<()>;
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult>;
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<Message>,
+    ) -> CoolResult<()>;
 
-    fn check_available(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
+    fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -71,16 +78,26 @@ impl Installable for Installer {
         self.as_ref().name()
     }
 
-    fn install(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
-        self.as_mut().install(name, args)
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<Message>,
+    ) -> CoolResult<()> {
+        self.as_ref().install(name, args, sender)
     }
 
-    fn uninstall(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<ShellResult> {
-        self.as_mut().install(name, args)
+    fn uninstall(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        sender: Sender<Message>,
+    ) -> CoolResult<()> {
+        self.as_ref().uninstall(name, args, sender)
     }
 
-    fn check_available(&mut self, name: &str, args: Option<&[&str]>) -> CoolResult<bool> {
-        self.as_mut().check_available(name, args)
+    fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool> {
+        self.as_ref().check_available(name, args)
     }
 }
 

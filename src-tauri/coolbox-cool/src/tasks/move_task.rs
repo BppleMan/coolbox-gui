@@ -2,38 +2,24 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use fs_extra::dir::CopyOptions;
+use fs_extra::dir::{CopyOptions, TransitProcessResult};
 use serde::{Deserialize, Serialize};
 
-use coolbox_macros::State;
+use crate::result::ExecutableResult;
+use crate::tasks::{Executable, MessageSender};
+use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
-use crate::result::CoolResult;
-use crate::tasks::{Executable, ExecutableState};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, State)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MoveTask {
     #[serde(deserialize_with = "crate::render_str")]
     pub src: String,
     #[serde(deserialize_with = "crate::render_str")]
     pub dest: String,
-
-    #[serde(skip)]
-    state: ExecutableState,
-    #[serde(skip)]
-    outputs: Vec<String>,
-    #[serde(skip)]
-    errors: Vec<String>,
 }
 
 impl MoveTask {
     pub fn new(src: String, dest: String) -> Self {
-        Self {
-            src,
-            dest,
-            state: ExecutableState::NotStarted,
-            outputs: vec![],
-            errors: vec![],
-        }
+        Self { src, dest }
     }
 }
 
@@ -49,23 +35,41 @@ impl Display for MoveTask {
     }
 }
 
-impl Executable for MoveTask {
-    fn _run(&mut self) -> CoolResult<()> {
+impl<'a> Executable<'a> for MoveTask {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {
-            fs_extra::dir::move_dir(
+            fs_extra::dir::move_dir_with_progress(
                 &self.src,
                 &self.dest,
                 &CopyOptions::new().skip_exist(true).copy_inside(true),
+                |transit| {
+                    send(transit.as_info());
+                    TransitProcessResult::OverwriteAll
+                },
             )?;
         } else {
             let options = fs_extra::file::CopyOptions::new().skip_exist(true);
             if dest.is_dir() {
                 let file_name = src.file_name().unwrap();
-                fs_extra::file::move_file(&self.src, dest.join(file_name), &options)?;
+                fs_extra::file::move_file_with_progress(
+                    &self.src,
+                    dest.join(file_name),
+                    &options,
+                    |transit| {
+                        send(transit.as_info(dest.to_string_lossy()));
+                    },
+                )?;
             } else {
-                fs_extra::file::move_file(&self.src, &self.dest, &options)?;
+                fs_extra::file::move_file_with_progress(
+                    &self.src,
+                    &self.dest,
+                    &options,
+                    |transit| {
+                        send(transit.as_info(dest.to_string_lossy()));
+                    },
+                )?;
             }
         }
         Ok(())
@@ -80,7 +84,7 @@ mod test {
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::Executable;
+    use crate::tasks::spawn_task;
 
     #[test]
     fn move_file() -> CoolResult<()> {
@@ -89,11 +93,11 @@ mod test {
         let source_file = NamedTempFile::with_prefix_in("source", base_dir.path())?;
 
         let dest_path = base_dir.path().join("dest");
-        super::MoveTask::new(
+        let task = super::MoveTask::new(
             source_file.path().to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
-        )
-        .execute()?;
+        );
+        spawn_task(task, |_| {})?;
         assert!(!source_file.path().exists());
         assert!(dest_path.exists());
         Ok(())
@@ -113,11 +117,11 @@ mod test {
         let _child_file2 = File::create(child_dir.join("child_file2"))?;
 
         let dest_path = base_dir.path().join("dest");
-        super::MoveTask::new(
+        let task = super::MoveTask::new(
             source_dir.to_string_lossy().to_string(),
             dest_path.as_path().to_string_lossy().to_string(),
-        )
-        .execute()?;
+        );
+        spawn_task(task, |_| {})?;
         assert!(!source_dir.exists());
         assert!(dest_path.exists());
         assert!(dest_path.join("child_file").exists());

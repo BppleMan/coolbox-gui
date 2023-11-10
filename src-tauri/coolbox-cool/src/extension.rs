@@ -5,8 +5,8 @@ pub trait StringExt {
 }
 
 impl<T> StringExt for T
-where
-    T: AsRef<str>,
+    where
+        T: AsRef<str>,
 {
     fn truncate_string(&self, max_len: usize) -> String {
         if self.as_ref().len() <= max_len {
