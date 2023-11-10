@@ -6,7 +6,7 @@ use tracing::info;
 use crate::installer::Installable;
 use crate::result::CoolResult;
 use crate::shell::ShellExecutor;
-use crate::ExecutableMessage;
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Cargo;
@@ -35,7 +35,7 @@ impl Installable for Cargo {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with cargo", name);
 
@@ -55,7 +55,7 @@ impl Installable for Cargo {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with cargo", name);
 
@@ -73,7 +73,7 @@ impl Installable for Cargo {
 
     fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
         info!("checking {} with cargo", name);
-        let (sender, receiver) = crossbeam::channel::unbounded::<ExecutableMessage>();
+        let (sender, receiver) = crossbeam::channel::unbounded::<Message>();
         self.run("install", Some(&["--list"]), None, Some(sender))?;
         let result = receiver
             .iter()

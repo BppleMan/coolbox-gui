@@ -6,7 +6,7 @@ use tracing::info;
 use crate::installer::Installable;
 use crate::result::CoolResult;
 use crate::shell::ShellExecutor;
-use crate::ExecutableMessage;
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Brew;
@@ -35,7 +35,7 @@ impl Installable for Brew {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with brew", name);
 
@@ -55,7 +55,7 @@ impl Installable for Brew {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with brew", name);
 

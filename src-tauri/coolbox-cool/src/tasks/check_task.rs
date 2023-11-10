@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -28,7 +28,7 @@ impl Display for CheckTask {
 }
 
 impl<'a> Executable<'a> for CheckTask {
-    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         self.installer
             .check_available(&self.name, None)
             .map_err(ExecutableError::ShellError)

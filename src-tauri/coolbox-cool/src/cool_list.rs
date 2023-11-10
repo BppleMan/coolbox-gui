@@ -1,18 +1,20 @@
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use color_eyre::eyre::eyre;
 use dashmap::DashMap;
-use include_dir::{Dir, include_dir};
+use include_dir::{include_dir, Dir};
 use once_cell::sync::Lazy;
+use rayon::prelude::*;
 use tracing::error;
 
+use crate::error::{CoolError, TransformError};
+use crate::state::CoolState;
 use crate::Cool;
-use crate::error::TransformError;
 
 #[derive(Debug, Clone)]
-pub struct SafeCool(Arc<RwLock<Cool>>);
+pub struct SafeCool(Arc<Mutex<Cool>>);
 
 static COOL_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools");
 
@@ -29,7 +31,7 @@ pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
             {
                 match toml::from_str::<Cool>(entry.as_file().unwrap().contents_utf8().unwrap()) {
                     Ok(cool) => {
-                        map.insert(cool.name.clone(), SafeCool(Arc::new(RwLock::new(cool))));
+                        map.insert(cool.name.clone(), SafeCool(Arc::new(Mutex::new(cool))));
                     }
                     Err(e) => {
                         error!("{:?}\n{:?}", entry.path(), eyre!(e));
@@ -37,14 +39,14 @@ pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
                 }
             }
         } else {
-            println!("is not macos");
+            error!("is not macos");
         }
     });
     map
 });
 
 impl Deref for SafeCool {
-    type Target = Arc<RwLock<Cool>>;
+    type Target = Arc<Mutex<Cool>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -52,20 +54,32 @@ impl Deref for SafeCool {
 }
 
 impl FromStr for SafeCool {
-    type Err = TransformError;
+    type Err = CoolError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match COOL_LIST.get(s) {
-            None => Err(TransformError::NotFoundCool(s.to_string())),
+            None => Err(CoolError::NotFoundCool {
+                cool_name: s.to_string(),
+            }),
             Some(cool) => Ok(cool.value().clone()),
         }
     }
 }
 
+pub fn check_cool_states() -> Vec<(String, CoolState)> {
+    COOL_LIST
+        .par_iter()
+        .map(|cool| {
+            let cool = cool.lock().unwrap();
+            (cool.name.clone(), cool.check())
+        })
+        .collect::<Vec<_>>()
+}
+
 #[cfg(test)]
 mod test {
-    use crate::{COOL_LIST, init_backtrace};
     use crate::result::CoolResult;
+    use crate::{init_backtrace, COOL_LIST};
 
     #[test]
     fn test_cool_list() -> CoolResult<()> {

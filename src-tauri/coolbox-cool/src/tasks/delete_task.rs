@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
 
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DeleteTask {
@@ -24,7 +24,7 @@ impl Display for DeleteTask {
 }
 
 impl<'a> Executable<'a> for DeleteTask {
-    fn _run(&self, _send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
         fs_extra::remove_items(&[&self.path])?;
         Ok(())
     }

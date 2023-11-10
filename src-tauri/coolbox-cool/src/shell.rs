@@ -15,7 +15,7 @@ pub use sh::*;
 pub use zsh::*;
 
 use crate::result::CoolResult;
-use crate::{ExecutableMessage, IntoError, IntoInfo, StringExt};
+use crate::{IntoInfo, Message, StringExt};
 
 mod bash;
 mod linux_sudo;
@@ -58,7 +58,7 @@ impl ShellExecutor for Shell {
         cmd: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-        sender: Option<Sender<ExecutableMessage>>,
+        sender: Option<Sender<Message>>,
     ) -> CoolResult<()> {
         self.as_ref().run(cmd, args, envs, sender)
     }
@@ -135,7 +135,7 @@ pub trait ShellExecutor {
         cmd: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-        sender: Option<Sender<ExecutableMessage>>,
+        sender: Option<Sender<Message>>,
     ) -> CoolResult<()> {
         let mut command = self.prepare(cmd, args, envs)?;
         let command_desc = format!("{:?}", command);
@@ -147,38 +147,12 @@ pub trait ShellExecutor {
 
         let mut child = command.spawn()?;
 
-        let mut out_reader = BufReader::new(child.stdout.take().unwrap());
-        let mut err_reader = BufReader::new(child.stderr.take().unwrap());
+        let out_reader = BufReader::new(child.stdout.take().unwrap());
+        let err_reader = BufReader::new(child.stderr.take().unwrap());
         let (tx, rx) = crossbeam::channel::bounded(1);
         rayon::scope(|s| {
-            s.spawn(|_| {
-                let mut buf = String::new();
-                while let Ok(size) = out_reader.read_line(&mut buf) {
-                    if size == 0 {
-                        break;
-                    }
-                    if let Some(sender) = sender.as_ref() {
-                        sender
-                            .try_send(std::mem::take(&mut buf).into_info())
-                            .unwrap();
-                    }
-                    buf.clear();
-                }
-            });
-            s.spawn(|_| {
-                let mut buf = String::new();
-                while let Ok(size) = err_reader.read_line(&mut buf) {
-                    if size == 0 {
-                        break;
-                    }
-                    if let Some(sender) = sender.as_ref() {
-                        sender
-                            .try_send(std::mem::take(&mut buf).into_error())
-                            .unwrap();
-                    }
-                    buf.clear();
-                }
-            });
+            s.spawn(|_| redirect(out_reader, &sender));
+            s.spawn(|_| redirect(err_reader, &sender));
             s.spawn(|_| {
                 let result = child.wait_with_output();
                 tx.send(result).unwrap();
@@ -190,6 +164,21 @@ pub trait ShellExecutor {
             true => Ok(()),
             false => Err(eyre!("run command failed: {}", command_desc)),
         }
+    }
+}
+
+fn redirect(mut reader: impl BufRead, sender: &Option<Sender<Message>>) {
+    let mut buf = String::new();
+    while let Ok(size) = reader.read_line(&mut buf) {
+        if size == 0 {
+            break;
+        }
+        if let Some(sender) = sender.as_ref() {
+            sender
+                .try_send(std::mem::take(&mut buf).into_info())
+                .unwrap();
+        }
+        buf.clear();
     }
 }
 

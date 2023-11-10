@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UninstallTask {
@@ -50,7 +50,7 @@ impl Display for UninstallTask {
 }
 
 impl<'a> Executable<'a> for UninstallTask {
-    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let (tx1, rx1) = crossbeam::channel::unbounded();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
         rayon::scope(|s| {

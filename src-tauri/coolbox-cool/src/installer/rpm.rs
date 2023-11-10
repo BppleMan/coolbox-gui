@@ -6,7 +6,7 @@ use log::info;
 use crate::installer::Installable;
 use crate::result::CoolResult;
 use crate::shell::ShellExecutor;
-use crate::ExecutableMessage;
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Rpm;
@@ -28,7 +28,7 @@ impl Installable for Rpm {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with rpm", name);
 
@@ -45,7 +45,7 @@ impl Installable for Rpm {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with rpm", name);
 

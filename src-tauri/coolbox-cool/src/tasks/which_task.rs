@@ -6,7 +6,7 @@ use which::which;
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ impl Display for WhichTask {
 }
 
 impl<'a> Executable<'a> for WhichTask {
-    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         match which(&self.command) {
             Ok(result) => {
                 send(result.to_string_lossy().into_info());

@@ -14,7 +14,7 @@ use zip::ZipArchive;
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl DecompressTask {
         Self { src, dest }
     }
 
-    pub fn decompress_zip(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
+    pub fn decompress_zip(&self, mut send: Box<MessageSender>) -> ExecutableResult {
         let mut archive = ZipArchive::new(File::open(&self.src)?)?;
         let root_dirs = (0..archive.len()).try_fold(HashSet::new(), |mut set, i| {
             let entry = archive.by_index(i)?;
@@ -100,7 +100,7 @@ impl DecompressTask {
         Ok(())
     }
 
-    pub fn decompress_tar_gz(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
+    pub fn decompress_tar_gz(&self, mut send: Box<MessageSender>) -> ExecutableResult {
         let file = fs::File::open(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if dest.is_file() {
@@ -170,7 +170,7 @@ impl Display for DecompressTask {
 }
 
 impl<'a> Executable<'a> for DecompressTask {
-    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         if self.src.ends_with(".zip") {
             self.decompress_zip(send)
         } else if self.src.ends_with(".tar.gz") {

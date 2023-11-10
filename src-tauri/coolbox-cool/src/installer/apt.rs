@@ -6,7 +6,7 @@ use tracing::info;
 use crate::installer::Installable;
 use crate::result::CoolResult;
 use crate::shell::{Sh, ShellExecutor};
-use crate::ExecutableMessage;
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Apt;
@@ -28,7 +28,7 @@ impl Installable for Apt {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with apt-get", name);
 
@@ -45,7 +45,7 @@ impl Installable for Apt {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with apt-get", name);
 

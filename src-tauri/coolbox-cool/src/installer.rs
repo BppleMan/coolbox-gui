@@ -12,7 +12,7 @@ pub use rpm::*;
 pub use yum::*;
 
 use crate::result::CoolResult;
-use crate::ExecutableMessage;
+use crate::Message;
 
 mod apt;
 mod brew;
@@ -24,18 +24,14 @@ mod yum;
 pub trait Installable {
     fn name(&self) -> &'static str;
 
-    fn install(
-        &self,
-        name: &str,
-        args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
-    ) -> CoolResult<()>;
+    fn install(&self, name: &str, args: Option<&[&str]>, sender: Sender<Message>)
+        -> CoolResult<()>;
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()>;
 
     fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
@@ -86,7 +82,7 @@ impl Installable for Installer {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         self.as_ref().install(name, args, sender)
     }
@@ -95,7 +91,7 @@ impl Installable for Installer {
         &self,
         name: &str,
         args: Option<&[&str]>,
-        sender: Sender<ExecutableMessage>,
+        sender: Sender<Message>,
     ) -> CoolResult<()> {
         self.as_ref().uninstall(name, args, sender)
     }

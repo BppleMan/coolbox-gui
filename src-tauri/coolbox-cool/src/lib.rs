@@ -5,19 +5,19 @@ pub use tracing::*;
 
 pub use cool::*;
 pub use cool_list::*;
+pub use event::*;
 pub use extension::*;
-pub use task_state::*;
 pub use trace::*;
 
 mod cool;
 mod cool_list;
-mod error;
+pub mod error;
+mod event;
 mod extension;
 pub mod installer;
 pub mod result;
 pub mod shell;
 pub mod state;
-mod task_state;
 pub mod tasks;
 mod trace;
 

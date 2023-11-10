@@ -13,5 +13,6 @@ installer = "brew"
 name = "curl"
 
 [[check_tasks]]
-[check_tasks.WhichTask]
-command = "curl"
+[check_tasks.CheckTask]
+installer = "brew"
+name = "curl"

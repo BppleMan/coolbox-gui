@@ -10,7 +10,7 @@ use tracing::info;
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl GitTask {
         Ok(())
     }
 
-    pub fn pull(&self, src: &str, mut send: Box<ExecutableSender>) -> ExecutableResult {
+    pub fn pull(&self, src: &str, mut send: Box<MessageSender>) -> ExecutableResult {
         let repo = Repository::open(src).map_err(|e| ExecutableError::GitError(eyre!(e)))?;
         let remotes = repo.remotes()?;
         let remote = match remotes.iter().find(|r| r == &Some("origin")) {
@@ -145,7 +145,7 @@ impl Display for GitTask {
 }
 
 impl<'a> Executable<'a> for GitTask {
-    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         match self.command.clone() {
             GitCommand::Clone { .. } => {}
             GitCommand::Pull { src } => self.pull(&src, send)?,

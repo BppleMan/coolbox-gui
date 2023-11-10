@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl Display for DownloadTask {
 }
 
 impl<'a> Executable<'a> for DownloadTask {
-    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let url = self.url.clone();
         let dest = self.dest.clone();
         let (tx, rx) = crossbeam::channel::bounded(1);

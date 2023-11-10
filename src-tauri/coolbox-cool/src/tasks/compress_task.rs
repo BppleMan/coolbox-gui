@@ -14,7 +14,7 @@ use zip::{CompressionMethod, ZipWriter};
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl CompressTask {
         Self { src, dest }
     }
 
-    pub fn compress_zip(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
+    pub fn compress_zip(&self, mut send: Box<MessageSender>) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let parent = src
             .parent()
@@ -69,7 +69,7 @@ impl CompressTask {
         Ok(())
     }
 
-    pub fn compress_tar_gz(&self, mut send: Box<ExecutableSender>) -> ExecutableResult {
+    pub fn compress_tar_gz(&self, mut send: Box<MessageSender>) -> ExecutableResult {
         let src = PathBuf::from(&self.src);
         let dest = File::create(&self.dest)?;
 
@@ -97,7 +97,7 @@ impl Display for CompressTask {
 }
 
 impl<'a> Executable<'a> for CompressTask {
-    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         if self.dest.ends_with(".zip") {
             self.compress_zip(send)
         } else if self.dest.ends_with(".tar.gz") {

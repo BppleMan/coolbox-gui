@@ -4,6 +4,7 @@ use std::path::StripPrefixError;
 
 use color_eyre::Report;
 use git2::Error;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -105,17 +106,37 @@ impl From<zip::result::ZipError> for ExecutableError {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum InstallError {
-    #[error("{0} is already installing")]
-    AlreadyInstalling(String),
+#[derive(Debug, Clone, Error, Serialize, Deserialize)]
+pub enum CoolError {
+    #[error(
+        "Cool [{cool_name}] error: execute task [{task_name}] index [{task_index}] error: {error}"
+    )]
+    ExecuteError {
+        cool_name: String,
+        task_name: String,
+        task_index: usize,
+        error: String,
+    },
 
-    #[error("{0} is already uninstalling")]
-    AlreadyUninstalling(String),
+    #[error("Not found cool: {cool_name}")]
+    NotFoundCool { cool_name: String },
+
+    #[error("Cool [{cool_name}] error: {error}")]
+    UnknownError { cool_name: String, error: String },
 }
 
-#[derive(Debug, Error)]
-pub enum TransformError {
-    #[error("Not found cool: {0}")]
-    NotFoundCool(String),
+impl CoolError {
+    pub fn from(
+        cool_name: String,
+        task_name: String,
+        task_index: usize,
+        error: ExecutableError,
+    ) -> Self {
+        Self::ExecuteError {
+            cool_name,
+            task_name,
+            task_index,
+            error: error.to_string(),
+        }
+    }
 }

@@ -63,6 +63,8 @@ tauri = { version = "1.5.2", features = [] }
 serde.workspace = true
 serde_json.workspace = true
 dashmap.workspace = true
+rayon.workspace = true
+thiserror.workspace = true
 
 [build-dependencies]
 tauri-build = { version = "1.5.0", features = [] }

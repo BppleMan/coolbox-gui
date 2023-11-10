@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
 use crate::shell::{Shell, ShellExecutor};
-use crate::tasks::{Executable, ExecutableSender};
-use crate::ExecutableMessage;
+use crate::tasks::{Executable, MessageSender};
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CommandTask {
@@ -59,7 +59,7 @@ impl Display for CommandTask {
 }
 
 impl<'a> Executable<'a> for CommandTask {
-    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         info!("{}", self);
         let args = self
             .args
@@ -71,7 +71,7 @@ impl<'a> Executable<'a> for CommandTask {
                 .collect::<Vec<_>>()
         });
 
-        let (tx1, rx1) = crossbeam::channel::unbounded::<ExecutableMessage>();
+        let (tx1, rx1) = crossbeam::channel::unbounded::<Message>();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
         rayon::scope(|s| {
             s.spawn(|_| {

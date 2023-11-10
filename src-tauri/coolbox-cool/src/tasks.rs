@@ -17,10 +17,11 @@ pub use move_task::*;
 pub use uninstall_task::*;
 pub use which_task::*;
 
+use crate::error::ExecutableError;
 use crate::installer::Installer;
-use crate::result::ExecutableResult;
+use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
-use crate::{ExecutableMessage, ExecutableSender};
+use crate::{Message, MessageSender, TasksMessageSender};
 
 mod check_task;
 mod command_task;
@@ -37,16 +38,16 @@ mod uninstall_task;
 mod which_task;
 
 pub trait Executable<'a>: Display + Send + Sync {
-    fn execute(&self, sender: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn execute(&self, sender: Box<MessageSender<'a>>) -> ExecutableResult {
         self._run(sender)
     }
 
-    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult;
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult;
 }
 
 pub fn spawn_task<'a, F>(task: impl Executable<'a>, send: F) -> ExecutableResult
 where
-    F: FnMut(ExecutableMessage) + 'a,
+    F: FnMut(Message) + 'a,
 {
     task.execute(Box::new(send))
 }
@@ -188,7 +189,7 @@ impl Display for Task {
 }
 
 impl<'a> Executable<'a> for Task {
-    fn _run(&self, send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         self.as_ref()._run(send)
     }
 }
@@ -197,10 +198,15 @@ impl<'a> Executable<'a> for Task {
 pub struct Tasks(pub Vec<Task>);
 
 impl Tasks {
-    pub fn execute(&self) -> ExecutableResult {
-        self.0
-            .iter()
-            .enumerate()
-            .try_for_each(|(i, task)| task.execute(Box::new(|message| {})))
+    pub fn execute<'a>(
+        &'a self,
+        mut sender: Box<TasksMessageSender<'a>>,
+    ) -> CoolResult<(), (String, usize, ExecutableError)> {
+        self.0.iter().enumerate().try_for_each(|(i, task)| {
+            task.execute(Box::new(|message| {
+                sender(i, task, message);
+            }))
+            .map_err(|e| (task.name().to_string(), i, e))
+        })
     }
 }

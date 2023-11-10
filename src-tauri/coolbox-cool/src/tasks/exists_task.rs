@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ExistsTask {
@@ -32,7 +32,7 @@ impl Display for ExistsTask {
 }
 
 impl<'a> Executable<'a> for ExistsTask {
-    fn _run(&self, _send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
         if Path::new(&self.path).exists() {
             Ok(())
         } else {

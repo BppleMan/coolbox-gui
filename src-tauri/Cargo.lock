@@ -553,10 +553,12 @@ version = "0.1.1"
 dependencies = [
  "cool",
  "dashmap",
+ "rayon",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
+ "thiserror",
 ]
 
 [[package]]

@@ -1,28 +1,21 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use std::thread;
 
 use color_eyre::eyre::eyre;
-use color_eyre::Report;
-use crossbeam::channel::Receiver;
-use lazy_static::lazy_static;
+use crossbeam::channel::{Receiver, Sender};
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::COOL_LIST;
-use crate::error::InstallError;
+use crate::error::CoolError;
 use crate::result::CoolResult;
 use crate::state::CoolState;
 use crate::tasks::Tasks;
+use crate::{TaskEvent, COOL_LIST};
 
-lazy_static! {
-    static ref INSTALLING: Arc<RwLock<HashMap<String, Receiver<()>>>> =
-        Arc::new(RwLock::new(HashMap::new()));
-    static ref UNINSTALLING: Arc<RwLock<HashMap<String, Receiver<()>>>> =
-        Arc::new(RwLock::new(HashMap::new()));
-}
+static INSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
+static UNINSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Cool {
@@ -53,80 +46,146 @@ impl Cool {
         }
     }
 
-    pub fn install(&mut self) -> CoolResult<()> {
+    pub fn install(&self, event_sender: &Option<Sender<TaskEvent>>) -> CoolResult<(), CoolError> {
         let name = self.name.clone();
-        if INSTALLING.read().unwrap().contains_key(&name) {
-            return Err(Report::new(InstallError::AlreadyInstalling(name)));
-        }
-
-        info!("installing {}", name);
-
-        if UNINSTALLING.read().unwrap().contains_key(&name) {
-            info!("waiting for {} to be uninstalled", name);
-            UNINSTALLING.read().unwrap()[&name].recv()?;
-        }
-
-        self.install_dependencies()?;
-
-        let mut tasks = self.install_tasks.clone();
-        let handle = thread::spawn(move || tasks.execute());
-
-        let (sender, receiver) = crossbeam::channel::bounded(1);
-
-        INSTALLING.write().unwrap().insert(name.clone(), receiver);
-
-        let result = handle.join().unwrap()?;
-        sender.send(())?;
-        INSTALLING.write().unwrap().remove(&name);
-
-        Ok(())
-    }
-
-    pub fn uninstall(&mut self) -> CoolResult<()> {
-        let name = self.name.clone();
-        if UNINSTALLING.read().unwrap().contains_key(&name) {
-            return Err(Report::new(InstallError::AlreadyUninstalling(name)));
-        }
-
-        info!("uninstalling {}", name);
-
-        if INSTALLING.read().unwrap().contains_key(&name) {
-            info!("waiting for {} to be installed", name);
-            INSTALLING.read().unwrap()[&name].recv()?;
-        }
-
-        let mut tasks = self.uninstall_tasks.clone();
-        let handle = thread::spawn(move || tasks.execute());
-
-        let (sender, receiver) = crossbeam::channel::bounded(1);
-
-        UNINSTALLING.write().unwrap().insert(name.clone(), receiver);
-
-        let result = handle.join().unwrap()?;
-        sender.send(())?;
-        UNINSTALLING.write().unwrap().remove(&name);
-
-        Ok(())
-    }
-
-    fn install_dependencies(&self) -> CoolResult<()> {
-        self.dependencies.par_iter().try_for_each(|d| {
-            if let Some(cool) = COOL_LIST.get(d) {
-                Ok(cool.write().unwrap().install()?)
-            } else {
-                Err(eyre!(
-                    "Install dependency {} for {:?}, but not found",
-                    d,
-                    self
-                ))
+        match self.check() {
+            CoolState::Ready => {
+                info!("{} is ready, to be install", name)
             }
+            CoolState::Installing => {
+                info!("waiting for {} to be installed", name);
+                return Ok(());
+            }
+            CoolState::Installed => {
+                info!("{} is installed", name);
+                return Ok(());
+            }
+            CoolState::Uninstalling => {
+                info!("waiting for {} to be uninstalled, then to be install", name);
+                UNINSTALLING
+                    .get(&name)
+                    .unwrap()
+                    .recv()
+                    .map_err(|e| CoolError::UnknownError {
+                        cool_name: name.clone(),
+                        error: format!("{:?}", e),
+                    })?;
+            }
+        }
+
+        self.install_dependencies(event_sender)?;
+
+        let (lock_sender, lock_receiver) = crossbeam::channel::bounded(1);
+        INSTALLING.insert(name.clone(), lock_receiver);
+        let (tx, rx) = crossbeam::channel::bounded(1);
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let result = self.install_tasks.execute(Box::new(|i, task, message| {
+                    if let Some(sender) = event_sender.as_ref() {
+                        sender
+                            .send(TaskEvent {
+                                cool_name: name.clone(),
+                                task_name: task.name().to_string(),
+                                task_index: i,
+                                message,
+                            })
+                            .unwrap();
+                    }
+                }));
+                lock_sender.send(()).unwrap();
+                INSTALLING.remove(&name);
+                tx.send(result).unwrap();
+            })
+        });
+        rx.recv()
+            .unwrap()
+            .map_err(|(tn, ti, error)| CoolError::from(name.clone(), tn, ti, error))
+    }
+
+    pub fn uninstall(&self, event_sender: &Option<Sender<TaskEvent>>) -> CoolResult<(), CoolError> {
+        let name = self.name.clone();
+        match self.check() {
+            CoolState::Ready => {
+                info!("{} is ready, to be install", name);
+                return Ok(());
+            }
+            CoolState::Installing => {
+                info!("waiting for {} to be installed, then to be uninstall", name);
+                INSTALLING
+                    .get(&name)
+                    .unwrap()
+                    .recv()
+                    .map_err(|e| CoolError::UnknownError {
+                        cool_name: name.clone(),
+                        error: format!("{:?}", e),
+                    })?;
+            }
+            CoolState::Installed => {
+                info!("{} is installed, to be uninstall", name);
+            }
+            CoolState::Uninstalling => {
+                info!("{} is uninstalling", name);
+                return Ok(());
+            }
+        }
+
+        let (lock_sender, lock_receiver) = crossbeam::channel::bounded(1);
+        UNINSTALLING.insert(name.clone(), lock_receiver);
+        let (tx, rx) = crossbeam::channel::bounded(1);
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let result = self.uninstall_tasks.execute(Box::new(|i, task, message| {
+                    if let Some(sender) = event_sender.as_ref() {
+                        sender
+                            .send(TaskEvent {
+                                cool_name: name.clone(),
+                                task_name: task.name().to_string(),
+                                task_index: i,
+                                message,
+                            })
+                            .unwrap();
+                    }
+                }));
+                lock_sender.send(()).unwrap();
+                UNINSTALLING.remove(&name);
+                tx.send(result).unwrap();
+            });
+        });
+        rx.recv()
+            .unwrap()
+            .map_err(|(tn, ti, error)| CoolError::from(name.clone(), tn, ti, error))
+    }
+
+    fn install_dependencies(
+        &self,
+        sender: &Option<Sender<TaskEvent>>,
+    ) -> CoolResult<(), CoolError> {
+        self.dependencies.par_iter().try_for_each(|d| {
+            info!("installing dependency [{}] for [{}]", d, self.name);
+            let cool = COOL_LIST.get(d).ok_or(CoolError::NotFoundCool {
+                cool_name: d.clone(),
+            })?;
+            cool.lock().unwrap().install(sender)
         })?;
         Ok(())
     }
 
-    pub fn check(&mut self) -> CoolResult<CoolState> {
-        self.check_tasks.execute()?;
-        Ok(CoolState::Installed)
+    pub fn check(&self) -> CoolState {
+        let check = self.check_tasks.execute(Box::new(|i, task, message| {
+            info!("[{}]{}: {}", i, task, message);
+        }));
+        if check.is_ok() {
+            CoolState::Installed
+        } else {
+            let mut state = CoolState::Ready;
+            if INSTALLING.contains_key(&self.name) {
+                state = CoolState::Installing;
+            }
+            if UNINSTALLING.contains_key(&self.name) {
+                state = CoolState::Uninstalling;
+            }
+            state
+        }
     }
 }
 
@@ -144,10 +203,10 @@ impl PartialOrd for Cool {
 
 #[cfg(test)]
 mod test {
-    use crate::{Cool, COOL_LIST, init_backtrace};
     use crate::result::CoolResult;
     use crate::shell::{MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
+    use crate::{init_backtrace, Cool, COOL_LIST};
 
     #[test]
     fn test_cool() -> CoolResult<()> {
@@ -184,7 +243,7 @@ mod test {
     fn test_install_curl() -> CoolResult<()> {
         init_backtrace();
         let curl = COOL_LIST.get("curl").unwrap();
-        curl.write().unwrap().install()?;
+        curl.lock().unwrap().install(&None)?;
         Ok(())
     }
 }

@@ -6,7 +6,7 @@ use fs_extra::dir::{CopyOptions, TransitProcessResult};
 use serde::{Deserialize, Serialize};
 
 use crate::result::ExecutableResult;
-use crate::tasks::{Executable, ExecutableSender};
+use crate::tasks::{Executable, MessageSender};
 use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -36,7 +36,7 @@ impl Display for MoveTask {
 }
 
 impl<'a> Executable<'a> for MoveTask {
-    fn _run(&self, mut send: Box<ExecutableSender<'a>>) -> ExecutableResult {
+    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let src = PathBuf::from_str(&self.src)?;
         let dest = PathBuf::from_str(&self.dest)?;
         if src.is_dir() {

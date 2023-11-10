@@ -1,9 +1,10 @@
 use std::fmt::{Display, Formatter};
 
+use crate::tasks::Task;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub enum ExecutableMessageType {
+pub enum MessageType {
     #[default]
     Info,
     Warn,
@@ -11,94 +12,95 @@ pub enum ExecutableMessageType {
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct ExecutableMessage {
-    pub message_type: ExecutableMessageType,
+pub struct Message {
+    pub message_type: MessageType,
     pub message: String,
 }
 
-// pub type ExecutableReceiver = crossbeam::channel::Receiver<ExecutableMessage>;
-//
-// pub type ExecutableSender = crossbeam::channel::Sender<ExecutableMessage>;
-//
-// pub fn executable_channel() -> (ExecutableSender, ExecutableReceiver) {
-//     crossbeam::channel::unbounded()
-// }
+pub type MessageSender<'a> = dyn FnMut(Message) + 'a;
 
-pub type ExecutableSender<'a> = dyn FnMut(ExecutableMessage) + 'a;
-// pub trait ExecutableSender {
-//     fn send(&mut self, message: ExecutableMessage);
-// }
+pub type TasksMessageSender<'a> = dyn FnMut(usize, &'a Task, Message) + 'a;
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct TaskEvent {
+    pub cool_name: String,
+    pub task_name: String,
+    pub task_index: usize,
+    pub message: Message,
+}
+
+pub enum CoolEvent {}
 
 pub trait IntoInfo {
-    fn into_info(self) -> ExecutableMessage;
+    fn into_info(self) -> Message;
 }
 
 pub trait IntoWarn {
-    fn into_warn(self) -> ExecutableMessage;
+    fn into_warn(self) -> Message;
 }
 
 pub trait IntoError {
-    fn into_error(self) -> ExecutableMessage;
+    fn into_error(self) -> Message;
 }
 
-impl ExecutableMessage {
+impl Message {
     pub fn info(message: impl Into<String>) -> Self {
         Self {
-            message_type: ExecutableMessageType::Info,
+            message_type: MessageType::Info,
             message: message.into(),
         }
     }
 
     pub fn warn(message: impl Into<String>) -> Self {
         Self {
-            message_type: ExecutableMessageType::Warn,
+            message_type: MessageType::Warn,
             message: message.into(),
         }
     }
 
     pub fn error(message: impl Into<String>) -> Self {
         Self {
-            message_type: ExecutableMessageType::Error,
+            message_type: MessageType::Error,
             message: message.into(),
         }
     }
 }
 
-impl Display for ExecutableMessage {
+impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self.message_type {
-            ExecutableMessageType::Info => write!(f, "[INFO] {}", self.message),
-            ExecutableMessageType::Warn => write!(f, "[WARN] {}", self.message),
-            ExecutableMessageType::Error => write!(f, "[ERROR] {}", self.message),
+            MessageType::Info => write!(f, "[INFO] {}", self.message),
+            MessageType::Warn => write!(f, "[WARN] {}", self.message),
+            MessageType::Error => write!(f, "[ERROR] {}", self.message),
         }
     }
 }
 
 impl<T: Into<String>> IntoInfo for T {
-    fn into_info(self) -> ExecutableMessage {
-        ExecutableMessage::info(self)
+    fn into_info(self) -> Message {
+        Message::info(self)
     }
 }
 
 impl<T: Into<String>> IntoWarn for T {
-    fn into_warn(self) -> ExecutableMessage {
-        ExecutableMessage::warn(self)
+    fn into_warn(self) -> Message {
+        Message::warn(self)
     }
 }
 
 impl<T: Into<String>> IntoError for T {
-    fn into_error(self) -> ExecutableMessage {
-        ExecutableMessage::error(self)
+    fn into_error(self) -> Message {
+        Message::error(self)
     }
 }
 
 pub trait TransitProcessInfo {
-    fn as_info(&self) -> ExecutableMessage;
+    fn as_info(&self) -> Message;
 }
 
 impl TransitProcessInfo for fs_extra::TransitProcess {
-    fn as_info(&self) -> ExecutableMessage {
-        ExecutableMessage::info(format!(
+    fn as_info(&self) -> Message {
+        Message::info(format!(
             "{} {}({}/{}) total:{}/{}",
             self.dir_name,
             self.file_name,
@@ -111,12 +113,12 @@ impl TransitProcessInfo for fs_extra::TransitProcess {
 }
 
 pub trait FileTransitProcessInfo {
-    fn as_info(&self, file_name: impl AsRef<str>) -> ExecutableMessage;
+    fn as_info(&self, file_name: impl AsRef<str>) -> Message;
 }
 
 impl FileTransitProcessInfo for fs_extra::file::TransitProcess {
-    fn as_info(&self, file_name: impl AsRef<str>) -> ExecutableMessage {
-        ExecutableMessage::info(format!(
+    fn as_info(&self, file_name: impl AsRef<str>) -> Message {
+        Message::info(format!(
             "{}({}/{})",
             file_name.as_ref(),
             self.copied_bytes,
@@ -126,12 +128,12 @@ impl FileTransitProcessInfo for fs_extra::file::TransitProcess {
 }
 
 pub trait DirTransitProcessInfo {
-    fn as_info(&self) -> ExecutableMessage;
+    fn as_info(&self) -> Message;
 }
 
 impl DirTransitProcessInfo for fs_extra::dir::TransitProcess {
-    fn as_info(&self) -> ExecutableMessage {
-        ExecutableMessage::info(format!(
+    fn as_info(&self) -> Message {
+        Message::info(format!(
             "{}({}/{}) total:{}/{}",
             self.file_name,
             self.file_bytes_copied,
