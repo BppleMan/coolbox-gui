@@ -7,13 +7,14 @@ import {MatExpansionModule, MatExpansionPanel} from "@angular/material/expansion
 import {MatIconModule} from "@angular/material/icon"
 import {MatStepperModule} from "@angular/material/stepper"
 import {MatDividerModule} from "@angular/material/divider"
+import {MatProgressBarModule} from "@angular/material/progress-bar"
 import {Cool, CoolListItem} from "../model/models"
 import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
 
 @Component({
     selector: "app-cool-card",
     standalone: true,
-    imports: [CommonModule, MatButtonModule, MatCheckboxModule, MatExpansionModule, MatIconModule, MatStepperModule, MatRippleModule, HighlightModule, MatDividerModule],
+    imports: [CommonModule, MatButtonModule, MatCheckboxModule, MatExpansionModule, MatIconModule, MatStepperModule, MatRippleModule, HighlightModule, MatDividerModule, MatProgressBarModule],
     templateUrl: "./cool-card.component.html",
     styleUrls: ["./cool-card.component.scss"],
     providers: [
@@ -60,5 +61,10 @@ export class CoolCardComponent implements OnChanges {
     }
     setClosed() {
         this.expanded = false
+    }
+    copy(content: string) {
+        console.log('copy', content)
+        navigator.clipboard.writeText(content)
+        // TODO we should show toast here to indicate the copy action
     }
 }

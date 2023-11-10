@@ -22,10 +22,17 @@ mat-checkbox {
     padding: 0 !important;
 }
 ::ng-deep .mat-step-header {
-    padding: 8px !important
+    padding-left: 0px !important;
+}
+::ng-deep .mat-stepper-vertical-line::before {
+    left: -24px !important;
 }
 ::ng-deep .mat-content.mat-content-hide-toggle {
     margin-right: 0px !important;
+}
+::ng-deep .mat-vertical-content {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
 }
 .toggle-panel {
     background: linear-gradient(180deg, #101828 0%, #0C111D 100%);
