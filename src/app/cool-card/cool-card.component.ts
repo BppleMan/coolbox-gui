@@ -1,5 +1,5 @@
 import {CommonModule} from "@angular/common"
-import {Component, EventEmitter, Input, OnChanges, Output, ViewChild} from "@angular/core"
+import {Component, EventEmitter, Input, OnChanges, Output, ViewChild, Inject} from "@angular/core"
 import {MatButtonModule} from "@angular/material/button"
 import {MatCheckboxModule} from "@angular/material/checkbox"
 import {MatRippleModule} from "@angular/material/core"
@@ -12,11 +12,19 @@ import {BehaviorSubject} from "rxjs"
 import {Cool, CoolListItem} from "../model/models"
 import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
 import {CoolService} from "../service/cool.service"
+import {MatDialog, MAT_DIALOG_DATA, MatDialogRef, MatDialogModule} from '@angular/material/dialog';
+import {FormsModule} from '@angular/forms';
+import {MatInputModule} from '@angular/material/input';
+import {MatFormFieldModule} from '@angular/material/form-field';
 
+export interface DialogData {
+    password: string;
+    name: string;
+  }
 @Component({
     selector: "app-cool-card",
     standalone: true,
-    imports: [CommonModule, MatButtonModule, MatCheckboxModule, MatExpansionModule, MatIconModule, MatStepperModule, MatRippleModule, HighlightModule, MatDividerModule, MatProgressBarModule],
+    imports: [CommonModule, MatButtonModule, MatCheckboxModule, MatExpansionModule, MatIconModule, MatStepperModule, MatRippleModule, HighlightModule, MatDividerModule, MatProgressBarModule, MatDialogModule],
     templateUrl: "./cool-card.component.html",
     styleUrls: ["./cool-card.component.scss"],
     providers: [
@@ -38,10 +46,19 @@ export class CoolCardComponent {
     @Input() selected!: BehaviorSubject<boolean>
     expanded = false
     consoleCode = 'mkdir xxx-project && cp a b'
-
-    constructor(private cool_service: CoolService) {
+    password = ''
+    constructor(private cool_service: CoolService, public dialog: MatDialog) {
     }
+    openDialog(): void {
+        const dialogRef = this.dialog.open(PromptDialog, {
+          data: {password: this.password},
+        });
+    
+        dialogRef.afterClosed().subscribe(result => {
+          console.log('The dialog was closed, password is', result);
 
+        });
+      }
     toggle_select(event: MouseEvent) {
         event.preventDefault()
         event.stopPropagation()
@@ -71,6 +88,25 @@ export class CoolCardComponent {
 
     install(event: MouseEvent) {
         event.stopPropagation()
-        this.cool_service.install_cool([this.cool]).then()
+        // this.cool_service.install_cool([this.cool]).then()
+        // TODO only for testing dialog
+        this.openDialog()
     }
+    
 }
+@Component({
+    selector: 'prompt-dialog',
+    templateUrl: 'prompt-dialog.html',
+    standalone: true,
+    imports: [MatDialogModule, MatFormFieldModule, MatInputModule, FormsModule, MatButtonModule],
+  })
+  export class PromptDialog {
+    constructor(
+      public dialogRef: MatDialogRef<PromptDialog>,
+      @Inject(MAT_DIALOG_DATA) public data: DialogData,
+    ) {}
+  
+    onNoClick(): void {
+      this.dialogRef.close();
+    }
+  }
