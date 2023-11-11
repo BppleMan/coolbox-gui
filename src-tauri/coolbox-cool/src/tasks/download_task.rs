@@ -1,9 +1,11 @@
 use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::path::PathBuf;
 
-use color_eyre::eyre::eyre;
+use color_eyre::eyre::{eyre, Context};
 use futures::stream::StreamExt;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
@@ -11,10 +13,10 @@ use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DownloadTask {
     pub url: String,
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub dest: String,
 }
 
@@ -33,7 +35,7 @@ impl Display for DownloadTask {
 impl<'a> Executable<'a> for DownloadTask {
     fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         let url = self.url.clone();
-        let dest = self.dest.clone();
+        let dest = PathBuf::from(&self.dest);
         let (tx, rx) = crossbeam::channel::bounded(1);
         let (msg_tx, msg_rx) = crossbeam::channel::unbounded();
         rayon::spawn(move || {
@@ -48,11 +50,18 @@ impl<'a> Executable<'a> for DownloadTask {
                 let mut written = 0u64;
                 let total_size = res.content_length();
                 let mut bytes_stream = res.bytes_stream();
+                if let Some(parent) = dest.parent() {
+                    fs_extra::dir::create(parent, true)
+                        .with_context(|| format!("failed to create {}", parent.display()))
+                        .map_err(ExecutableError::CreatePathError)?;
+                }
                 let mut file = OpenOptions::new()
                     .create(true)
                     .write(true)
+                    .append(true)
                     .open(&dest)
-                    .unwrap();
+                    .with_context(|| format!("failed to open {}", dest.display()))
+                    .map_err(ExecutableError::CreatePathError)?;
                 while let Some(Ok(chunk)) = bytes_stream.next().await {
                     written += chunk.len() as u64;
                     file.write_all(&chunk).unwrap();

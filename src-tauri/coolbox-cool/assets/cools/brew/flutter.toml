@@ -13,5 +13,6 @@ installer = "brew"
 name = "flutter"
 
 [[check_tasks]]
-[check_tasks.WhichTask]
-command = "flutter"
+[check_tasks.CheckTask]
+installer = "brew"
+name = "flutter"

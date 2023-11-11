@@ -1,28 +1,29 @@
 use std::cmp::Ordering;
 
-use color_eyre::eyre::eyre;
 use crossbeam::channel::{Receiver, Sender};
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
+use tracing::info;
 
-use crate::channel::TrySendError;
 use crate::error::CoolError;
 use crate::result::CoolResult;
 use crate::state::CoolState;
 use crate::tasks::Tasks;
-use crate::{TaskEvent, TaskState, COOL_LIST};
+use crate::{TaskEvent, COOL_LIST};
 
 static INSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
 static UNINSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Cool {
     pub name: String,
     pub description: String,
     pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub need_restart: bool,
     pub install_tasks: Tasks,
     pub uninstall_tasks: Tasks,
     pub check_tasks: Tasks,
@@ -33,6 +34,7 @@ impl Cool {
         name: String,
         description: String,
         dependencies: Vec<String>,
+        need_restart: bool,
         install_tasks: Tasks,
         uninstall_tasks: Tasks,
         check_tasks: Tasks,
@@ -41,6 +43,7 @@ impl Cool {
             name,
             description,
             dependencies,
+            need_restart,
             install_tasks,
             uninstall_tasks,
             check_tasks,
@@ -213,9 +216,9 @@ impl PartialOrd for Cool {
 #[cfg(test)]
 mod test {
     use crate::result::CoolResult;
-    use crate::shell::{MacOSSudo, Shell};
+    use crate::shell::{Bash, MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
-    use crate::{init_backtrace, Cool, COOL_LIST};
+    use crate::{init_backtrace, Cool};
 
     #[test]
     fn test_cool() -> CoolResult<()> {
@@ -224,9 +227,10 @@ mod test {
             name: "homebrew".to_string(),
             description: "适用于macOS的包管理器。它使您能够从命令行安装和更新软件包，从而使您的Mac保持最新状态，而无需使用App Store。".to_string(),
             dependencies: vec![],
+            need_restart: true,
             install_tasks: Tasks(vec![
                 Task::download("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh", "{{TEMP_DIR}}/homebrew/install.sh"),
-                Task::command("{{TEMP_DIR}}/homebrew/install.sh", None::<Vec<&str>>, Some(vec![("NONINTERACTIVE", "1")]), Shell::MacOSSudo(MacOSSudo)),
+                Task::command("{{TEMP_DIR}}/homebrew/install.sh", None::<Vec<&str>>, Some(vec![("NONINTERACTIVE", "1"), ("SUDO_ASKPASS", "2")]), Shell::MacOSSudo(MacOSSudo)),
             ]),
             uninstall_tasks: Tasks(vec![
                 Task::download("https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh", "{{TEMP_DIR}}/homebrew/uninstall.sh"),
@@ -245,14 +249,40 @@ mod test {
         let string = toml::to_string(&brew_cool)?;
         println!("==========\n{}", string);
         toml::from_str::<Cool>(&string)?;
+
+        let string = serde_yaml::to_string(&brew_cool)?;
+        println!("{}", string);
         Ok(())
     }
 
     #[test]
-    fn test_install_curl() -> CoolResult<()> {
+    fn test_yaml() -> CoolResult<()> {
         init_backtrace();
-        let curl = COOL_LIST.get("curl").unwrap();
-        curl.lock().unwrap().install(&None)?;
+        let nvm_cool = Cool {
+            name: "nvm".to_string(),
+            description: "ABC".to_string(),
+            dependencies: vec!["homebrew".to_string()],
+            need_restart: false,
+            install_tasks: Tasks(vec![
+                Task::download(
+                    "https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh",
+                    "{{TEMP_DIR}}/nvm/install.sh",
+                ),
+                Task::command(
+                    "{{TEMP_DIR}}/nvm/install.sh",
+                    None::<Vec<&str>>,
+                    None::<Vec<(&str, &str)>>,
+                    Shell::Bash(Bash),
+                ),
+            ]),
+            uninstall_tasks: Tasks(vec![Task::delete("{{NVM_DIR}}")]),
+            check_tasks: Tasks(vec![Task::which("nvm".to_string())]),
+        };
+
+        let string = serde_yaml::to_string(&nvm_cool)?;
+        println!("{}", string);
+        let des = serde_yaml::from_str(&string)?;
+        println!("{:#?}", des);
         Ok(())
     }
 }

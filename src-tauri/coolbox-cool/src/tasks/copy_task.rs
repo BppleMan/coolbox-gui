@@ -3,17 +3,18 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use fs_extra::dir::TransitProcessResult;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CopyTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub src: String,
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub dest: String,
 }
 

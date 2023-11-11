@@ -20,7 +20,7 @@ static COOL_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools")
 
 pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
     let map = DashMap::new();
-    COOL_DIR.find("**/*.toml").unwrap().for_each(|entry| {
+    COOL_DIR.find("**/*.*").unwrap().for_each(|entry| {
         if cfg!(target_os = "macos") {
             let parent = entry.path().parent().unwrap().to_string_lossy().to_string();
             if &parent == "brew"
@@ -28,14 +28,41 @@ pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
                 || &parent == "cargo"
                 || &parent == "flutter"
                 || &parent == "shell"
+                || &parent == "env"
             {
-                match toml::from_str::<Cool>(entry.as_file().unwrap().contents_utf8().unwrap()) {
-                    Ok(cool) => {
-                        map.insert(cool.name.clone(), SafeCool(Arc::new(Mutex::new(cool))));
+                let file = entry.as_file().unwrap();
+                let file_name = file
+                    .path()
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string();
+                match file_name {
+                    file_name if file_name.ends_with(".toml") => {
+                        match toml::from_str::<Cool>(
+                            entry.as_file().unwrap().contents_utf8().unwrap(),
+                        ) {
+                            Ok(cool) => {
+                                map.insert(cool.name.clone(), SafeCool(Arc::new(Mutex::new(cool))));
+                            }
+                            Err(e) => {
+                                error!("{:?}\n{:?}", entry.path(), eyre!(e));
+                            }
+                        }
                     }
-                    Err(e) => {
-                        error!("{:?}\n{:?}", entry.path(), eyre!(e));
+                    file_name if file_name.ends_with(".yaml") => {
+                        match serde_yaml::from_str::<Cool>(
+                            entry.as_file().unwrap().contents_utf8().unwrap(),
+                        ) {
+                            Ok(cool) => {
+                                map.insert(cool.name.clone(), SafeCool(Arc::new(Mutex::new(cool))));
+                            }
+                            Err(e) => {
+                                error!("{:?}\n{:?}", entry.path(), eyre!(e));
+                            }
+                        }
                     }
+                    _ => error!("Unsupported file type: {}", file.path().display()),
                 }
             }
         } else {
@@ -80,11 +107,26 @@ pub fn check_cool_states() -> Vec<(String, CoolState)> {
 mod test {
     use crate::result::CoolResult;
     use crate::{init_backtrace, COOL_LIST};
+    use std::path::Path;
 
     #[test]
     fn test_cool_list() -> CoolResult<()> {
         init_backtrace();
-        println!("{:#?}", COOL_LIST);
+        COOL_LIST
+            .iter()
+            .for_each(|c| println!("{:?}", c.lock().unwrap()));
+        Ok(())
+    }
+
+    #[test]
+    fn test_glob() -> CoolResult<()> {
+        init_backtrace();
+        let contents = fs_extra::dir::get_dir_content("assets/cools")?;
+        let pattern = glob::Pattern::new("**/*.{toml,yaml}")?;
+        contents
+            .files
+            .iter()
+            .for_each(|c| println!("{:?} {}", c, pattern.matches_path(Path::new(c))));
         Ok(())
     }
 }

@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
@@ -7,9 +8,10 @@ use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct InstallTask {
     pub name: String,
+    #[serde(deserialize_with = "crate::template_args", default)]
     pub args: Option<Vec<String>>,
     pub installer: Installer,
 }

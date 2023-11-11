@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use crossbeam::channel::Sender;
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use apt::*;
@@ -37,7 +38,7 @@ pub trait Installable {
     fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub enum Installer {
     Brew(Brew),
     Cargo(Cargo),

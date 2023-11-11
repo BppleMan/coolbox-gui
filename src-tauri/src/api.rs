@@ -10,6 +10,7 @@ use cool::state::CoolState;
 use cool::{SafeCool, COOL_LIST};
 
 use crate::cool_data::CoolData;
+use crate::server::ASK_PASS_TRIGGER_CHANNEL;
 
 #[tauri::command(async)]
 pub fn serialize_cool_list() -> Vec<CoolData> {
@@ -29,7 +30,7 @@ pub fn install_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
 
         rayon::spawn(move || {
             while let Ok(event) = rx.recv() {
-                print!("{}", event);
+                println!("{}", event);
             }
         });
         cool.lock().unwrap().install(&Some(tx))?;
@@ -56,6 +57,16 @@ pub fn check_cools(cools: Vec<String>) -> Vec<CoolResult<CoolState, CoolError>> 
             Ok(state)
         })
         .collect::<Vec<_>>()
+}
+
+#[tauri::command]
+pub fn callback_askpass(password: String) {
+    ASK_PASS_TRIGGER_CHANNEL
+        .0
+        .lock()
+        .unwrap()
+        .send(password)
+        .unwrap();
 }
 
 #[cfg(test)]

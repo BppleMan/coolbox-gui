@@ -3,10 +3,11 @@ use std::process::Command;
 use std::str::FromStr;
 
 use color_eyre::Result;
+use schemars::JsonSchema;
 
 use crate::shell::ShellExecutor;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct MacOSSudo;
 
 impl ShellExecutor for MacOSSudo {
@@ -19,7 +20,7 @@ impl ShellExecutor for MacOSSudo {
     fn command(&self, cmd: &str, args: Option<&[&str]>) -> Result<Command> {
         let mut command = self.interpreter();
 
-        let mut content = "sh".to_string();
+        let mut content = "bash".to_string();
         if !PathBuf::from_str(cmd)?.exists() {
             content += " -c";
         }

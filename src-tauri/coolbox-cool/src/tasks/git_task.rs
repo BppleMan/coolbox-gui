@@ -5,6 +5,7 @@ use color_eyre::eyre::eyre;
 use git2::build::RepoBuilder;
 use git2::{BranchType, Direction, FetchOptions, ProxyOptions, Repository};
 use proxyconfig::{ProxyConfig, ProxyConfigProvider};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -13,7 +14,7 @@ use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct GitTask {
     pub command: GitCommand,
 }
@@ -159,19 +160,19 @@ impl<'a> Executable<'a> for GitTask {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum GitCommand {
     Clone {
         url: String,
-        #[serde(deserialize_with = "crate::render_str")]
+        #[serde(deserialize_with = "crate::template_string")]
         dest: String,
     },
     Pull {
-        #[serde(deserialize_with = "crate::render_str")]
+        #[serde(deserialize_with = "crate::template_string")]
         src: String,
     },
     Checkout {
-        #[serde(deserialize_with = "crate::render_str")]
+        #[serde(deserialize_with = "crate::template_string")]
         src: String,
         branch: String,
         create: bool,

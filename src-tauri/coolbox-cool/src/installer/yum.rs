@@ -2,13 +2,14 @@ use std::process::Command;
 
 use crossbeam::channel::Sender;
 use log::info;
+use schemars::JsonSchema;
 
 use crate::installer::Installable;
 use crate::result::CoolResult;
 use crate::shell::ShellExecutor;
 use crate::Message;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Yum;
 
 impl ShellExecutor for Yum {

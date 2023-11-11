@@ -1,0 +1,16 @@
+[package]
+name = "coolbox-askpass"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+coolbox-grpc = { path = "../coolbox-grpc" }
+
+clap.workspace = true
+tonic.workspace = true
+tokio.workspace = true

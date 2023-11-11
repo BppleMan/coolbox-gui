@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use color_eyre::eyre::eyre;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use which::which;
 
@@ -9,7 +10,7 @@ use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct WhichTask {
     pub command: String,
 }

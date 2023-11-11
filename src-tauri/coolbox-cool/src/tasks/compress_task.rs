@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::eyre;
 use flate2::write::GzEncoder;
+use schemars::JsonSchema;
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
@@ -17,11 +18,11 @@ use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CompressTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub src: String,
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub dest: String,
 }
 

@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use log::info;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
@@ -9,11 +10,13 @@ use crate::shell::{Shell, ShellExecutor};
 use crate::tasks::{Executable, MessageSender};
 use crate::Message;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CommandTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub script: String,
+    #[serde(deserialize_with = "crate::template_args", default)]
     pub args: Option<Vec<String>>,
+    #[serde(deserialize_with = "crate::template_envs", default)]
     pub envs: Option<Vec<(String, String)>>,
     pub shell: Shell,
 }
@@ -61,26 +64,26 @@ impl Display for CommandTask {
 impl<'a> Executable<'a> for CommandTask {
     fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         info!("{}", self);
-        let args = self
-            .args
-            .as_ref()
-            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>());
-        let envs = self.envs.as_ref().map(|envs| {
-            envs.iter()
-                .map(|(k, v)| (k.as_str(), v.as_str()))
-                .collect::<Vec<_>>()
-        });
+        let args = self.args.clone();
+        let envs = self.envs.clone();
+        let script = self.script.clone();
+        let shell = self.shell.clone();
 
         let (tx1, rx1) = crossbeam::channel::unbounded::<Message>();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
-        rayon::scope(|s| {
-            s.spawn(|_| {
-                let result = self
-                    .shell
-                    .run(&self.script, args.as_deref(), envs.as_deref(), Some(tx1))
-                    .map_err(ExecutableError::ShellError);
-                tx2.send(result).unwrap();
+        rayon::spawn(move || {
+            let args = args
+                .as_ref()
+                .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>());
+            let envs = envs.as_ref().map(|envs| {
+                envs.iter()
+                    .map(|(k, v)| (k.as_str(), v.as_str()))
+                    .collect::<Vec<_>>()
             });
+            let result = shell
+                .run(&script, args.as_deref(), envs.as_deref(), Some(tx1))
+                .map_err(ExecutableError::ShellError);
+            tx2.send(result).unwrap();
         });
         while let Ok(message) = rx1.recv() {
             send(message);

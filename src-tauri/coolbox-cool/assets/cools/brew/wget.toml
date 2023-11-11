@@ -13,5 +13,6 @@ installer = "brew"
 name = "wget"
 
 [[check_tasks]]
-[check_tasks.WhichTask]
-command = "wget"
+[check_tasks.CheckTask]
+installer = "brew"
+name = "wget"

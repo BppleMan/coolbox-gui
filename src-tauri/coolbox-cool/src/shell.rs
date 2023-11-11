@@ -6,6 +6,7 @@ use std::str::FromStr;
 use color_eyre::eyre::eyre;
 use crossbeam::channel::{Receiver, Sender};
 use log::info;
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use bash::*;
@@ -23,7 +24,7 @@ mod macos_sudo;
 mod sh;
 mod zsh;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub enum Shell {
     Bash(Bash),
     LinuxSudo(LinuxSudo),
@@ -175,7 +176,7 @@ fn redirect(mut reader: impl BufRead, sender: &Option<Sender<Message>>) {
         }
         if let Some(sender) = sender.as_ref() {
             sender
-                .try_send(std::mem::take(&mut buf).into_info())
+                .send(std::mem::take(&mut buf.trim()).into_info())
                 .unwrap();
         }
         buf.clear();

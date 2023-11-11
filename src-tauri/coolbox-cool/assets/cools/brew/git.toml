@@ -13,5 +13,6 @@ installer = "brew"
 name = "git"
 
 [[check_tasks]]
-[check_tasks.WhichTask]
-command = "git"
+[check_tasks.CheckTask]
+installer = "brew"
+name = "git"

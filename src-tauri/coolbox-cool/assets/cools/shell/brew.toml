@@ -10,8 +10,8 @@ dest = "{{TEMP_DIR}}/homebrew/install.sh"
 [[install_tasks]]
 [install_tasks.CommandTask]
 script = "{{TEMP_DIR}}/homebrew/install.sh"
-envs = [["NONINTERACTIVE", "1"]]
-shell = "macos_sudo"
+envs = [["SUDO_ASKPASS", "{{CURRENT_DIR}}/coolbox-askpass"]]
+shell = "bash"
 
 [[uninstall_tasks]]
 [uninstall_tasks.DownloadTask]
@@ -22,7 +22,7 @@ dest = "{{TEMP_DIR}}/homebrew/uninstall.sh"
 [uninstall_tasks.CommandTask]
 script = "{{TEMP_DIR}}/homebrew/uninstall.sh"
 envs = [["NONINTERACTIVE", "1"]]
-shell = "macos_sudo"
+shell = "bash"
 
 [[check_tasks]]
 [check_tasks.WhichTask]

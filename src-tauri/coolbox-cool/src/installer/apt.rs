@@ -1,6 +1,7 @@
 use std::process::Command;
 
 use crossbeam::channel::Sender;
+use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
@@ -8,7 +9,7 @@ use crate::result::CoolResult;
 use crate::shell::{Sh, ShellExecutor};
 use crate::Message;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Apt;
 
 impl ShellExecutor for Apt {

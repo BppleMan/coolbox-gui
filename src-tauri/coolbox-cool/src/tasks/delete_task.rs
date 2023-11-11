@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
@@ -5,9 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DeleteTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub path: String,
 }
 

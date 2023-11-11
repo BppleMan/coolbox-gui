@@ -14,5 +14,5 @@ name = "cargo-xcode"
 
 [[check_tasks]]
 [check_tasks.CheckTask]
-name = "cargo-xcode"
 installer = "cargo"
+name = "cargo-xcode"

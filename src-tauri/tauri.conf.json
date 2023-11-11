@@ -3,7 +3,7 @@
         "beforeBuildCommand": "ng build",
         "beforeDevCommand": "ng serve",
         "devPath": "http://localhost:4200",
-        "distDir": "../dist"
+        "distDir": "../dist/coolbox-gui"
     },
     "package": {
         "productName": "coolbox",
@@ -20,7 +20,9 @@
             "deb": {
                 "depends": []
             },
-            "externalBin": [],
+            "externalBin": [
+                "binaries/coolbox-askpass"
+            ],
             "icon": [
                 "icons/32x32.png",
                 "icons/128x128.png",

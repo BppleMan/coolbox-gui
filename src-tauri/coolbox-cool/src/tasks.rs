@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
@@ -21,7 +22,7 @@ use crate::error::ExecutableError;
 use crate::installer::Installer;
 use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
-use crate::{Message, MessageSender, TaskState, TasksMessageSender};
+use crate::{IntoError, Message, MessageSender, TaskState, TasksMessageSender};
 
 mod check_task;
 mod command_task;
@@ -48,7 +49,7 @@ where
     task.execute(Box::new(send))
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, TaskRef)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema, TaskRef)]
 pub enum Task {
     CheckTask(CheckTask),
     CommandTask(CommandTask),
@@ -190,7 +191,7 @@ impl<'a> Executable<'a> for Task {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Tasks(pub Vec<Task>);
 
 impl Tasks {
@@ -203,11 +204,11 @@ impl Tasks {
                 .execute(Box::new(|message| {
                     sender(i, task, TaskState::Running, message);
                 }))
-                .map_err(|e| {
-                    sender(i, task, TaskState::Failed, Message::failed());
-                    (task.name().to_string(), i, e)
-                });
-            sender(i, task, TaskState::Finished, Message::finished());
+                .map_err(|e| (task.name().to_string(), i, e));
+            match &result {
+                Ok(_) => sender(i, task, TaskState::Finished, Message::finished()),
+                Err((.., e)) => sender(i, task, TaskState::Failed, format!("{}", e).into_error()),
+            }
             result
         })
     }

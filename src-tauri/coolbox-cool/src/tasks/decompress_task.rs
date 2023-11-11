@@ -7,6 +7,7 @@ use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use color_eyre::eyre::eyre;
+use schemars::JsonSchema;
 use serde::ser::Error;
 use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
@@ -17,11 +18,11 @@ use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DecompressTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub src: String,
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub dest: String,
 }
 
