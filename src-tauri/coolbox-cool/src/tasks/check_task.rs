@@ -1,15 +1,16 @@
 use std::fmt::{Display, Formatter};
 
 use color_eyre::eyre::eyre;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
+use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CheckTask {
     pub name: String,
     pub installer: Installer,
@@ -28,9 +29,9 @@ impl Display for CheckTask {
 }
 
 impl<'a> Executable<'a> for CheckTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         self.installer
-            .check_available(&self.name, None)
+            .check_available(&self.name, None, None)
             .map_err(ExecutableError::ShellError)
             .and_then(|result| {
                 if result {

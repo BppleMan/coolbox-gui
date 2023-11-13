@@ -1,8 +1,10 @@
 use std::process::Command;
 
+use schemars::JsonSchema;
+
 use crate::shell::ShellExecutor;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Sh;
 
 impl ShellExecutor for Sh {
@@ -27,9 +29,9 @@ mod test {
                 println!("{}", message);
             });
         });
-        Sh.run(&script, Some(&["-h"]), None, Some(sender.clone()))?;
-        Bash.run(&script, Some(&["-h"]), None, Some(sender.clone()))?;
-        Zsh.run(&script, Some(&["-h"]), None, Some(sender))?;
+        Sh.run(&script, None, Some(sender.clone()))?;
+        Bash.run(&script, None, Some(sender.clone()))?;
+        Zsh.run(&script, None, Some(sender))?;
         Ok(())
     }
 }

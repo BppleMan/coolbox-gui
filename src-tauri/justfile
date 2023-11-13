@@ -1,0 +1,23 @@
+#!/usr/bin/env just --justfile
+
+release:
+    cargo build --release
+
+build profile="--debug":
+    cargo tauri build {{profile}}
+
+build_ask_pass:
+    cross build -p coolbox-askpass --target x86_64-apple-darwin --release
+    cross build -p coolbox-askpass --target aarch64-apple-darwin --release
+    cross build -p coolbox-askpass --target x86_64-unknown-linux-gnu --release
+    cross build -p coolbox-askpass --target x86_64-pc-windows-gnu --release
+    cp -f target/x86_64-apple-darwin/release/coolbox-askpass binaries/coolbox-askpass-x86_64-apple-darwin
+    cp -f target/aarch64-apple-darwin/release/coolbox-askpass binaries/coolbox-askpass-aarch64-apple-darwin
+    cp -f target/x86_64-unknown-linux-gnu/release/coolbox-askpass binaries/coolbox-askpass-x86_64-unknown-linux-gnu
+    cp -f target/x86_64-pc-windows-gnu/release/coolbox-askpass.exe binaries/coolbox-askpass-x86_64-pc-windows-gnu.exe
+    chmod +x binaries/coolbox-askpass-x86_64-apple-darwin
+    chmod +x binaries/coolbox-askpass-aarch64-apple-darwin
+    chmod +x binaries/coolbox-askpass-x86_64-unknown-linux-gnu
+
+ask_pass:
+    cargo run -p coolbox-askpass

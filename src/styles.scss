@@ -45,14 +45,32 @@ html, body {
 }
 
 app-root {
-    @apply flex flex-col w-full p-10;
+    @apply flex flex-col w-full py-10;
 }
 
+// ::-webkit-scrollbar {
+//     width: 0;
+// }
+
 .cool-box-app-background {
-    background-color: #101828;
+    background-color: #0C111D;
 }
 
 .mat-raised-button.mat-warn, .mat-fab.mat-warn, .mat-mini-fab.mat-warn, .mat-flat-button, .mat-raised-button, .mat-fab, .mat-mini-fab {
     background-color: #101828;
     //background-color: red;
+}
+@layer utilities {
+    @variants responsive {
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+  
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+      }
 }

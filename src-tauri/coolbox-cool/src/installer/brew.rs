@@ -1,30 +1,14 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
+use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
-use crate::result::CoolResult;
-use crate::shell::ShellExecutor;
 use crate::Message;
+use crate::result::CoolResult;
+use crate::shell::{Bash, ShellExecutor};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Brew;
-
-impl ShellExecutor for Brew {
-    fn interpreter(&self) -> Command {
-        Command::new("brew")
-    }
-
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        let mut command = self.interpreter();
-        command.arg(cmd);
-        if let Some(args) = args {
-            command.args(args);
-        }
-        Ok(command)
-    }
-}
 
 impl Installable for Brew {
     fn name(&self) -> &'static str {
@@ -35,11 +19,12 @@ impl Installable for Brew {
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with brew", name);
 
-        let args = match args {
+        let arguments = match args {
             None => vec![name],
             Some(args) => {
                 let mut args = args.to_vec();
@@ -48,18 +33,23 @@ impl Installable for Brew {
             }
         };
 
-        self.run("install", Some(&args), None, Some(sender))
+        Bash.run(
+            &format!("brew install {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with brew", name);
 
-        let args = match args {
+        let arguments = match args {
             None => vec![name],
             Some(args) => {
                 let mut args = args.to_vec();
@@ -68,13 +58,22 @@ impl Installable for Brew {
             }
         };
 
-        self.run("uninstall", Some(&args), None, Some(sender))
+        Bash.run(
+            &format!("brew uninstall {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
-    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(
+        &self,
+        name: &str,
+        _args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool> {
         info!("checking {} with brew", name);
 
-        Ok(self.run("list", Some(&[name]), None, None).is_ok())
+        Ok(Bash.run(&format!("brew list {}", name), envs, None).is_ok())
     }
 }
 
@@ -93,11 +92,11 @@ mod test {
                 println!("{}", msg);
             }
         });
-        if Brew.check_available("wget", None)? {
-            Brew.uninstall("wget", None, sender.clone())?;
+        if Brew.check_available("wget", None, None)? {
+            Brew.uninstall("wget", None, None, sender.clone())?;
         }
-        Brew.install("wget", None, sender.clone())?;
-        Brew.uninstall("wget", None, sender.clone())?;
+        Brew.install("wget", None, None, sender.clone())?;
+        Brew.uninstall("wget", None, None, sender.clone())?;
         Ok(())
     }
 }

@@ -13,7 +13,34 @@
 mat-checkbox {
     @apply flex;
 }
-
-#check-card {
-
+.cool-card {
+    &.selected {
+        outline: 2px solid #9E77ED;
+    }
+}
+::ng-deep .mat-expansion-panel-body{
+    padding: 0 !important;
+}
+::ng-deep .mat-step-header {
+    padding-left: 0px !important;
+}
+::ng-deep .mat-stepper-vertical-line::before {
+    left: -24px !important;
+}
+::ng-deep .mat-content.mat-content-hide-toggle {
+    margin-right: 0px !important;
+}
+::ng-deep .mat-vertical-content {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+}
+.toggle-panel {
+    background: linear-gradient(180deg, #101828 0%, #0C111D 100%);
+}
+.img-expand {
+    transition: transform 0.4s ease-in-out;
+    transform: rotate(0deg);
+    &.img-rotate {
+        transform: rotate(180deg);
+    }
 }

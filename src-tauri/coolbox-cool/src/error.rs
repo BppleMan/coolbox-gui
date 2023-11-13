@@ -49,6 +49,9 @@ pub enum ExecutableError {
     FileNotExists(Report),
 
     #[error(transparent)]
+    CreatePathError(Report),
+
+    #[error(transparent)]
     GitError(Report),
 
     #[error(transparent)]

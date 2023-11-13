@@ -6,22 +6,23 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::eyre;
 use flate2::write::GzEncoder;
-use serde::ser::Error;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde::ser::Error;
 use walkdir::WalkDir;
-use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
+use zip::write::FileOptions;
 
 use crate::error::ExecutableError;
+use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CompressTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub src: String,
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub dest: String,
 }
 
@@ -97,7 +98,7 @@ impl Display for CompressTask {
 }
 
 impl<'a> Executable<'a> for CompressTask {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         if self.dest.ends_with(".zip") {
             self.compress_zip(send)
         } else if self.dest.ends_with(".tar.gz") {

@@ -1,0 +1,57 @@
+name: cargo
+identifier: cargo
+description: Rust's 包管理器
+macos:
+  need_restart: false
+  dependencies: []
+  install_tasks:
+  - !DownloadTask
+    url: https://sh.rustup.rs
+    dest: {{TEMP_DIR}}/cool/rustup/rustup-init.sh
+  - !CommandTask
+    script: {{TEMP_DIR}}/cool/rustup/rustup-init.sh
+    args: ["--profile", "complete", "-y"]
+    shell: bash
+  uninstall_tasks:
+  - !CommandTask
+    script: rustup self uninstall
+    shell: bash
+  check_tasks:
+  - !WhichTask
+    command: rustup
+windows:
+  need_restart: false
+  dependencies: [ ]
+  install_tasks:
+    - !DownloadTask
+      url: https://win.rustup.rs/x86_64
+      dest: {{TEMP_DIR}}/cool/rustup/rustup-init.exe
+    - !CommandTask
+      script: {{TEMP_DIR}}/cool/rustup/rustup-init.exe
+      args: [ "--profile", "complete", "-y" ]
+      shell: cmd
+  uninstall_tasks:
+    - !CommandTask
+      script: rustup self uninstall
+      shell: cmd
+  check_tasks:
+    - !WhichTask
+      command: rustup
+linux:
+  need_restart: false
+  dependencies: [ ]
+  install_tasks:
+    - !DownloadTask
+      url: https://sh.rustup.rs
+      dest: {{TEMP_DIR}}/cool/rustup/rustup-init.sh
+    - !CommandTask
+      script: {{TEMP_DIR}}/cool/rustup/rustup-init.sh
+      args: [ "--profile", "complete", "-y" ]
+      shell: bash
+  uninstall_tasks:
+    - !CommandTask
+      script: rustup self uninstall
+      shell: bash
+  check_tasks:
+    - !WhichTask
+      command: rustup

@@ -1,0 +1,686 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cool",
+  "type": "object",
+  "required": [
+    "check_tasks",
+    "dependencies",
+    "description",
+    "install_tasks",
+    "name",
+    "uninstall_tasks"
+  ],
+  "properties": {
+    "check_tasks": {
+      "$ref": "#/definitions/Tasks"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "description": {
+      "type": "string"
+    },
+    "install_tasks": {
+      "$ref": "#/definitions/Tasks"
+    },
+    "name": {
+      "type": "string"
+    },
+    "need_restart": {
+      "default": false,
+      "type": "boolean"
+    },
+    "uninstall_tasks": {
+      "$ref": "#/definitions/Tasks"
+    }
+  },
+  "definitions": {
+    "Apt": {
+      "type": "null"
+    },
+    "Bash": {
+      "type": "null"
+    },
+    "Brew": {
+      "type": "null"
+    },
+    "Cargo": {
+      "type": "null"
+    },
+    "CheckTask": {
+      "type": "object",
+      "required": [
+        "installer",
+        "name"
+      ],
+      "properties": {
+        "installer": {
+          "$ref": "#/definitions/Installer"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "CommandTask": {
+      "type": "object",
+      "required": [
+        "script",
+        "shell"
+      ],
+      "properties": {
+        "args": {
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "envs": {
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "array",
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
+        },
+        "script": {
+          "type": "string"
+        },
+        "shell": {
+          "$ref": "#/definitions/Shell"
+        }
+      }
+    },
+    "CompressTask": {
+      "type": "object",
+      "required": [
+        "dest",
+        "src"
+      ],
+      "properties": {
+        "dest": {
+          "type": "string"
+        },
+        "src": {
+          "type": "string"
+        }
+      }
+    },
+    "CopyTask": {
+      "type": "object",
+      "required": [
+        "dest",
+        "src"
+      ],
+      "properties": {
+        "dest": {
+          "type": "string"
+        },
+        "src": {
+          "type": "string"
+        }
+      }
+    },
+    "DecompressTask": {
+      "type": "object",
+      "required": [
+        "dest",
+        "src"
+      ],
+      "properties": {
+        "dest": {
+          "type": "string"
+        },
+        "src": {
+          "type": "string"
+        }
+      }
+    },
+    "DeleteTask": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "Dnf": {
+      "type": "null"
+    },
+    "DownloadTask": {
+      "type": "object",
+      "required": [
+        "dest",
+        "url"
+      ],
+      "properties": {
+        "dest": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "ExistsTask": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "GitCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "Clone"
+          ],
+          "properties": {
+            "Clone": {
+              "type": "object",
+              "required": [
+                "dest",
+                "url"
+              ],
+              "properties": {
+                "dest": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Pull"
+          ],
+          "properties": {
+            "Pull": {
+              "type": "object",
+              "required": [
+                "src"
+              ],
+              "properties": {
+                "src": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Checkout"
+          ],
+          "properties": {
+            "Checkout": {
+              "type": "object",
+              "required": [
+                "branch",
+                "create",
+                "src"
+              ],
+              "properties": {
+                "branch": {
+                  "type": "string"
+                },
+                "create": {
+                  "type": "boolean"
+                },
+                "src": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "GitTask": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "$ref": "#/definitions/GitCommand"
+        }
+      }
+    },
+    "InstallTask": {
+      "type": "object",
+      "required": [
+        "installer",
+        "name"
+      ],
+      "properties": {
+        "args": {
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "installer": {
+          "$ref": "#/definitions/Installer"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "Installer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "Brew"
+          ],
+          "properties": {
+            "Brew": {
+              "$ref": "#/definitions/Brew"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Cargo"
+          ],
+          "properties": {
+            "Cargo": {
+              "$ref": "#/definitions/Cargo"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Apt"
+          ],
+          "properties": {
+            "Apt": {
+              "$ref": "#/definitions/Apt"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Yun"
+          ],
+          "properties": {
+            "Yun": {
+              "$ref": "#/definitions/Yum"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Dnf"
+          ],
+          "properties": {
+            "Dnf": {
+              "$ref": "#/definitions/Dnf"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Rpm"
+          ],
+          "properties": {
+            "Rpm": {
+              "$ref": "#/definitions/Rpm"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "LinuxSudo": {
+      "type": "null"
+    },
+    "MacOSSudo": {
+      "type": "null"
+    },
+    "MoveTask": {
+      "type": "object",
+      "required": [
+        "dest",
+        "src"
+      ],
+      "properties": {
+        "dest": {
+          "type": "string"
+        },
+        "src": {
+          "type": "string"
+        }
+      }
+    },
+    "Rpm": {
+      "type": "null"
+    },
+    "Sh": {
+      "type": "null"
+    },
+    "Shell": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "Bash"
+          ],
+          "properties": {
+            "Bash": {
+              "$ref": "#/definitions/Bash"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "LinuxSudo"
+          ],
+          "properties": {
+            "LinuxSudo": {
+              "$ref": "#/definitions/LinuxSudo"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "MacOSSudo"
+          ],
+          "properties": {
+            "MacOSSudo": {
+              "$ref": "#/definitions/MacOSSudo"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Sh"
+          ],
+          "properties": {
+            "Sh": {
+              "$ref": "#/definitions/Sh"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Zsh"
+          ],
+          "properties": {
+            "Zsh": {
+              "$ref": "#/definitions/Zsh"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Task": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "CheckTask"
+          ],
+          "properties": {
+            "CheckTask": {
+              "$ref": "#/definitions/CheckTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "CommandTask"
+          ],
+          "properties": {
+            "CommandTask": {
+              "$ref": "#/definitions/CommandTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "CompressTask"
+          ],
+          "properties": {
+            "CompressTask": {
+              "$ref": "#/definitions/CompressTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "CopyTask"
+          ],
+          "properties": {
+            "CopyTask": {
+              "$ref": "#/definitions/CopyTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "DecompressTask"
+          ],
+          "properties": {
+            "DecompressTask": {
+              "$ref": "#/definitions/DecompressTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "DeleteTask"
+          ],
+          "properties": {
+            "DeleteTask": {
+              "$ref": "#/definitions/DeleteTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "DownloadTask"
+          ],
+          "properties": {
+            "DownloadTask": {
+              "$ref": "#/definitions/DownloadTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "ExistsTask"
+          ],
+          "properties": {
+            "ExistsTask": {
+              "$ref": "#/definitions/ExistsTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "GitTask"
+          ],
+          "properties": {
+            "GitTask": {
+              "$ref": "#/definitions/GitTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "InstallTask"
+          ],
+          "properties": {
+            "InstallTask": {
+              "$ref": "#/definitions/InstallTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "MoveTask"
+          ],
+          "properties": {
+            "MoveTask": {
+              "$ref": "#/definitions/MoveTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "UninstallTask"
+          ],
+          "properties": {
+            "UninstallTask": {
+              "$ref": "#/definitions/UninstallTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "WhichTask"
+          ],
+          "properties": {
+            "WhichTask": {
+              "$ref": "#/definitions/WhichTask"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Task"
+      }
+    },
+    "UninstallTask": {
+      "type": "object",
+      "required": [
+        "installer",
+        "name"
+      ],
+      "properties": {
+        "args": {
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "installer": {
+          "$ref": "#/definitions/Installer"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "WhichTask": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "type": "string"
+        }
+      }
+    },
+    "Yum": {
+      "type": "null"
+    },
+    "Zsh": {
+      "type": "null"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+name: llvm
+identifier: llvm
+description: LLVM is a set of compiler and toolchain technologies[4] that can be used to develop a frontend for any programming language and a backend for any instruction set architecture.
+macos:
+  need_restart: false
+  dependencies: []
+  install_tasks:
+  - !InstallTask
+    name: libclang-dev
+    args: null
+    envs:
+    - - SUDO_ASKPASS
+      - /Users/bppleman/coolbox/coolbox-gui/src-tauri/target/debug/deps/coolbox-askpass
+    installer: apt
+  uninstall_tasks:
+  - !UninstallTask
+    name: libclang-dev
+    args: null
+    installer: apt
+  check_tasks:
+  - !CheckTask
+    name: libclang-dev
+    installer: apt
+windows: null
+linux: null

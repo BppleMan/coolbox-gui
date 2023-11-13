@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use crossbeam::channel::Sender;
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use apt::*;
@@ -9,35 +10,48 @@ pub use brew::*;
 pub use cargo::*;
 pub use dnf::*;
 pub use rpm::*;
+pub use winget::*;
 pub use yum::*;
 
-use crate::result::CoolResult;
 use crate::Message;
+use crate::result::CoolResult;
 
 mod apt;
 mod brew;
 mod cargo;
 mod dnf;
 mod rpm;
+mod winget;
 mod yum;
 
 pub trait Installable {
     fn name(&self) -> &'static str;
 
-    fn install(&self, name: &str, args: Option<&[&str]>, sender: Sender<Message>)
-        -> CoolResult<()>;
+    fn install(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+        sender: Sender<Message>,
+    ) -> CoolResult<()>;
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()>;
 
-    fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool>;
+    fn check_available(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool>;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub enum Installer {
     Brew(Brew),
     Cargo(Cargo),
@@ -82,22 +96,29 @@ impl Installable for Installer {
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
-        self.as_ref().install(name, args, sender)
+        self.as_ref().install(name, args, envs, sender)
     }
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
-        self.as_ref().uninstall(name, args, sender)
+        self.as_ref().uninstall(name, args, envs, sender)
     }
 
-    fn check_available(&self, name: &str, args: Option<&[&str]>) -> CoolResult<bool> {
-        self.as_ref().check_available(name, args)
+    fn check_available(
+        &self,
+        name: &str,
+        args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool> {
+        self.as_ref().check_available(name, args, envs)
     }
 }
 

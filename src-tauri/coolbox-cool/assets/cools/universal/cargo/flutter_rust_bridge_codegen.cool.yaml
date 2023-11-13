@@ -1,0 +1,19 @@
+name: "flutter_rust_bridge_codegen"
+description: "用于flutter_rust_bridge生成代码"
+dependencies:
+  - "cargo"
+
+install_tasks:
+  - !InstallTask
+    installer: "cargo"
+    name: "flutter_rust_bridge_codegen"
+
+uninstall_tasks:
+  - !UninstallTask
+    installer: "cargo"
+    name: "flutter_rust_bridge_codegen"
+
+check_tasks:
+  - !CheckTask
+    installer: "cargo"
+    name: "flutter_rust_bridge_codegen"

@@ -1,27 +1,28 @@
+use std::{fmt, fs, io};
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::{fmt, fs, io};
 
 use color_eyre::eyre::eyre;
-use serde::ser::Error;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde::ser::Error;
 use zip::result::ZipError;
 use zip::ZipArchive;
 
 use crate::error::ExecutableError;
+use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DecompressTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub src: String,
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub dest: String,
 }
 
@@ -170,7 +171,7 @@ impl Display for DecompressTask {
 }
 
 impl<'a> Executable<'a> for DecompressTask {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         if self.src.ends_with(".zip") {
             self.decompress_zip(send)
         } else if self.src.ends_with(".tar.gz") {

@@ -2,18 +2,19 @@ use std::fmt::{Display, Formatter};
 use std::path::Path;
 
 use color_eyre::eyre::eyre;
-use git2::build::RepoBuilder;
 use git2::{BranchType, Direction, FetchOptions, ProxyOptions, Repository};
+use git2::build::RepoBuilder;
 use proxyconfig::{ProxyConfig, ProxyConfigProvider};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::error::ExecutableError;
+use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct GitTask {
     pub command: GitCommand,
 }
@@ -145,7 +146,7 @@ impl Display for GitTask {
 }
 
 impl<'a> Executable<'a> for GitTask {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
         match self.command.clone() {
             GitCommand::Clone { .. } => {}
             GitCommand::Pull { src } => self.pull(&src, send)?,
@@ -159,19 +160,19 @@ impl<'a> Executable<'a> for GitTask {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum GitCommand {
     Clone {
         url: String,
-        #[serde(deserialize_with = "crate::render_str")]
+        #[serde(deserialize_with = "crate::template_string")]
         dest: String,
     },
     Pull {
-        #[serde(deserialize_with = "crate::render_str")]
+        #[serde(deserialize_with = "crate::template_string")]
         src: String,
     },
     Checkout {
-        #[serde(deserialize_with = "crate::render_str")]
+        #[serde(deserialize_with = "crate::template_string")]
         src: String,
         branch: String,
         create: bool,
@@ -216,7 +217,7 @@ mod test {
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::{spawn_task, GitCommand, GitTask};
+    use crate::tasks::{GitCommand, GitTask, spawn_task};
 
     #[test]
     fn test_pull() -> CoolResult<()> {

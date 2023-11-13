@@ -1,0 +1,19 @@
+name: "llvm"
+description: "LLVM is a set of compiler and toolchain technologies[4] that can be used to develop a frontend for any programming language and a backend for any instruction set architecture."
+dependencies:
+  - "homebrew"
+
+install_tasks:
+  - !InstallTask
+    installer: "brew"
+    name: "llvm"
+
+uninstall_tasks:
+  - !UninstallTask
+    installer: "brew"
+    name: "llvm"
+
+check_tasks:
+  - !CheckTask
+    installer: "brew"
+    name: "llvm"

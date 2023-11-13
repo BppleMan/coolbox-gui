@@ -1,23 +1,14 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
 use log::info;
+use schemars::JsonSchema;
 
 use crate::installer::Installable;
 use crate::result::CoolResult;
-use crate::shell::ShellExecutor;
+use crate::shell::{Bash, ShellExecutor};
 use crate::Message;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Yum;
-
-impl ShellExecutor for Yum {
-    fn interpreter(&self) -> Command {
-        let mut command = Command::new("sudo");
-        command.arg("yum");
-        command
-    }
-}
 
 impl Installable for Yum {
     fn name(&self) -> &'static str {
@@ -28,6 +19,7 @@ impl Installable for Yum {
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with yum", name);
@@ -38,13 +30,18 @@ impl Installable for Yum {
         }
         arguments.push(name);
 
-        self.run("install", Some(&arguments), None, Some(sender))
+        Bash.run(
+            &format!("yum install {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with yum", name);
@@ -55,13 +52,22 @@ impl Installable for Yum {
         }
         arguments.push(name);
 
-        self.run("remove", Some(&arguments), None, Some(sender))
+        Bash.run(
+            &format!("yum remove {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
-    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(
+        &self,
+        name: &str,
+        _args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool> {
         info!("checking {}", name);
 
-        self.run("list", Some(vec!["installed", name].as_slice()), None, None)
+        Bash.run(&format!("yum list {}", name), envs, None)
             .map(|_| true)
             .or_else(|_| Ok(false))
     }

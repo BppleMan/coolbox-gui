@@ -1,0 +1,13 @@
+syntax = "proto3";
+package coolbox_proto;
+
+message EmptyRequest {
+}
+
+message StringResponse {
+    string value = 1;
+}
+
+service AskPass {
+    rpc AskPass(EmptyRequest) returns (StringResponse);
+}

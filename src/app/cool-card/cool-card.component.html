@@ -1,50 +1,35 @@
-<div id="check-card"
-     class="flex flex-row p-6 mb-1.5 border-solid border-2 border-[#CECFD2] rounded-[16px] items-start select-none"
-     (click)="toggle_selected($event)"
+<div
+     class="cool-card box-border relative flex flex-row p-4 pb-10 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{cool.selected.value ? 'selected' : ''}}"
 >
-    <mat-checkbox color="primary" [checked]="selected"></mat-checkbox>
-    <mat-expansion-panel
-        #expansionPanel hideToggle class="flex flex-col grow"
-        (click)="$event.stopPropagation()"
-    >
-        <mat-expansion-panel-header
-        >
-            <div class="flex flex-col grow">
-                <div class="flex flex-row items-center justify-between">
-                    <mat-panel-title>{{cool.name}}</mat-panel-title>
-                    <mat-panel-description>
-                        <button mat-raised-button color="primary" class="flex-shrink-0" (click)="toggle_panel($event)">
-                            Install
-                        </button>
-                    </mat-panel-description>
-                </div>
-                <span>{{cool.description}}</span>
-            </div>
-        </mat-expansion-panel-header>
+    <mat-expansion-panel #expansionPanel hideToggle class="grow shadow-none" [expanded]="expanded" (opened)="setOpened()" (closed)="setClosed()">
+        <mat-expansion-panel-header class="relative p-0 h-auto pb-2 " #panelH (click)="toggle_select($event)">
+            <div class="flex grow">
+                <div class="flex grow flex-col">
+                    <div class="text-lg">{{cool.name}}</div>
+                    <div class="text-base text-[#CECFD2] font-normal leading-6">{{cool.description}}</div>
 
-        <mat-stepper orientation="vertical" linear="true" #stepper>
-            <mat-step *ngFor="let task of cool.install_tasks">
+                </div>
+            </div>
+
+            <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="install($event)">
+                Install
+            </button>
+            <mat-progress-bar class="absolute left-0 right-0 bottom-0" [value]="50"></mat-progress-bar>
+        </mat-expansion-panel-header>
+        <mat-divider class="my-2"></mat-divider>
+        <mat-stepper orientation="vertical" linear="true" #stepper >
+            <mat-step class="-mx-4" *ngFor="let task of cool.install_tasks" class="relative">
                 <ng-template matStepLabel>{{task.name}}</ng-template>
-                <code
-                    [highlight]="task.description"
-                    [languages]="['bash']"
-                    class="flex grow"
-                ></code>
+                <div class="code-container border-solid border border-[#1F242F] rounded-lg p-2 bg-[#191A22] divide-y divide-solid divide-[#1F242F]">
+                    <code class="block select-text pt-2" [highlight]="task.description" [languages]="['bash']"></code>
+                    <code class="block box-border pt-2 select-text border-x-0 overflow-y-auto max-h-[76px] no-scrollbar" [highlight]="task.description + task.description + task.description + task.description" [languages]="['bash']"></code>
+                </div>
+                <img class="absolute right-2 top-2 w-4 h-4 cursor-pointer" src="assets/images/btn_copy.png" (click)="copy(task.description)"/>
             </mat-step>
-            <!--            <mat-step [stepControl]="secondFormGroup">-->
-            <!--                <form [formGroup]="secondFormGroup">-->
-            <!--                    <ng-template matStepLabel>Fill out your address</ng-template>-->
-            <!--                    <mat-form-field>-->
-            <!--                        <mat-label>Address</mat-label>-->
-            <!--                        <input matInput formControlName="secondCtrl" placeholder="Ex. 1 Main St, New York, NY"-->
-            <!--                               required>-->
-            <!--                    </mat-form-field>-->
-            <!--                    <div>-->
-            <!--                        <button mat-button matStepperPrevious>Back</button>-->
-            <!--                        <button mat-button matStepperNext>Next</button>-->
-            <!--                    </div>-->
-            <!--                </form>-->
-            <!--            </mat-step>-->
         </mat-stepper>
+
     </mat-expansion-panel>
+    <div class="toggle-panel cursor-pointer absolute left-0 right-0 bottom-0 flex grow items-center justify-center py-2" (click)="toggle_panel($event)">
+        <img class="img-expand w-5 h-5 block {{expanded ? 'img-rotate' : ''}}" src="assets/images/ic_expand_down.png"/>
+    </div>
 </div>

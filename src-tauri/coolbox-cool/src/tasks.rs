@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub use check_task::*;
@@ -21,7 +22,7 @@ use crate::error::ExecutableError;
 use crate::installer::Installer;
 use crate::result::{CoolResult, ExecutableResult};
 use crate::shell::Shell;
-use crate::{Message, MessageSender, TasksMessageSender};
+use crate::{IntoError, Message, MessageSender, TaskState, TasksMessageSender};
 
 mod check_task;
 mod command_task;
@@ -38,11 +39,7 @@ mod uninstall_task;
 mod which_task;
 
 pub trait Executable<'a>: Display + Send + Sync {
-    fn execute(&self, sender: Box<MessageSender<'a>>) -> ExecutableResult {
-        self._run(sender)
-    }
-
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult;
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult;
 }
 
 pub fn spawn_task<'a, F>(task: impl Executable<'a>, send: F) -> ExecutableResult
@@ -52,7 +49,7 @@ where
     task.execute(Box::new(send))
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, TaskRef)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema, TaskRef)]
 pub enum Task {
     CheckTask(CheckTask),
     CommandTask(CommandTask),
@@ -88,15 +85,17 @@ impl Task {
         }
     }
 
+    pub fn check(name: impl Into<String>, installer: Installer) -> Self {
+        Self::CheckTask(CheckTask::new(name.into(), installer))
+    }
+
     pub fn command(
         script: impl Into<String>,
-        args: Option<Vec<impl Into<String>>>,
         envs: Option<Vec<(impl Into<String>, impl Into<String>)>>,
         shell: Shell,
     ) -> Self {
         Self::CommandTask(CommandTask::new(
             script.into(),
-            args.map(|args| args.into_iter().map(|arg| arg.into()).collect::<Vec<_>>()),
             envs.map(|envs| {
                 envs.into_iter()
                     .map(|(k, v)| (k.into(), v.into()))
@@ -152,11 +151,17 @@ impl Task {
     pub fn install(
         name: impl Into<String>,
         args: Option<Vec<impl Into<String>>>,
+        envs: Option<Vec<(impl Into<String>, impl Into<String>)>>,
         installer: Installer,
     ) -> Self {
         Self::InstallTask(InstallTask::new(
             name.into(),
             args.map(|args| args.into_iter().map(|arg| arg.into()).collect::<Vec<_>>()),
+            envs.map(|envs| {
+                envs.into_iter()
+                    .map(|(k, v)| (k.into(), v.into()))
+                    .collect::<Vec<_>>()
+            }),
             installer,
         ))
     }
@@ -165,7 +170,7 @@ impl Task {
         Self::MoveTask(MoveTask::new(source.into(), destination.into()))
     }
 
-    pub fn uninstall_task(
+    pub fn uninstall(
         name: impl Into<String>,
         args: Option<Vec<impl Into<String>>>,
         installer: Installer,
@@ -189,12 +194,12 @@ impl Display for Task {
 }
 
 impl<'a> Executable<'a> for Task {
-    fn _run(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
-        self.as_ref()._run(send)
+    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+        self.as_ref().execute(send)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Tasks(pub Vec<Task>);
 
 impl Tasks {
@@ -203,10 +208,16 @@ impl Tasks {
         mut sender: Box<TasksMessageSender<'a>>,
     ) -> CoolResult<(), (String, usize, ExecutableError)> {
         self.0.iter().enumerate().try_for_each(|(i, task)| {
-            task.execute(Box::new(|message| {
-                sender(i, task, message);
-            }))
-            .map_err(|e| (task.name().to_string(), i, e))
+            let result = task
+                .execute(Box::new(|message| {
+                    sender(i, task, TaskState::Running, message);
+                }))
+                .map_err(|e| (task.name().to_string(), i, e));
+            match &result {
+                Ok(_) => sender(i, task, TaskState::Finished, Message::finished()),
+                Err((.., e)) => sender(i, task, TaskState::Failed, format!("{}", e).into_error()),
+            }
+            result
         })
     }
 }

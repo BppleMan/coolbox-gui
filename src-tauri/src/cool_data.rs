@@ -21,7 +21,7 @@ impl From<&Cool> for CoolData {
             name: value.name.clone(),
             description: value.description.clone(),
             dependencies: value.dependencies.clone(),
-            state: value.check(),
+            state: CoolState::Ready,
             install_tasks: value
                 .install_tasks
                 .0

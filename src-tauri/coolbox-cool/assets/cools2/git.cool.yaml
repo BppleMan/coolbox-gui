@@ -1,0 +1,24 @@
+name: git
+identifier: git
+description: 一个命令行版本控制工具
+macos:
+  need_restart: false
+  dependencies:
+  - homebrew
+  install_tasks:
+  - !InstallTask
+    name: git
+    args: null
+    envs: null
+    installer: brew
+  uninstall_tasks:
+  - !UninstallTask
+    name: git
+    args: null
+    installer: brew
+  check_tasks:
+  - !CheckTask
+    name: git
+    installer: brew
+windows: null
+linux: null

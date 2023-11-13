@@ -1,13 +1,14 @@
 use std::fmt::{Display, Formatter};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DeleteTask {
-    #[serde(deserialize_with = "crate::render_str")]
+    #[serde(deserialize_with = "crate::template_string")]
     pub path: String,
 }
 
@@ -24,7 +25,7 @@ impl Display for DeleteTask {
 }
 
 impl<'a> Executable<'a> for DeleteTask {
-    fn _run(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
         fs_extra::remove_items(&[&self.path])?;
         Ok(())
     }

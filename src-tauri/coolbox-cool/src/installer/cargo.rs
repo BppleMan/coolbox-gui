@@ -1,30 +1,14 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
+use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
-use crate::result::CoolResult;
-use crate::shell::ShellExecutor;
 use crate::Message;
+use crate::result::CoolResult;
+use crate::shell::{Bash, ShellExecutor};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Cargo;
-
-impl ShellExecutor for Cargo {
-    fn interpreter(&self) -> Command {
-        Command::new("cargo")
-    }
-
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        let mut command = self.interpreter();
-        command.arg(cmd);
-        if let Some(args) = args {
-            command.args(args);
-        }
-        Ok(command)
-    }
-}
 
 impl Installable for Cargo {
     fn name(&self) -> &'static str {
@@ -35,6 +19,7 @@ impl Installable for Cargo {
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with cargo", name);
@@ -48,13 +33,18 @@ impl Installable for Cargo {
             }
         };
 
-        self.run("install", Some(&args), None, Some(sender))
+        Bash.run(
+            &format!("cargo install {}", args.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with cargo", name);
@@ -68,13 +58,22 @@ impl Installable for Cargo {
             }
         };
 
-        self.run("uninstall", Some(&args), None, Some(sender))
+        Bash.run(
+            &format!("cargo uninstall {}", args.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
-    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(
+        &self,
+        name: &str,
+        _args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool> {
         info!("checking {} with cargo", name);
         let (sender, receiver) = crossbeam::channel::unbounded::<Message>();
-        self.run("install", Some(&["--list"]), None, Some(sender))?;
+        Bash.run(&format!("cargo install --list"), envs, Some(sender))?;
         let result = receiver
             .iter()
             .map(|m| m.message)
@@ -94,11 +93,11 @@ mod test {
     fn install_bat() -> CoolResult<()> {
         init_backtrace();
         let (sender, _) = crossbeam::channel::unbounded();
-        if Cargo.check_available("zoxide", None)? {
-            Cargo.uninstall("zoxide", None, sender.clone())?;
+        if Cargo.check_available("zoxide", None, None)? {
+            Cargo.uninstall("zoxide", None, None, sender.clone())?;
         }
-        Cargo.install("zoxide", None, sender.clone())?;
-        Cargo.uninstall("zoxide", None, sender.clone())?;
+        Cargo.install("zoxide", None, None, sender.clone())?;
+        Cargo.uninstall("zoxide", None, None, sender.clone())?;
         Ok(())
     }
 }

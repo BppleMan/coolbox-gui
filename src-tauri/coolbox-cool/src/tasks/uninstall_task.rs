@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
@@ -7,9 +8,10 @@ use crate::installer::{Installable, Installer};
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct UninstallTask {
     pub name: String,
+    #[serde(deserialize_with = "crate::template_args", default)]
     pub args: Option<Vec<String>>,
     pub installer: Installer,
 }
@@ -50,24 +52,25 @@ impl Display for UninstallTask {
 }
 
 impl<'a> Executable<'a> for UninstallTask {
-    fn _run(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+        let this = self.clone();
+
         let (tx1, rx1) = crossbeam::channel::unbounded();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
-        rayon::scope(|s| {
-            s.spawn(|_| {
-                let result = self
-                    .installer
-                    .uninstall(
-                        &self.name,
-                        self.args
-                            .as_ref()
-                            .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
-                            .as_deref(),
-                        tx1,
-                    )
-                    .map_err(ExecutableError::ShellError);
-                tx2.send(result).unwrap();
-            });
+        rayon::spawn(move || {
+            let result = this
+                .installer
+                .uninstall(
+                    &this.name,
+                    this.args
+                        .as_ref()
+                        .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                        .as_deref(),
+                    None,
+                    tx1,
+                )
+                .map_err(ExecutableError::ShellError);
+            tx2.send(result).unwrap();
         });
         while let Ok(msg) = rx1.recv() {
             send(msg);

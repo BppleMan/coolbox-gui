@@ -1,0 +1,24 @@
+name: cargo-xcode
+identifier: cargo-xcode
+description: cargo子命令用于生成xcode project
+macos:
+  need_restart: false
+  dependencies:
+  - cargo
+  install_tasks:
+  - !InstallTask
+    name: cargo-xcode
+    args: null
+    envs: null
+    installer: cargo
+  uninstall_tasks:
+  - !UninstallTask
+    name: cargo-xcode
+    args: null
+    installer: cargo
+  check_tasks:
+  - !CheckTask
+    name: cargo-xcode
+    installer: cargo
+windows: null
+linux: null

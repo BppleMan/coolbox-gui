@@ -1,35 +1,50 @@
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::str::FromStr;
 
 use color_eyre::eyre::eyre;
 use crossbeam::channel::{Receiver, Sender};
 use log::info;
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub use bash::*;
+pub use cmd::*;
 pub use linux_sudo::*;
 pub use macos_sudo::*;
 pub use sh::*;
 pub use zsh::*;
 
 use crate::result::CoolResult;
-use crate::{IntoInfo, Message, StringExt};
+use crate::{IntoInfo, Message};
 
 mod bash;
+mod cmd;
 mod linux_sudo;
 mod macos_sudo;
 mod sh;
 mod zsh;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub enum Shell {
     Bash(Bash),
     LinuxSudo(LinuxSudo),
     MacOSSudo(MacOSSudo),
     Sh(Sh),
     Zsh(Zsh),
+    Cmd(Cmd),
+}
+
+impl Shell {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Shell::Bash(_) => "bash",
+            Shell::LinuxSudo(_) => "linux_sudo",
+            Shell::MacOSSudo(_) => "macos_sudo",
+            Shell::Sh(_) => "sh",
+            Shell::Zsh(_) => "zsh",
+            Shell::Cmd(_) => "cmd",
+        }
+    }
 }
 
 impl AsRef<dyn ShellExecutor> for Shell {
@@ -40,6 +55,7 @@ impl AsRef<dyn ShellExecutor> for Shell {
             Shell::MacOSSudo(macos_sudo) => macos_sudo,
             Shell::Sh(sh) => sh,
             Shell::Zsh(zsh) => zsh,
+            Shell::Cmd(cmd) => cmd,
         }
     }
 }
@@ -49,18 +65,17 @@ impl ShellExecutor for Shell {
         self.as_ref().interpreter()
     }
 
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        self.as_ref().command(cmd, args)
+    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> CoolResult<Command> {
+        self.as_ref().command(script, envs)
     }
 
     fn run(
         &self,
         cmd: &str,
-        args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Option<Sender<Message>>,
     ) -> CoolResult<()> {
-        self.as_ref().run(cmd, args, envs, sender)
+        self.as_ref().run(cmd, envs, sender)
     }
 }
 
@@ -75,6 +90,7 @@ impl Serialize for Shell {
             Shell::MacOSSudo(_) => serializer.serialize_str("macos_sudo"),
             Shell::Sh(_) => serializer.serialize_str("sh"),
             Shell::Zsh(_) => serializer.serialize_str("zsh"),
+            Shell::Cmd(_) => serializer.serialize_str("cmd"),
         }
     }
 }
@@ -91,6 +107,7 @@ impl<'de> Deserialize<'de> for Shell {
             name if name == "macos_sudo" => Ok(Shell::MacOSSudo(MacOSSudo)),
             name if name == "sh" => Ok(Shell::Sh(Sh)),
             name if name == "zsh" => Ok(Shell::Zsh(Zsh)),
+            name if name == "cmd" => Ok(Shell::Cmd(Cmd)),
             _ => Err(serde::de::Error::custom(format!("unknown shell: {}", name))),
         }
     }
@@ -99,31 +116,9 @@ impl<'de> Deserialize<'de> for Shell {
 pub trait ShellExecutor {
     fn interpreter(&self) -> Command;
 
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
+    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> CoolResult<Command> {
         let mut command = self.interpreter();
-        if PathBuf::from_str(cmd)?.exists() {
-            command.arg(cmd);
-            if let Some(args) = args {
-                command.args(args);
-            }
-        } else {
-            command.arg("-c");
-            command.arg(cmd);
-            if let Some(args) = args {
-                command.arg("--");
-                command.args(args);
-            }
-        }
-        Ok(command)
-    }
-
-    fn prepare(
-        &self,
-        cmd: &str,
-        args: Option<&[&str]>,
-        envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<Command> {
-        let mut command = self.command(cmd, args)?;
+        command.arg("-c").arg(script);
         if let Some(envs) = envs {
             command.envs(envs.to_vec());
         }
@@ -132,14 +127,13 @@ pub trait ShellExecutor {
 
     fn run(
         &self,
-        cmd: &str,
-        args: Option<&[&str]>,
+        script: &str,
         envs: Option<&[(&str, &str)]>,
         sender: Option<Sender<Message>>,
     ) -> CoolResult<()> {
-        let mut command = self.prepare(cmd, args, envs)?;
+        let mut command = self.command(script, envs)?;
         let command_desc = format!("{:?}", command);
-        info!("run: {}", command_desc.truncate_string(100));
+        info!("run: {}", command_desc);
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -175,7 +169,7 @@ fn redirect(mut reader: impl BufRead, sender: &Option<Sender<Message>>) {
         }
         if let Some(sender) = sender.as_ref() {
             sender
-                .try_send(std::mem::take(&mut buf).into_info())
+                .send(std::mem::take(&mut buf.trim()).into_info())
                 .unwrap();
         }
         buf.clear();

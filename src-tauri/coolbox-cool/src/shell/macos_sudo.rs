@@ -1,12 +1,11 @@
-use std::path::PathBuf;
 use std::process::Command;
-use std::str::FromStr;
 
 use color_eyre::Result;
+use schemars::JsonSchema;
 
 use crate::shell::ShellExecutor;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct MacOSSudo;
 
 impl ShellExecutor for MacOSSudo {
@@ -16,21 +15,16 @@ impl ShellExecutor for MacOSSudo {
         command
     }
 
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> Result<Command> {
+    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> Result<Command> {
         let mut command = self.interpreter();
 
-        let mut content = "sh".to_string();
-        if !PathBuf::from_str(cmd)?.exists() {
-            content += " -c";
-        }
-        match args {
-            None => content += &format!(" {}", cmd),
-            Some(args) => content += &format!(" {} -- {}", cmd, args.join(" ")),
-        }
         command.arg(format!(
-            r#"do shell script "{}" with administrator privileges"#,
-            content,
+            r#"do shell script "bash -c '{}'" with administrator privileges"#,
+            script,
         ));
+        if let Some(envs) = envs {
+            command.envs(envs.to_vec());
+        }
 
         Ok(command)
     }
@@ -42,24 +36,31 @@ impl ShellExecutor for MacOSSudo {
 mod test {
     use std::io::Write;
 
-    use crate::init_backtrace;
     use tempfile::NamedTempFile;
 
+    use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::shell::{MacOSSudo, ShellExecutor};
 
     #[test]
-    fn test() -> CoolResult<()> {
+    fn smoke() -> CoolResult<()> {
         init_backtrace();
         let script = reqwest::blocking::get("https://sh.rustup.rs")?.text()?;
         let mut script_file = NamedTempFile::new()?;
         script_file.write_all(script.as_bytes())?;
-        MacOSSudo.run(
-            &format!("{}", script_file.path().display()),
-            Some(&["-h"]),
-            None,
-            None,
-        )?;
+        let (tx, rx) = crossbeam::channel::unbounded();
+        rayon::spawn(move || {
+            MacOSSudo
+                .run(
+                    &format!("bash {} --help", script_file.path().display()),
+                    None,
+                    Some(tx),
+                )
+                .unwrap();
+        });
+        while let Ok(message) = rx.recv() {
+            println!("{}", message);
+        }
         Ok(())
     }
 }

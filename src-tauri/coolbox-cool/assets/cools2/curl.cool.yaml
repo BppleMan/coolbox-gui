@@ -1,0 +1,24 @@
+name: curl
+identifier: curl
+description: 一个命令行http客户端
+macos:
+  need_restart: false
+  dependencies:
+  - homebrew
+  install_tasks:
+  - !InstallTask
+    name: curl
+    args: null
+    envs: null
+    installer: brew
+  uninstall_tasks:
+  - !UninstallTask
+    name: curl
+    args: null
+    installer: brew
+  check_tasks:
+  - !CheckTask
+    name: curl
+    installer: brew
+windows: null
+linux: null
