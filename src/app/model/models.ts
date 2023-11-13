@@ -1,4 +1,5 @@
 import {BehaviorSubject} from "rxjs"
+import {TaskEvent} from "./event"
 
 export class Cool {
     name: string;
@@ -9,6 +10,7 @@ export class Cool {
     uninstall_tasks: Task[];
     check_tasks: Task[];
     selected: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+    events: BehaviorSubject<TaskEvent[]> = new BehaviorSubject<TaskEvent[]>([]);
 
     constructor(
         cool: Cool,

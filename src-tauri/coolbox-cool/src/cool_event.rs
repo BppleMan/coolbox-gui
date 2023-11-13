@@ -1,7 +1,8 @@
 use std::fmt::{Display, Formatter};
 
-use crate::tasks::Task;
 use serde::{Deserialize, Serialize};
+
+use crate::tasks::Task;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub enum MessageType {

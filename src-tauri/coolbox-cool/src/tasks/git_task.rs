@@ -2,17 +2,17 @@ use std::fmt::{Display, Formatter};
 use std::path::Path;
 
 use color_eyre::eyre::eyre;
-use git2::build::RepoBuilder;
 use git2::{BranchType, Direction, FetchOptions, ProxyOptions, Repository};
+use git2::build::RepoBuilder;
 use proxyconfig::{ProxyConfig, ProxyConfigProvider};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::error::ExecutableError;
+use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct GitTask {
@@ -217,7 +217,7 @@ mod test {
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::{spawn_task, GitCommand, GitTask};
+    use crate::tasks::{GitCommand, GitTask, spawn_task};
 
     #[test]
     fn test_pull() -> CoolResult<()> {

@@ -1,6 +1,6 @@
-use schemars::JsonSchema;
 use std::fmt::{Display, Formatter};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub use check_task::*;
@@ -85,15 +85,17 @@ impl Task {
         }
     }
 
+    pub fn check(name: impl Into<String>, installer: Installer) -> Self {
+        Self::CheckTask(CheckTask::new(name.into(), installer))
+    }
+
     pub fn command(
         script: impl Into<String>,
-        args: Option<Vec<impl Into<String>>>,
         envs: Option<Vec<(impl Into<String>, impl Into<String>)>>,
         shell: Shell,
     ) -> Self {
         Self::CommandTask(CommandTask::new(
             script.into(),
-            args.map(|args| args.into_iter().map(|arg| arg.into()).collect::<Vec<_>>()),
             envs.map(|envs| {
                 envs.into_iter()
                     .map(|(k, v)| (k.into(), v.into()))
@@ -168,7 +170,7 @@ impl Task {
         Self::MoveTask(MoveTask::new(source.into(), destination.into()))
     }
 
-    pub fn uninstall_task(
+    pub fn uninstall(
         name: impl Into<String>,
         args: Option<Vec<impl Into<String>>>,
         installer: Installer,

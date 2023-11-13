@@ -1,0 +1,24 @@
+name: nvm
+identifier: nvm
+description: Allows you to quickly install and use different versions of node via the command line.
+macos:
+  need_restart: false
+  dependencies:
+  - homebrew
+  install_tasks:
+  - !DownloadTask
+    url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh
+    dest: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/nvm/install.sh
+  - !CommandTask
+    script: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/nvm/install.sh
+    args: null
+    envs: null
+    shell: bash
+  uninstall_tasks:
+  - !DeleteTask
+    path: /Users/bppleman/.nvm
+  check_tasks:
+  - !WhichTask
+    command: nvm
+windows: null
+linux: null

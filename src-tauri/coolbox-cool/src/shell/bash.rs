@@ -1,5 +1,6 @@
-use schemars::JsonSchema;
 use std::process::Command;
+
+use schemars::JsonSchema;
 
 use crate::shell::ShellExecutor;
 

@@ -230,11 +230,11 @@ mod test {
             need_restart: true,
             install_tasks: Tasks(vec![
                 Task::download("https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh", "{{TEMP_DIR}}/homebrew/install.sh"),
-                Task::command("{{TEMP_DIR}}/homebrew/install.sh", None::<Vec<&str>>, Some(vec![("NONINTERACTIVE", "1"), ("SUDO_ASKPASS", "2")]), Shell::MacOSSudo(MacOSSudo)),
+                Task::command("{{TEMP_DIR}}/homebrew/install.sh",  Some(vec![("NONINTERACTIVE", "1"), ("SUDO_ASKPASS", "2")]), Shell::MacOSSudo(MacOSSudo)),
             ]),
             uninstall_tasks: Tasks(vec![
                 Task::download("https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh", "{{TEMP_DIR}}/homebrew/uninstall.sh"),
-                Task::command("{{TEMP_DIR}}/homebrew/uninstall.sh", None::<Vec<&str>>, Some(vec![("NONINTERACTIVE", "1")]), Shell::MacOSSudo(MacOSSudo)),
+                Task::command("{{TEMP_DIR}}/homebrew/uninstall.sh",  Some(vec![("NONINTERACTIVE", "1")]), Shell::MacOSSudo(MacOSSudo)),
             ]),
             check_tasks: Tasks(vec![
                 Task::WhichTask(WhichTask::new("brew".to_string()))
@@ -270,7 +270,6 @@ mod test {
                 ),
                 Task::command(
                     "{{TEMP_DIR}}/nvm/install.sh",
-                    None::<Vec<&str>>,
                     None::<Vec<(&str, &str)>>,
                     Shell::Bash(Bash),
                 ),

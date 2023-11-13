@@ -14,23 +14,15 @@ use crate::Message;
 pub struct CommandTask {
     #[serde(deserialize_with = "crate::template_string")]
     pub script: String,
-    #[serde(deserialize_with = "crate::template_args", default)]
-    pub args: Option<Vec<String>>,
     #[serde(deserialize_with = "crate::template_envs", default)]
     pub envs: Option<Vec<(String, String)>>,
     pub shell: Shell,
 }
 
 impl CommandTask {
-    pub fn new(
-        script: String,
-        args: Option<Vec<String>>,
-        envs: Option<Vec<(String, String)>>,
-        shell: Shell,
-    ) -> Self {
+    pub fn new(script: String, envs: Option<Vec<(String, String)>>, shell: Shell) -> Self {
         Self {
             script,
-            args,
             envs,
             shell,
         }
@@ -44,19 +36,7 @@ impl Display for CommandTask {
                 write!(f, "{}={} ", k, v)?;
             }
         }
-        match self.shell {
-            Shell::Bash(_) => write!(f, "bash"),
-            Shell::LinuxSudo(_) => write!(f, "sudo"),
-            Shell::MacOSSudo(_) => write!(f, "sudo"),
-            Shell::Sh(_) => write!(f, "sh"),
-            Shell::Zsh(_) => write!(f, "zsh"),
-        }?;
-        write!(f, " {}", self.script)?;
-        if let Some(args) = self.args.as_ref() {
-            for arg in args {
-                write!(f, " {}", arg)?;
-            }
-        }
+        write!(f, r#"{} -c "{}""#, self.shell.name(), self.script)?;
         Ok(())
     }
 }
@@ -64,7 +44,6 @@ impl Display for CommandTask {
 impl<'a> Executable<'a> for CommandTask {
     fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         info!("{}", self);
-        let args = self.args.clone();
         let envs = self.envs.clone();
         let script = self.script.clone();
         let shell = self.shell.clone();
@@ -72,16 +51,13 @@ impl<'a> Executable<'a> for CommandTask {
         let (tx1, rx1) = crossbeam::channel::unbounded::<Message>();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
         rayon::spawn(move || {
-            let args = args
-                .as_ref()
-                .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>());
             let envs = envs.as_ref().map(|envs| {
                 envs.iter()
                     .map(|(k, v)| (k.as_str(), v.as_str()))
                     .collect::<Vec<_>>()
             });
             let result = shell
-                .run(&script, args.as_deref(), envs.as_deref(), Some(tx1))
+                .run(&script, envs.as_deref(), Some(tx1))
                 .map_err(ExecutableError::ShellError);
             tx2.send(result).unwrap();
         });
@@ -104,7 +80,7 @@ mod test {
     fn test_serialize() -> CoolResult<()> {
         init_backtrace();
 
-        let expect = CommandTask::new("echo hello".to_string(), None, None, Shell::Sh(Sh));
+        let expect = CommandTask::new("echo hello".to_string(), None, Shell::Sh(Sh));
         let toml = toml::to_string(&expect)?;
         let command: CommandTask = toml::from_str(&toml)?;
         pretty_assertions::assert_eq!(expect, command);
@@ -121,14 +97,8 @@ mod test {
     fn ping() -> CoolResult<()> {
         init_backtrace();
 
-        let command = CommandTask::new(
-            "ping -c 1 www.baidu.com".to_string(),
-            None,
-            None,
-            Shell::Sh(Sh),
-        );
+        let command = CommandTask::new("ping -c 1 www.baidu.com".to_string(), None, Shell::Sh(Sh));
         command.execute(Box::new(|_| {}))?;
-        // spawn_task(command, |_| {})?;
         Ok(())
     }
 
@@ -141,34 +111,33 @@ mod test {
             .tempdir()?;
         let script_file = base_dir.path().join("script.sh");
         let script = r#"
-        #!/bin/env zsh
+        #!/usr/bin/env zsh
         echo first:$1
         echo second:$2
         "#;
         std::fs::write(&script_file, script)?;
         let command = CommandTask::new(
-            script_file.to_string_lossy().to_string(),
-            Some(vec!["hello".to_string(), "world".to_string()]),
+            format!("bash {} hello world", script_file.display()),
             None,
             Shell::Sh(Sh),
         );
-        let mut outputs = String::new();
+        let mut outputs = Vec::new();
         spawn_task(command, |msg| {
-            outputs.push_str(&msg.message);
+            outputs.push(msg.message);
         })?;
-        pretty_assertions::assert_eq!("first:hello\nsecond:world\n".to_string(), outputs);
+        // println!("{}", outputs.as_ref().join("\n"));
+        pretty_assertions::assert_eq!("first:hello\nsecond:world".to_string(), outputs.join("\n"));
 
         let command = CommandTask::new(
-            script.to_string(),
-            Some(vec!["hello".to_string(), "world".to_string()]),
+            format!("bash -c '{}' -- hello world", script.trim()),
             None,
             Shell::Sh(Sh),
         );
         outputs.clear();
         spawn_task(command, |msg| {
-            outputs.push_str(&msg.message);
+            outputs.push(msg.message);
         })?;
-        pretty_assertions::assert_eq!("first:hello\nsecond:world\n".to_string(), outputs,);
+        pretty_assertions::assert_eq!("first:hello\nsecond:world".to_string(), outputs.join("\n"));
 
         Ok(())
     }

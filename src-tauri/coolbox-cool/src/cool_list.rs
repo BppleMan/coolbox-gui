@@ -129,9 +129,10 @@ pub fn check_cool_states() -> Vec<(String, CoolState)> {
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
+
     use crate::result::CoolResult;
     use crate::{init_backtrace, COOL_LIST};
-    use std::path::Path;
 
     #[test]
     fn test_cool_list() -> CoolResult<()> {

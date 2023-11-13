@@ -1,33 +1,26 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
-use crate::result::CoolResult;
-use crate::shell::{Sh, ShellExecutor};
 use crate::Message;
+use crate::result::CoolResult;
+use crate::shell::{Bash, ShellExecutor};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Apt;
 
-impl ShellExecutor for Apt {
-    fn interpreter(&self) -> Command {
-        let mut command = Command::new("pkexec");
-        command.arg("apt-get");
-        command
-    }
-
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        let mut command = self.interpreter();
-        command.arg(cmd);
-        if let Some(args) = args {
-            command.args(args);
-        }
-        Ok(command)
-    }
-}
+// impl ShellExecutor for Apt {
+//     fn interpreter(&self) -> Command {
+//         let mut command = Command::new("pkexec");
+//         command.arg("apt-get");
+//         command
+//     }
+//
+//     fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> CoolResult<Command> {
+//         let mut command = self.interpreter();
+//     }
+// }
 
 impl Installable for Apt {
     fn name(&self) -> &'static str {
@@ -48,8 +41,9 @@ impl Installable for Apt {
             arguments.append(&mut args.to_vec());
         }
         arguments.push(name);
+        let script = format!("pkexec apt-get install {}", arguments.join(" "));
 
-        self.run("install", Some(&arguments), envs, Some(sender))
+        Bash.run(&script, envs, Some(sender))
     }
 
     fn uninstall(
@@ -67,8 +61,16 @@ impl Installable for Apt {
         }
         arguments.push(name);
 
-        self.run("remove", Some(&arguments), envs, Some(sender.clone()))?;
-        self.run("autoremove", None, envs, Some(sender))
+        Bash.run(
+            &format!("pkexec apt-get remove {}", arguments.join(" ")),
+            envs,
+            Some(sender.clone()),
+        )?;
+        Bash.run(
+            &format!("pkexec apt-get autoremove {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn check_available(
@@ -77,9 +79,8 @@ impl Installable for Apt {
         _args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
     ) -> CoolResult<bool> {
-        info!("checking {}", name);
-
-        Ok(Sh.run("dpkg", Some(&["-L", name]), envs, None).is_ok())
+        info!("checking {} with dpkg", name);
+        Ok(Bash.run("dpkg", envs, None).is_ok())
     }
 }
 

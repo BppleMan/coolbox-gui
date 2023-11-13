@@ -1,0 +1,26 @@
+name: command line tools
+identifier: command line tools
+description: This package enables UNIX-style development via Terminal by installing command line developer tools, as well as macOS SDK frameworks and headers. Many useful tools are included, such as the Apple LLVM compiler, linker, and Make. If you use Xcode, these tools are also embedded within the Xcode IDE.
+macos:
+  need_restart: false
+  dependencies: []
+  install_tasks:
+  - !CommandTask
+    script: xcode-select --install
+    args: null
+    envs: null
+    shell: bash
+  uninstall_tasks:
+  - !CommandTask
+    script: move /Library/Developer/CommandLineTools ~/.Trash
+    args: null
+    envs: null
+    shell: macos_sudo
+  check_tasks:
+  - !CommandTask
+    script: xcode-select -p
+    args: null
+    envs: null
+    shell: bash
+windows: null
+linux: null

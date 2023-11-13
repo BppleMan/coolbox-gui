@@ -3,15 +3,15 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 
-use color_eyre::eyre::{eyre, Context};
+use color_eyre::eyre::{Context, eyre};
 use futures::stream::StreamExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
+use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DownloadTask {
@@ -90,7 +90,7 @@ mod test {
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::{spawn_task, DownloadTask};
+    use crate::tasks::{DownloadTask, spawn_task};
 
     #[test]
     fn smoke() -> CoolResult<()> {

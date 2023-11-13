@@ -1,6 +1,6 @@
-use schemars::JsonSchema;
 use std::fmt::{Display, Formatter};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
@@ -94,7 +94,7 @@ mod test {
     use crate::init_backtrace;
     use crate::installer::{Brew, Installable, Installer};
     use crate::result::CoolResult;
-    use crate::tasks::{spawn_task, InstallTask};
+    use crate::tasks::{InstallTask, spawn_task};
 
     #[test]
     fn install_bat() -> CoolResult<()> {

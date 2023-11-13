@@ -7,16 +7,16 @@ use std::path::PathBuf;
 use color_eyre::eyre::eyre;
 use flate2::write::GzEncoder;
 use schemars::JsonSchema;
-use serde::ser::Error;
 use serde::{Deserialize, Serialize};
+use serde::ser::Error;
 use walkdir::WalkDir;
-use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
+use zip::write::FileOptions;
 
 use crate::error::ExecutableError;
+use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CompressTask {

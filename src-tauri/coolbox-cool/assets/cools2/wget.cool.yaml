@@ -1,0 +1,24 @@
+name: wget
+identifier: wget
+description: 一个命令行下载工具
+macos:
+  need_restart: false
+  dependencies:
+  - homebrew
+  install_tasks:
+  - !InstallTask
+    name: wget
+    args: null
+    envs: null
+    installer: brew
+  uninstall_tasks:
+  - !UninstallTask
+    name: wget
+    args: null
+    installer: brew
+  check_tasks:
+  - !CheckTask
+    name: wget
+    installer: brew
+windows: null
+linux: null

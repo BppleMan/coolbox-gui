@@ -10,16 +10,18 @@ pub use brew::*;
 pub use cargo::*;
 pub use dnf::*;
 pub use rpm::*;
+pub use winget::*;
 pub use yum::*;
 
-use crate::result::CoolResult;
 use crate::Message;
+use crate::result::CoolResult;
 
 mod apt;
 mod brew;
 mod cargo;
 mod dnf;
 mod rpm;
+mod winget;
 mod yum;
 
 pub trait Installable {

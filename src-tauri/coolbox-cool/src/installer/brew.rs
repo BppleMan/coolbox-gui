@@ -1,31 +1,14 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
-use crate::result::CoolResult;
-use crate::shell::ShellExecutor;
 use crate::Message;
+use crate::result::CoolResult;
+use crate::shell::{Bash, ShellExecutor};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Brew;
-
-impl ShellExecutor for Brew {
-    fn interpreter(&self) -> Command {
-        Command::new("brew")
-    }
-
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        let mut command = self.interpreter();
-        command.arg(cmd);
-        if let Some(args) = args {
-            command.args(args);
-        }
-        Ok(command)
-    }
-}
 
 impl Installable for Brew {
     fn name(&self) -> &'static str {
@@ -41,7 +24,7 @@ impl Installable for Brew {
     ) -> CoolResult<()> {
         info!("installing {} with brew", name);
 
-        let args = match args {
+        let arguments = match args {
             None => vec![name],
             Some(args) => {
                 let mut args = args.to_vec();
@@ -50,7 +33,11 @@ impl Installable for Brew {
             }
         };
 
-        self.run("install", Some(&args), envs, Some(sender))
+        Bash.run(
+            &format!("brew install {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn uninstall(
@@ -62,7 +49,7 @@ impl Installable for Brew {
     ) -> CoolResult<()> {
         info!("uninstalling {} with brew", name);
 
-        let args = match args {
+        let arguments = match args {
             None => vec![name],
             Some(args) => {
                 let mut args = args.to_vec();
@@ -71,7 +58,11 @@ impl Installable for Brew {
             }
         };
 
-        self.run("uninstall", Some(&args), envs, Some(sender))
+        Bash.run(
+            &format!("brew uninstall {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn check_available(
@@ -82,7 +73,7 @@ impl Installable for Brew {
     ) -> CoolResult<bool> {
         info!("checking {} with brew", name);
 
-        Ok(self.run("list", Some(&[name]), envs, None).is_ok())
+        Ok(Bash.run(&format!("brew list {}", name), envs, None).is_ok())
     }
 }
 

@@ -1,31 +1,14 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
-use crate::result::CoolResult;
-use crate::shell::ShellExecutor;
 use crate::Message;
+use crate::result::CoolResult;
+use crate::shell::{Bash, ShellExecutor};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Cargo;
-
-impl ShellExecutor for Cargo {
-    fn interpreter(&self) -> Command {
-        Command::new("cargo")
-    }
-
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        let mut command = self.interpreter();
-        command.arg(cmd);
-        if let Some(args) = args {
-            command.args(args);
-        }
-        Ok(command)
-    }
-}
 
 impl Installable for Cargo {
     fn name(&self) -> &'static str {
@@ -50,7 +33,11 @@ impl Installable for Cargo {
             }
         };
 
-        self.run("install", Some(&args), envs, Some(sender))
+        Bash.run(
+            &format!("cargo install {}", args.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn uninstall(
@@ -71,7 +58,11 @@ impl Installable for Cargo {
             }
         };
 
-        self.run("uninstall", Some(&args), envs, Some(sender))
+        Bash.run(
+            &format!("cargo uninstall {}", args.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn check_available(
@@ -82,7 +73,7 @@ impl Installable for Cargo {
     ) -> CoolResult<bool> {
         info!("checking {} with cargo", name);
         let (sender, receiver) = crossbeam::channel::unbounded::<Message>();
-        self.run("install", Some(&["--list"]), envs, Some(sender))?;
+        Bash.run(&format!("cargo install --list"), envs, Some(sender))?;
         let result = receiver
             .iter()
             .map(|m| m.message)

@@ -1,6 +1,6 @@
-use schemars::JsonSchema;
 use std::fmt::{Display, Formatter};
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::result::ExecutableResult;

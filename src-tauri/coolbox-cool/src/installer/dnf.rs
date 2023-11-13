@@ -1,33 +1,14 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
 use log::info;
 use schemars::JsonSchema;
 
 use crate::installer::Installable;
 use crate::result::CoolResult;
-use crate::shell::ShellExecutor;
+use crate::shell::{Bash, ShellExecutor};
 use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Dnf;
-
-impl ShellExecutor for Dnf {
-    fn interpreter(&self) -> Command {
-        let mut command = Command::new("pkexec");
-        command.arg("dnf");
-        command
-    }
-
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        let mut command = self.interpreter();
-        command.arg(cmd);
-        if let Some(args) = args {
-            command.args(args);
-        }
-        Ok(command)
-    }
-}
 
 impl Installable for Dnf {
     fn name(&self) -> &'static str {
@@ -49,7 +30,11 @@ impl Installable for Dnf {
         }
         arguments.push(name);
 
-        self.run("install", Some(&arguments), envs, Some(sender))
+        Bash.run(
+            &format!("dnf install {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn uninstall(
@@ -67,7 +52,11 @@ impl Installable for Dnf {
         }
         arguments.push(name);
 
-        self.run("remove", Some(&arguments), envs, Some(sender))
+        Bash.run(
+            &format!("dnf remove {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn check_available(
@@ -78,7 +67,7 @@ impl Installable for Dnf {
     ) -> CoolResult<bool> {
         info!("checking {}", name);
 
-        self.run("list", Some(vec!["installed", name].as_slice()), envs, None)
+        Bash.run(&format!("dnf list installed {}", name), envs, None)
             .map(|_| true)
             .or_else(|_| Ok(false))
     }

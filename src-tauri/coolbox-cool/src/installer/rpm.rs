@@ -1,33 +1,14 @@
-use std::process::Command;
-
 use crossbeam::channel::Sender;
 use log::info;
 use schemars::JsonSchema;
 
 use crate::installer::Installable;
-use crate::result::CoolResult;
-use crate::shell::ShellExecutor;
 use crate::Message;
+use crate::result::CoolResult;
+use crate::shell::{Bash, ShellExecutor};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Rpm;
-
-impl ShellExecutor for Rpm {
-    fn interpreter(&self) -> Command {
-        let mut command = Command::new("pkexec");
-        command.arg("rpm");
-        command
-    }
-
-    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
-        let mut command = self.interpreter();
-        command.arg(cmd);
-        if let Some(args) = args {
-            command.args(args);
-        }
-        Ok(command)
-    }
-}
 
 impl Installable for Rpm {
     fn name(&self) -> &'static str {
@@ -49,7 +30,11 @@ impl Installable for Rpm {
         }
         arguments.push(name);
 
-        self.run("-i", Some(&arguments), envs, Some(sender))
+        Bash.run(
+            &format!("rpm -i {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn uninstall(
@@ -67,7 +52,11 @@ impl Installable for Rpm {
         }
         arguments.push(name);
 
-        self.run("-e", Some(&arguments), envs, Some(sender))
+        Bash.run(
+            &format!("rpm -e {}", arguments.join(" ")),
+            envs,
+            Some(sender),
+        )
     }
 
     fn check_available(
@@ -78,7 +67,7 @@ impl Installable for Rpm {
     ) -> CoolResult<bool> {
         info!("checking {}", name);
 
-        self.run("-q", Some(vec![name].as_slice()), envs, None)
+        Bash.run(&format!("rpm -q {}", name), envs, None)
             .map(|_| true)
             .or_else(|_| Ok(false))
     }

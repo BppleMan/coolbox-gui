@@ -37,27 +37,38 @@ import {CoolService} from "../service/cool.service"
 export class CoolListComponent implements OnInit {
     cools$: BehaviorSubject<Cool[]> = new BehaviorSubject<Cool[]>([])
     // map是为了在全局事件监听中调度使用，因为后端返回的event只会带上cool_name
-    cool_map$: Observable<Map<string, Cool>> = this.cools$.pipe(
-        map(cools => {
-            let cool_map: Map<string, Cool> = new Map<string, Cool>()
-            cools.forEach((cool) => {
-                cool_map.set(cool.name, cool)
-            })
-            return cool_map
-        }),
-    )
+    cool_map$: BehaviorSubject<Map<string, Cool>> = new BehaviorSubject<Map<string, Cool>>(new Map<string, Cool>())
     selected_count: number = 0
 
     constructor(private cool_service: CoolService) {
     }
 
     ngOnInit() {
+        // create a middle observable to transform cools to cool_map
+        const middleObservable = this.cools$.pipe(
+            map(cools => {
+                let cool_map: Map<string, Cool> = new Map<string, Cool>()
+                cools.forEach((cool) => {
+                    cool_map.set(cool.name, cool)
+                })
+                return cool_map
+            }),
+        )
+
+        // get cools from backend
         this.cool_service.cool_list().then((cools: Cool[]) => {
             this.cools$.next(cools.map((cool) => new Cool(cool)))
         })
         .catch((err) => {
             // TODO show toast
         })
+
+        // if middleObservable changed, then update cool_map$
+        middleObservable.subscribe((cool_map: Map<string, Cool>) => {
+            this.cool_map$.next(cool_map)
+        })
+
+        // if cool_map$ changed, then update selected_count
         this.cool_map$.subscribe((cool_map: Map<string, Cool>) => {
             cool_map.forEach((cool) => {
                 cool.selected.subscribe((selected) => {
@@ -69,6 +80,9 @@ export class CoolListComponent implements OnInit {
                 })
             })
         })
+
+        // listen task event, empty then for non-block
+        this.cool_service.listen_task_event(this.cool_map$).then()
     }
 
     get all_selected(): boolean {

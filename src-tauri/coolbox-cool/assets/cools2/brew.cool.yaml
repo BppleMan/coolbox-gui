@@ -1,0 +1,28 @@
+name: homebrew
+identifier: homebrew
+description: 适用于macOS的包管理器。它使您能够从命令行安装和更新软件包，从而使您的Mac保持最新状态，而无需使用App Store。
+macos:
+  need_restart: false
+  dependencies: []
+  install_tasks:
+  - !DownloadTask
+    url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+    dest: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/install.sh
+  - !CommandTask
+    script: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/install.sh
+    envs:
+    - - SUDO_ASKPASS
+      - /Users/bppleman/coolbox/coolbox-gui/src-tauri/target/debug/deps/coolbox-askpass
+    shell: bash
+  uninstall_tasks:
+  - !DownloadTask
+    url: https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh
+    dest: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/uninstall.sh
+  - !CommandTask
+    script: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/uninstall.sh
+    envs:
+      - ["NONINTERACTIVE", "1"]
+    shell: bash
+  check_tasks:
+  - !WhichTask
+    command: brew

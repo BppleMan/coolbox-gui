@@ -11,6 +11,7 @@ pub use extension::*;
 pub use trace::*;
 
 mod cool;
+mod cool2;
 mod cool_event;
 mod cool_list;
 pub mod error;
