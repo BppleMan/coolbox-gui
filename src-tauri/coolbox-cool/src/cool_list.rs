@@ -4,73 +4,97 @@ use std::sync::{Arc, Mutex};
 
 use color_eyre::eyre::eyre;
 use dashmap::DashMap;
-use include_dir::{include_dir, Dir};
+use include_dir::{include_dir, Dir, DirEntry};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use tracing::error;
 
 use crate::error::CoolError;
+use crate::result::CoolResult;
 use crate::state::CoolState;
 use crate::Cool;
 
 #[derive(Debug, Clone)]
 pub struct SafeCool(Arc<Mutex<Cool>>);
 
-static COOL_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools");
+#[cfg(target_os = "macos")]
+static PLATFORM_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools/macos");
+#[cfg(target_os = "linux")]
+static PLATFORM_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools/linux");
+#[cfg(windows)]
+static PLATFORM_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools/windows");
+#[cfg(unix)]
+static UNIX_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools/unix");
+
+static UNIVERSAL_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools/universal");
 
 pub static COOL_LIST: Lazy<DashMap<String, SafeCool>> = Lazy::new(|| {
     let map = DashMap::new();
-    COOL_DIR.find("**/*.*").unwrap().for_each(|entry| {
-        if cfg!(target_os = "macos") {
-            let parent = entry.path().parent().unwrap().to_string_lossy().to_string();
-            if &parent == "brew"
-                || &parent == "universal"
-                || &parent == "cargo"
-                || &parent == "flutter"
-                || &parent == "shell"
-                || &parent == "env"
-            {
-                let file = entry.as_file().unwrap();
-                let file_name = file
-                    .path()
-                    .file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string();
-                match file_name {
-                    file_name if file_name.ends_with(".toml") => {
-                        match toml::from_str::<Cool>(
-                            entry.as_file().unwrap().contents_utf8().unwrap(),
-                        ) {
-                            Ok(cool) => {
-                                map.insert(cool.name.clone(), SafeCool(Arc::new(Mutex::new(cool))));
-                            }
-                            Err(e) => {
-                                error!("{:?}\n{:?}", entry.path(), eyre!(e));
-                            }
-                        }
-                    }
-                    file_name if file_name.ends_with(".yaml") => {
-                        match serde_yaml::from_str::<Cool>(
-                            entry.as_file().unwrap().contents_utf8().unwrap(),
-                        ) {
-                            Ok(cool) => {
-                                map.insert(cool.name.clone(), SafeCool(Arc::new(Mutex::new(cool))));
-                            }
-                            Err(e) => {
-                                error!("{:?}\n{:?}", entry.path(), eyre!(e));
-                            }
-                        }
-                    }
-                    _ => error!("Unsupported file type: {}", file.path().display()),
-                }
+    PLATFORM_DIR
+        .find("**/*.*")
+        .unwrap()
+        .for_each(|entry| match parse_cool(entry) {
+            Ok(cool) => {
+                map.insert(cool.name.clone(), SafeCool::new(cool));
             }
-        } else {
-            error!("is not macos");
-        }
-    });
+            Err(e) => {
+                error!("Error parsing cool: {}", e);
+            }
+        });
+    UNIVERSAL_DIR
+        .find("**/*.*")
+        .unwrap()
+        .for_each(|entry| match parse_cool(entry) {
+            Ok(cool) => {
+                map.insert(cool.name.clone(), SafeCool::new(cool));
+            }
+            Err(e) => {
+                error!("Error parsing cool: {}", e);
+            }
+        });
+    #[cfg(unix)]
+    UNIX_DIR
+        .find("**/*.*")
+        .unwrap()
+        .for_each(|entry| match parse_cool(entry) {
+            Ok(cool) => {
+                map.insert(cool.name.clone(), SafeCool::new(cool));
+            }
+            Err(e) => {
+                error!("Error parsing cool: {}", e);
+            }
+        });
     map
 });
+
+fn parse_cool(entry: &DirEntry) -> CoolResult<Cool> {
+    let file = entry.as_file().unwrap();
+    let file_name = file
+        .path()
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+    let cool = match file_name {
+        file_name if file_name.ends_with(".toml") => {
+            toml::from_str::<Cool>(entry.as_file().unwrap().contents_utf8().unwrap())?
+        }
+        file_name if file_name.ends_with(".yaml") => {
+            serde_yaml::from_str(entry.as_file().unwrap().contents_utf8().unwrap())?
+        }
+        file_name if file_name.ends_with(".json") => {
+            serde_json::from_str(entry.as_file().unwrap().contents_utf8().unwrap())?
+        }
+        _ => Err(eyre!("Unsupported file type: {}", file.path().display()))?,
+    };
+    Ok(cool)
+}
+
+impl SafeCool {
+    pub fn new(cool: Cool) -> Self {
+        Self(Arc::new(Mutex::new(cool)))
+    }
+}
 
 impl Deref for SafeCool {
     type Target = Arc<Mutex<Cool>>;
@@ -114,7 +138,7 @@ mod test {
         init_backtrace();
         COOL_LIST
             .iter()
-            .for_each(|c| println!("{:?}", c.lock().unwrap()));
+            .for_each(|c| println!("{:#?}", c.lock().unwrap()));
         Ok(())
     }
 

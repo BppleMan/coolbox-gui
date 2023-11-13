@@ -66,6 +66,7 @@ impl<'a> Executable<'a> for UninstallTask {
                         .as_ref()
                         .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
                         .as_deref(),
+                    None,
                     tx1,
                 )
                 .map_err(ExecutableError::ShellError);

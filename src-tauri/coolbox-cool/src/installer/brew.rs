@@ -36,6 +36,7 @@ impl Installable for Brew {
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with brew", name);
@@ -49,13 +50,14 @@ impl Installable for Brew {
             }
         };
 
-        self.run("install", Some(&args), None, Some(sender))
+        self.run("install", Some(&args), envs, Some(sender))
     }
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with brew", name);
@@ -69,13 +71,18 @@ impl Installable for Brew {
             }
         };
 
-        self.run("uninstall", Some(&args), None, Some(sender))
+        self.run("uninstall", Some(&args), envs, Some(sender))
     }
 
-    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(
+        &self,
+        name: &str,
+        _args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool> {
         info!("checking {} with brew", name);
 
-        Ok(self.run("list", Some(&[name]), None, None).is_ok())
+        Ok(self.run("list", Some(&[name]), envs, None).is_ok())
     }
 }
 
@@ -94,11 +101,11 @@ mod test {
                 println!("{}", msg);
             }
         });
-        if Brew.check_available("wget", None)? {
-            Brew.uninstall("wget", None, sender.clone())?;
+        if Brew.check_available("wget", None, None)? {
+            Brew.uninstall("wget", None, None, sender.clone())?;
         }
-        Brew.install("wget", None, sender.clone())?;
-        Brew.uninstall("wget", None, sender.clone())?;
+        Brew.install("wget", None, None, sender.clone())?;
+        Brew.uninstall("wget", None, None, sender.clone())?;
         Ok(())
     }
 }

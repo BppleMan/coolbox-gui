@@ -1,0 +1,24 @@
+name: "llvm"
+description: "LLVM is a set of compiler and toolchain technologies[4] that can be used to develop a frontend for any programming language and a backend for any instruction set architecture."
+dependencies: []
+
+install_tasks:
+  - !InstallTask
+    installer: "apt"
+    name: "libclang-dev"
+    envs:
+      - [ "SUDO_ASKPASS", "{{CURRENT_DIR}}/coolbox-askpass" ]
+
+uninstall_tasks:
+  - !UninstallTask
+    installer: "apt"
+    name: "libclang-dev"
+    envs:
+      - [ "SUDO_ASKPASS", "{{CURRENT_DIR}}/coolbox-askpass" ]
+
+check_tasks:
+  - !CheckTask
+    installer: "apt"
+    name: "libclang-dev"
+    envs:
+      - [ "SUDO_ASKPASS", "{{CURRENT_DIR}}/coolbox-askpass" ]

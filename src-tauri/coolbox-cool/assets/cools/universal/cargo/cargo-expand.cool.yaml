@@ -1,0 +1,19 @@
+name: "cargo-expand"
+description: "cargo子命令用于宏展开"
+dependencies:
+  - "cargo"
+
+install_tasks:
+  - !InstallTask
+    installer: "cargo"
+    name: "cargo-expand"
+
+uninstall_tasks:
+  - !UninstallTask
+    installer: "cargo"
+    name: "cargo-expand"
+
+check_tasks:
+  - !CheckTask
+    installer: "cargo"
+    name: "cargo-expand"

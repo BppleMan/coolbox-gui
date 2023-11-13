@@ -28,7 +28,7 @@ lazy_static! {
         let mut ctx = tera::Context::default();
         ctx.insert(
             "TEMP_DIR",
-            &format!("{}coolbox", &DEFAULT_TEMP_DIR.to_string_lossy()),
+            &DEFAULT_TEMP_DIR.join("cool").to_string_lossy().to_string(),
         );
         ctx.insert(
             "CURRENT_DIR",

@@ -1,0 +1,27 @@
+name: "homebrew"
+description: "适用于macOS的包管理器。它使您能够从命令行安装和更新软件包，从而使您的Mac保持最新状态，而无需使用App Store。"
+dependencies: []
+
+install_tasks:
+  - !DownloadTask
+    url: "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+    dest: "{{TEMP_DIR}}/homebrew/install.sh"
+  - !CommandTask
+    script: "{{TEMP_DIR}}/homebrew/install.sh"
+    envs:
+      - ["SUDO_ASKPASS", "{{CURRENT_DIR}}/coolbox-askpass"]
+    shell: "bash"
+
+uninstall_tasks:
+  - !DownloadTask
+    url: "https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh"
+    dest: "{{TEMP_DIR}}/homebrew/uninstall.sh"
+  - !CommandTask
+    script: "{{TEMP_DIR}}/homebrew/uninstall.sh"
+    envs:
+      - ["NONINTERACTIVE", "1"]
+    shell: "bash"
+
+check_tasks:
+  - !WhichTask
+    command: "brew"

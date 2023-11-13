@@ -149,11 +149,17 @@ impl Task {
     pub fn install(
         name: impl Into<String>,
         args: Option<Vec<impl Into<String>>>,
+        envs: Option<Vec<(impl Into<String>, impl Into<String>)>>,
         installer: Installer,
     ) -> Self {
         Self::InstallTask(InstallTask::new(
             name.into(),
             args.map(|args| args.into_iter().map(|arg| arg.into()).collect::<Vec<_>>()),
+            envs.map(|envs| {
+                envs.into_iter()
+                    .map(|(k, v)| (k.into(), v.into()))
+                    .collect::<Vec<_>>()
+            }),
             installer,
         ))
     }

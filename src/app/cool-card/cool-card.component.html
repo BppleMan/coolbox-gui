@@ -1,5 +1,5 @@
 <div
-     class="cool-card box-border relative flex flex-row p-4 pb-10 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{selected.value ? 'selected' : ''}}"
+     class="cool-card box-border relative flex flex-row p-4 pb-10 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{cool.selected.value ? 'selected' : ''}}"
 >
     <mat-expansion-panel #expansionPanel hideToggle class="grow shadow-none" [expanded]="expanded" (opened)="setOpened()" (closed)="setClosed()">
         <mat-expansion-panel-header class="relative p-0 h-auto pb-2 " #panelH (click)="toggle_select($event)">

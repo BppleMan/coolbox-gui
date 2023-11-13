@@ -14,9 +14,18 @@ pub struct Apt;
 
 impl ShellExecutor for Apt {
     fn interpreter(&self) -> Command {
-        let mut command = Command::new("sudo");
+        let mut command = Command::new("pkexec");
         command.arg("apt-get");
         command
+    }
+
+    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
+        let mut command = self.interpreter();
+        command.arg(cmd);
+        if let Some(args) = args {
+            command.args(args);
+        }
+        Ok(command)
     }
 }
 
@@ -29,6 +38,7 @@ impl Installable for Apt {
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with apt-get", name);
@@ -39,13 +49,14 @@ impl Installable for Apt {
         }
         arguments.push(name);
 
-        self.run("install", Some(&arguments), None, Some(sender))
+        self.run("install", Some(&arguments), envs, Some(sender))
     }
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with apt-get", name);
@@ -56,14 +67,19 @@ impl Installable for Apt {
         }
         arguments.push(name);
 
-        self.run("remove", Some(&arguments), None, Some(sender.clone()))?;
-        self.run("autoremove", None, None, Some(sender))
+        self.run("remove", Some(&arguments), envs, Some(sender.clone()))?;
+        self.run("autoremove", None, envs, Some(sender))
     }
 
-    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(
+        &self,
+        name: &str,
+        _args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool> {
         info!("checking {}", name);
 
-        Ok(Sh.run("dpkg", Some(&["-L", name]), None, None).is_ok())
+        Ok(Sh.run("dpkg", Some(&["-L", name]), envs, None).is_ok())
     }
 }
 

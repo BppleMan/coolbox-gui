@@ -8,7 +8,7 @@ import {MatCheckboxModule} from "@angular/material/checkbox"
 import {MatDividerModule} from "@angular/material/divider"
 import {MatExpansionModule} from "@angular/material/expansion"
 import {MatListModule} from "@angular/material/list"
-import {BehaviorSubject} from "rxjs"
+import {BehaviorSubject, map, Observable} from "rxjs"
 import {CoolCardComponent} from "../cool-card/cool-card.component"
 import {Cool} from "../model/models"
 import {CoolService} from "../service/cool.service"
@@ -35,27 +35,32 @@ import {CoolService} from "../service/cool.service"
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CoolListComponent implements OnInit {
-    cool_list$: BehaviorSubject<Cool[]> = new BehaviorSubject<Cool[]>([])
-    selected_cools: BehaviorSubject<boolean>[] = []
+    cools$: BehaviorSubject<Cool[]> = new BehaviorSubject<Cool[]>([])
+    // map是为了在全局事件监听中调度使用，因为后端返回的event只会带上cool_name
+    cool_map$: Observable<Map<string, Cool>> = this.cools$.pipe(
+        map(cools => {
+            let cool_map: Map<string, Cool> = new Map<string, Cool>()
+            cools.forEach((cool) => {
+                cool_map.set(cool.name, cool)
+            })
+            return cool_map
+        }),
+    )
     selected_count: number = 0
 
     constructor(private cool_service: CoolService) {
     }
 
     ngOnInit() {
-        this.cool_service.cool_list().then((cool_list: Cool[]) => {
-            this.cool_list$.next(cool_list)
+        this.cool_service.cool_list().then((cools: Cool[]) => {
+            this.cools$.next(cools.map((cool) => new Cool(cool)))
         })
         .catch((err) => {
             // TODO show toast
         })
-        this.cool_list$.subscribe((cool_list: Cool[]) => {
-            this.selected_cools.forEach((selected_cools) => {
-                selected_cools.unsubscribe()
-            })
-            this.selected_cools = cool_list.map((cool) => new BehaviorSubject(false))
-            this.selected_cools.forEach((selected_cools) => {
-                selected_cools.subscribe((selected) => {
+        this.cool_map$.subscribe((cool_map: Map<string, Cool>) => {
+            cool_map.forEach((cool) => {
+                cool.selected.subscribe((selected) => {
                     if (selected) {
                         this.selected_count += 1
                     } else if (this.selected_count > 0) {
@@ -67,7 +72,7 @@ export class CoolListComponent implements OnInit {
     }
 
     get all_selected(): boolean {
-        return this.selected_count > 0 && this.selected_count === this.selected_cools.length
+        return this.selected_count > 0 && this.selected_count === this.cools$.value.length
     }
 
     get some_selected(): boolean {
@@ -76,9 +81,9 @@ export class CoolListComponent implements OnInit {
 
     toggleSelectAll(all_selected: boolean) {
         if (all_selected) {
-            this.selected_cools.forEach((selected) => selected.next(true))
+            this.cools$.value.forEach((cool) => cool.selected.next(true))
         } else {
-            this.selected_cools.forEach((selected) => selected.next(false))
+            this.cools$.value.forEach((cool) => cool.selected.next(false))
         }
     }
 }

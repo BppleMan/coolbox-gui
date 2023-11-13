@@ -275,13 +275,15 @@ mod test {
                     Shell::Bash(Bash),
                 ),
             ]),
-            uninstall_tasks: Tasks(vec![Task::delete("{{NVM_DIR}}")]),
+            uninstall_tasks: Tasks(vec![Task::delete(
+                r#"{{get_env(name="NVM_DIR",default="{{NVM_DIR}}")}}"#,
+            )]),
             check_tasks: Tasks(vec![Task::which("nvm".to_string())]),
         };
 
         let string = serde_yaml::to_string(&nvm_cool)?;
         println!("{}", string);
-        let des = serde_yaml::from_str(&string)?;
+        let des: Cool = serde_yaml::from_str(&string)?;
         println!("{:#?}", des);
         Ok(())
     }

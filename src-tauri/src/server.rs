@@ -5,7 +5,7 @@ use cool::{channel, info};
 use once_cell::sync::Lazy;
 use tonic::{Request, Response, Status};
 
-use crate::event::ask_pass;
+use crate::event::EventLoop;
 use coolbox_grpc::ask_pass_server::{AskPass, AskPassServer};
 use coolbox_grpc::{EmptyRequest, StringResponse};
 
@@ -21,7 +21,7 @@ pub struct AskPassService;
 #[tonic::async_trait]
 impl AskPass for AskPassService {
     async fn ask_pass(&self, _: Request<EmptyRequest>) -> Result<Response<StringResponse>, Status> {
-        ask_pass();
+        EventLoop::ask_pass();
         let receiver = ASK_PASS_TRIGGER_CHANNEL.1.lock().unwrap().clone();
         let password = receiver.recv().unwrap();
         Ok(Response::new(StringResponse { value: password }))

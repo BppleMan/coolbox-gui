@@ -1,4 +1,5 @@
-use std::io::Write;
+use std::collections::HashMap;
+use std::iter::Map;
 use std::ops::Deref;
 use std::str::FromStr;
 
@@ -14,12 +15,10 @@ use crate::server::ASK_PASS_TRIGGER_CHANNEL;
 
 #[tauri::command(async)]
 pub fn serialize_cool_list() -> Vec<CoolData> {
-    let mut cool_list = COOL_LIST
+    COOL_LIST
         .par_iter()
         .map(|v| v.lock().unwrap().deref().into())
-        .collect::<Vec<_>>();
-    cool_list.sort();
-    cool_list
+        .collect::<Vec<_>>()
 }
 
 #[tauri::command(async)]
@@ -60,7 +59,7 @@ pub fn check_cools(cools: Vec<String>) -> Vec<CoolResult<CoolState, CoolError>> 
 }
 
 #[tauri::command]
-pub fn callback_askpass(password: String) {
+pub fn callback_ask_pass(password: String) {
     ASK_PASS_TRIGGER_CHANNEL
         .0
         .lock()

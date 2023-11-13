@@ -15,9 +15,8 @@
     <mat-accordion class="grow" multi displayMode="flat">
         <mat-list>
             <app-cool-card
-                *ngFor="let cool of cool_list$ |async; let index = index"
+                *ngFor="let cool of cools$ | async"
                 [cool]="cool"
-                [selected]="selected_cools[index]"
             ></app-cool-card>
         </mat-list>
     </mat-accordion>

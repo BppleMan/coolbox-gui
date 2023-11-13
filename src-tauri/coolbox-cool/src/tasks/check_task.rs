@@ -31,7 +31,7 @@ impl Display for CheckTask {
 impl<'a> Executable<'a> for CheckTask {
     fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
         self.installer
-            .check_available(&self.name, None)
+            .check_available(&self.name, None, None)
             .map_err(ExecutableError::ShellError)
             .and_then(|result| {
                 if result {

@@ -1,13 +1,12 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use serde::Serialize;
 use tauri::Manager;
 
+use cool::init_backtrace;
 use cool::result::CoolResult;
-use cool::{info, init_backtrace};
 
-use crate::event::start_event_loop;
+use crate::event::EventLoop;
 use crate::server::start_server;
 
 mod api;
@@ -27,7 +26,7 @@ async fn main() -> CoolResult<()> {
         .setup(|app| {
             let main_window = app.get_window("main").unwrap();
             std::thread::spawn(move || {
-                start_event_loop(main_window);
+                EventLoop::start_event_loop(main_window);
             });
             Ok(())
         })
@@ -36,7 +35,7 @@ async fn main() -> CoolResult<()> {
             api::install_cools,
             api::uninstall_cools,
             api::check_cools,
-            api::callback_askpass,
+            api::callback_ask_pass,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

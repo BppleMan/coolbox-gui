@@ -23,33 +23,36 @@ enum MainWindowEvent {
 impl Display for MainWindowEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            MainWindowEvent::AskPass => write!(f, "ask-pass"),
+            MainWindowEvent::AskPass => write!(f, "ask_pass"),
         }
     }
 }
 
-pub fn start_event_loop(main_window: Window) {
-    info!("Starting Event Loop");
-    let receiver = ASK_PASS_EVENT_CHANNEL.1.lock().unwrap().clone();
-    while let Ok(event) = receiver.recv() {
-        match event {
-            MainWindowEvent::AskPass => {
-                main_window
-                    .emit(&format!("{}", event), EmptyPayload)
-                    .unwrap();
+pub struct EventLoop;
+
+impl EventLoop {
+    pub fn start_event_loop(main_window: Window) {
+        info!("Starting Event Loop");
+        let receiver = ASK_PASS_EVENT_CHANNEL.1.lock().unwrap().clone();
+        while let Ok(event) = receiver.recv() {
+            match event {
+                MainWindowEvent::AskPass => {
+                    main_window
+                        .emit(&format!("{}", event), EmptyPayload)
+                        .unwrap();
+                }
             }
         }
     }
-}
 
-pub fn ask_pass() {
-    ASK_PASS_EVENT_CHANNEL
-        .0
-        .lock()
-        .unwrap()
-        .send(MainWindowEvent::AskPass)
-        .unwrap();
+    pub fn ask_pass() {
+        ASK_PASS_EVENT_CHANNEL
+            .0
+            .lock()
+            .unwrap()
+            .send(MainWindowEvent::AskPass)
+            .unwrap();
+    }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmptyPayload;

@@ -13,14 +13,22 @@ pub struct InstallTask {
     pub name: String,
     #[serde(deserialize_with = "crate::template_args", default)]
     pub args: Option<Vec<String>>,
+    #[serde(deserialize_with = "crate::template_envs", default)]
+    pub envs: Option<Vec<(String, String)>>,
     pub installer: Installer,
 }
 
 impl InstallTask {
-    pub fn new(name: String, args: Option<Vec<String>>, installer: Installer) -> Self {
+    pub fn new(
+        name: String,
+        args: Option<Vec<String>>,
+        envs: Option<Vec<(String, String)>>,
+        installer: Installer,
+    ) -> Self {
         Self {
             name,
             args,
+            envs,
             installer,
         }
     }
@@ -52,12 +60,20 @@ impl<'a> Executable<'a> for InstallTask {
         let installer = self.installer.clone();
         let name = self.name.clone();
         let args = self.args.clone();
+        let envs = self.envs.clone();
         rayon::spawn(move || {
             let result = installer
                 .install(
                     &name,
                     args.as_ref()
                         .map(|args| args.iter().map(AsRef::as_ref).collect::<Vec<_>>())
+                        .as_deref(),
+                    envs.as_ref()
+                        .map(|envs| {
+                            envs.iter()
+                                .map(|(k, v)| (k.as_str(), v.as_str()))
+                                .collect::<Vec<_>>()
+                        })
                         .as_deref(),
                     tx1,
                 )
@@ -90,12 +106,12 @@ mod test {
         let installer = Installer::Apt(Apt);
 
         let (sender, _receiver) = crossbeam::channel::unbounded();
-        if installer.check_available("bat", None)? {
-            installer.uninstall("bat", None, sender.clone())?;
+        if installer.check_available("bat", None, None)? {
+            installer.uninstall("bat", None, None, sender.clone())?;
         }
 
         #[cfg(target_os = "macos")]
-        let install = InstallTask::new("bat".to_string(), None, Installer::Brew(Brew));
+        let install = InstallTask::new("bat".to_string(), None, None, Installer::Brew(Brew));
         #[cfg(target_os = "linux")]
         let mut install = InstallTask::new("bat".to_string(), None, Installer::Apt(Apt));
 
@@ -103,7 +119,7 @@ mod test {
             info!("{}", msg);
         })?;
 
-        installer.uninstall("bat", None, sender)?;
+        installer.uninstall("bat", None, None, sender)?;
 
         Ok(())
     }

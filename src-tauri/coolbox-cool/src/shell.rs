@@ -16,7 +16,7 @@ pub use sh::*;
 pub use zsh::*;
 
 use crate::result::CoolResult;
-use crate::{IntoInfo, Message, StringExt};
+use crate::{IntoInfo, Message};
 
 mod bash;
 mod linux_sudo;
@@ -140,7 +140,7 @@ pub trait ShellExecutor {
     ) -> CoolResult<()> {
         let mut command = self.prepare(cmd, args, envs)?;
         let command_desc = format!("{:?}", command);
-        info!("run: {}", command_desc.truncate_string(100));
+        info!("run: {}", command_desc);
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

@@ -10,13 +10,13 @@ export class AskPassService {
     constructor() {
     }
 
-    async callback_askpass(password: string): Promise<void> {
-        await invoke("callback_askpass", {password: password})
+    async callback_ask_pass(password: string): Promise<void> {
+        await invoke("callback_ask_pass", {password: password})
     }
 
-    async listen_askpass(): Promise<void> {
-        await listen("ask-pass", async () => {
-            await this.callback_askpass("bppleman")
+    async listen_ask_pass(): Promise<void> {
+        await listen("ask_pass", async () => {
+            await this.callback_ask_pass("bppleman")
         })
     }
 }

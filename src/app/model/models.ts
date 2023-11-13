@@ -1,4 +1,6 @@
-export interface Cool {
+import {BehaviorSubject} from "rxjs"
+
+export class Cool {
     name: string;
     description: string;
     state: State;
@@ -6,6 +8,19 @@ export interface Cool {
     install_tasks: Task[];
     uninstall_tasks: Task[];
     check_tasks: Task[];
+    selected: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+
+    constructor(
+        cool: Cool,
+    ) {
+        this.name = cool.name
+        this.description = cool.description
+        this.state = cool.state
+        this.dependencies = cool.dependencies
+        this.install_tasks = cool.install_tasks
+        this.uninstall_tasks = cool.uninstall_tasks
+        this.check_tasks = cool.check_tasks
+    }
 }
 
 export interface Task {

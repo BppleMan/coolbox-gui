@@ -14,9 +14,18 @@ pub struct Dnf;
 
 impl ShellExecutor for Dnf {
     fn interpreter(&self) -> Command {
-        let mut command = Command::new("sudo");
+        let mut command = Command::new("pkexec");
         command.arg("dnf");
         command
+    }
+
+    fn command(&self, cmd: &str, args: Option<&[&str]>) -> CoolResult<Command> {
+        let mut command = self.interpreter();
+        command.arg(cmd);
+        if let Some(args) = args {
+            command.args(args);
+        }
+        Ok(command)
     }
 }
 
@@ -29,6 +38,7 @@ impl Installable for Dnf {
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("installing {} with dnf", name);
@@ -39,13 +49,14 @@ impl Installable for Dnf {
         }
         arguments.push(name);
 
-        self.run("install", Some(&arguments), None, Some(sender))
+        self.run("install", Some(&arguments), envs, Some(sender))
     }
 
     fn uninstall(
         &self,
         name: &str,
         args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
     ) -> CoolResult<()> {
         info!("uninstalling {} with rpm", name);
@@ -56,13 +67,18 @@ impl Installable for Dnf {
         }
         arguments.push(name);
 
-        self.run("remove", Some(&arguments), None, Some(sender))
+        self.run("remove", Some(&arguments), envs, Some(sender))
     }
 
-    fn check_available(&self, name: &str, _args: Option<&[&str]>) -> CoolResult<bool> {
+    fn check_available(
+        &self,
+        name: &str,
+        _args: Option<&[&str]>,
+        envs: Option<&[(&str, &str)]>,
+    ) -> CoolResult<bool> {
         info!("checking {}", name);
 
-        self.run("list", Some(vec!["installed", name].as_slice()), None, None)
+        self.run("list", Some(vec!["installed", name].as_slice()), envs, None)
             .map(|_| true)
             .or_else(|_| Ok(false))
     }

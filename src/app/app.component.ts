@@ -23,6 +23,6 @@ export class AppComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.askpass_service.listen_askpass().then()
+        this.askpass_service.listen_ask_pass().then()
     }
 }

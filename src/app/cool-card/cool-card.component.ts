@@ -35,7 +35,6 @@ import {CoolService} from "../service/cool.service"
 export class CoolCardComponent {
     @ViewChild("expansionPanel") panel!: MatExpansionPanel
     @Input() cool!: Cool
-    @Input() selected!: BehaviorSubject<boolean>
     expanded = false
     consoleCode = 'mkdir xxx-project && cp a b'
 
@@ -45,7 +44,7 @@ export class CoolCardComponent {
     toggle_select(event: MouseEvent) {
         event.preventDefault()
         event.stopPropagation()
-        this.selected.next(!this.selected.value)
+        this.cool.selected.next(!this.cool.selected.value)
     }
 
     toggle_panel(event: MouseEvent) {
