@@ -23,6 +23,10 @@ export class AppComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.askpass_service.listen_ask_pass().then()
+        this.askpass_service.listen_ask_pass().then(() => {
+            console.log("listen_ask_pass then")
+        }).catch(error => {
+            console.error("listen_ask_pass catch", error)
+        })
     }
 }

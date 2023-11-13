@@ -8,6 +8,7 @@ import {AppComponent} from "./app.component"
 import {CoolCardComponent} from "./cool-card/cool-card.component"
 import {CoolListComponent} from "./cool-list/cool-list.component"
 import {InfoComponent} from "./info/info.component"
+import { MatDialogModule } from "@angular/material/dialog"
 
 @NgModule({
     declarations: [
@@ -21,6 +22,7 @@ import {InfoComponent} from "./info/info.component"
         CoolListComponent,
         CoolCardComponent,
         HighlightModule,
+        MatDialogModule
     ],
     providers: [
         {
