@@ -11,6 +11,7 @@ use cool::state::CoolState;
 use cool::{SafeCool, COOL_LIST};
 
 use crate::cool_data::CoolData;
+use crate::event::EventLoop;
 use crate::server::ASK_PASS_TRIGGER_CHANNEL;
 
 #[tauri::command(async)]
@@ -29,7 +30,7 @@ pub fn install_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
 
         rayon::spawn(move || {
             while let Ok(event) = rx.recv() {
-                println!("{}", event);
+                EventLoop::task_event(event);
             }
         });
         cool.lock().unwrap().install(&Some(tx))?;

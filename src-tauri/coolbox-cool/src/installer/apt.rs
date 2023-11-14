@@ -3,24 +3,12 @@ use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
-use crate::Message;
 use crate::result::CoolResult;
 use crate::shell::{Bash, ShellExecutor};
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Apt;
-
-// impl ShellExecutor for Apt {
-//     fn interpreter(&self) -> Command {
-//         let mut command = Command::new("pkexec");
-//         command.arg("apt-get");
-//         command
-//     }
-//
-//     fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> CoolResult<Command> {
-//         let mut command = self.interpreter();
-//     }
-// }
 
 impl Installable for Apt {
     fn name(&self) -> &'static str {

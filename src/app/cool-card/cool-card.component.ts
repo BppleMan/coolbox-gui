@@ -1,5 +1,5 @@
 import {CommonModule} from "@angular/common"
-import {Component, EventEmitter, Input, OnChanges, Output, ViewChild} from "@angular/core"
+import {Component, EventEmitter, Input, OnChanges, OnInit, Output, ViewChild} from "@angular/core"
 import {MatButtonModule} from "@angular/material/button"
 import {MatCheckboxModule} from "@angular/material/checkbox"
 import {MatRippleModule} from "@angular/material/core"
@@ -30,15 +30,21 @@ import {CoolService} from "../service/cool.service"
                 },
             },
         },
-    ]
+    ],
 })
-export class CoolCardComponent {
+export class CoolCardComponent implements OnInit {
     @ViewChild("expansionPanel") panel!: MatExpansionPanel
     @Input() cool!: Cool
     expanded = false
-    consoleCode = 'mkdir xxx-project && cp a b'
+    consoleCode = "mkdir xxx-project && cp a b"
 
     constructor(private cool_service: CoolService) {
+    }
+
+    ngOnInit(): void {
+        this.cool.events.subscribe((events) => {
+            console.log("events", events)
+        })
     }
 
     toggle_select(event: MouseEvent) {
@@ -48,7 +54,7 @@ export class CoolCardComponent {
     }
 
     toggle_panel(event: MouseEvent) {
-        console.log('toggle_selected')
+        console.log("toggle_selected")
         event.preventDefault()
         event.stopPropagation()
         this.panel.toggle()
@@ -63,7 +69,7 @@ export class CoolCardComponent {
     }
 
     copy(content: string) {
-        console.log('copy', content)
+        console.log("copy", content)
         navigator.clipboard.writeText(content)
         // TODO we should show toast here to indicate the copy action
     }

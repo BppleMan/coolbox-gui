@@ -184,7 +184,7 @@ impl Cool {
         let check = self
             .check_tasks
             .execute(Box::new(|i, task, state, message| {
-                info!("{:?} - [{}]{}: {}", state, i, task, message);
+                info!("{:?} - Task[{}]{}: {}", state, i, task, message);
             }));
         if check.is_ok() {
             CoolState::Installed
