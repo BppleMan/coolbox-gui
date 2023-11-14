@@ -13,15 +13,6 @@ export class AppComponent implements OnInit {
     constructor(private askpass_service: AskPassService) {
     }
 
-    onHighlight(e: HighlightAutoResult) {
-        console.log({
-            language: e.language,
-            relevance: e.relevance,
-            secondBest: "{...}",
-            value: "{...}",
-        })
-    }
-
     ngOnInit(): void {
         this.askpass_service.listen_ask_pass().then(() => {
             console.log("listen_ask_pass then")
