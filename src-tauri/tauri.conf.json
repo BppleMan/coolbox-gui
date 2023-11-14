@@ -2,7 +2,7 @@
     "build": {
         "beforeBuildCommand": "ng build",
         "beforeDevCommand": "ng serve",
-        "devPath": "http://127.0.0.1:4200",
+        "devPath": "http://localhost:4200",
         "distDir": "../dist/coolbox-gui"
     },
     "package": {

@@ -1,13 +1,16 @@
 use std::sync::Mutex;
 
-use cool::channel::{Receiver, Sender};
-use cool::{channel, info};
 use once_cell::sync::Lazy;
+use tokio::task::JoinHandle;
 use tonic::{Request, Response, Status};
 
-use crate::event::EventLoop;
+use cool::channel::{Receiver, Sender};
+use cool::result::CoolResult;
+use cool::{channel, info};
 use coolbox_grpc::ask_pass_server::{AskPass, AskPassServer};
 use coolbox_grpc::{EmptyRequest, StringResponse};
+
+use crate::event::EventLoop;
 
 #[allow(clippy::type_complexity)]
 pub static ASK_PASS_TRIGGER_CHANNEL: Lazy<(Mutex<Sender<String>>, Mutex<Receiver<String>>)> =
@@ -28,18 +31,23 @@ impl AskPass for AskPassService {
     }
 }
 
-pub async fn start_server() {
+pub fn start_server() -> (
+    tokio::sync::mpsc::UnboundedSender<()>,
+    JoinHandle<CoolResult<()>>,
+) {
     info!("Starting Server");
     let addr = "0.0.0.0:55051";
-    let ask_pass = AskPassService {};
-    let svc = AskPassServer::new(ask_pass);
-    tonic::transport::Server::builder()
-        .add_service(svc)
-        .serve_with_shutdown(addr.parse().unwrap(), async {
-            tokio::signal::ctrl_c()
-                .await
-                .expect("failed to install CTRL+C signal handler");
-        })
-        .await
-        .unwrap();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let handle = tokio::spawn(async move {
+        let svc = AskPassServer::new(AskPassService);
+        tonic::transport::Server::builder()
+            .add_service(svc)
+            .serve_with_shutdown(addr.parse().unwrap(), async {
+                let _ = rx.recv().await;
+                info!("Shutting down server");
+            })
+            .await?;
+        Ok(())
+    });
+    (tx, handle)
 }

@@ -3,7 +3,7 @@
 release:
     cargo build --release
 
-build profile="--debug":
+build profile="":
     cargo tauri build {{profile}}
 
 build_ask_pass:

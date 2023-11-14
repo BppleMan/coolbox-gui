@@ -16,10 +16,12 @@ use crate::server::ASK_PASS_TRIGGER_CHANNEL;
 
 #[tauri::command(async)]
 pub fn serialize_cool_list() -> Vec<CoolData> {
-    COOL_LIST
+    let mut cools = COOL_LIST
         .par_iter()
         .map(|v| v.lock().unwrap().deref().into())
-        .collect::<Vec<_>>()
+        .collect::<Vec<CoolData>>();
+    cools.sort_by(|a, b| a.name.cmp(&b.name));
+    cools
 }
 
 #[tauri::command(async)]
@@ -30,6 +32,7 @@ pub fn install_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
 
         rayon::spawn(move || {
             while let Ok(event) = rx.recv() {
+                println!("{}", event);
                 EventLoop::task_event(event);
             }
         });

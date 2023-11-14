@@ -1,10 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
+use tauri::{GlobalWindowEvent, Manager, WindowEvent};
 
-use cool::init_backtrace;
 use cool::result::CoolResult;
+use cool::{info, init_backtrace};
 
 use crate::event::EventLoop;
 use crate::server::start_server;
@@ -19,9 +19,7 @@ mod task_data;
 #[tokio::main]
 async fn main() -> CoolResult<()> {
     init_backtrace();
-    tokio::spawn(async {
-        start_server().await;
-    });
+    let (shutdown, server_handle) = start_server();
     tauri::Builder::default()
         .setup(|app| {
             let main_window = app.get_window("main").unwrap();
@@ -37,7 +35,10 @@ async fn main() -> CoolResult<()> {
             api::check_cools,
             api::callback_ask_pass,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!())?;
+    info!("waiting for server to shutdown");
+    shutdown.send(())?;
+    server_handle.await??;
+    info!("server shutdown");
     Ok(())
 }

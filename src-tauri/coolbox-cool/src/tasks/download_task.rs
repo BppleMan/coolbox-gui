@@ -3,15 +3,15 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 
-use color_eyre::eyre::{Context, eyre};
+use color_eyre::eyre::{eyre, Context};
 use futures::stream::StreamExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
-use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DownloadTask {
@@ -51,7 +51,7 @@ impl<'a> Executable<'a> for DownloadTask {
                 let total_size = res.content_length();
                 let mut bytes_stream = res.bytes_stream();
                 if let Some(parent) = dest.parent() {
-                    fs_extra::dir::create(parent, true)
+                    fs_extra::dir::create_all(parent, true)
                         .with_context(|| format!("failed to create {}", parent.display()))
                         .map_err(ExecutableError::CreatePathError)?;
                 }
@@ -90,7 +90,7 @@ mod test {
 
     use crate::init_backtrace;
     use crate::result::CoolResult;
-    use crate::tasks::{DownloadTask, spawn_task};
+    use crate::tasks::{spawn_task, DownloadTask};
 
     #[test]
     fn smoke() -> CoolResult<()> {
