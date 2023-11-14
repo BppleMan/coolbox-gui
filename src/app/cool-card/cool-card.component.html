@@ -24,7 +24,7 @@
                 <ng-template matStepLabel>{{task.name}}</ng-template>
                 <div class="code-container border-solid border border-[#1F242F] rounded-lg p-2 bg-[#191A22] divide-y divide-solid divide-[#1F242F]">
                     <code class="block select-text pt-2" [highlight]="task.description" [languages]="['bash']"></code>
-                    <code id="{{cool.name + '_' + i}}" class="block box-border pt-2 select-text border-x-0 overflow-y-auto max-h-[66px] no-scrollbar whitespace-pre-line"
+                    <code id="{{cool.name + '_' + i}}" class="block box-border pt-2 select-text border-x-0 overflow-y-auto max-h-[66px] no-scrollbar whitespace-pre-line overscroll-contain"
                      [highlight]="taskConsoleMessages[i]" [languages]="['bash']"></code>
                 </div>
                 <img class="absolute right-2 top-2 w-4 h-4 cursor-pointer" src="assets/images/btn_copy.png" (click)="copy(task.description)"/>
