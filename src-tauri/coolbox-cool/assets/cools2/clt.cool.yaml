@@ -7,20 +7,12 @@ macos:
   install_tasks:
   - !CommandTask
     script: xcode-select --install
-    args: null
-    envs: null
     shell: bash
   uninstall_tasks:
   - !CommandTask
     script: move /Library/Developer/CommandLineTools ~/.Trash
-    args: null
-    envs: null
     shell: macos_sudo
   check_tasks:
   - !CommandTask
     script: xcode-select -p
-    args: null
-    envs: null
     shell: bash
-windows: null
-linux: null

@@ -21,7 +21,7 @@ macos:
     command: rustup
 windows:
   need_restart: false
-  dependencies: [ ]
+  dependencies: []
   install_tasks:
     - !DownloadTask
       url: https://win.rustup.rs/x86_64
@@ -39,7 +39,7 @@ windows:
       command: rustup
 linux:
   need_restart: false
-  dependencies: [ ]
+  dependencies: []
   install_tasks:
     - !DownloadTask
       url: https://sh.rustup.rs

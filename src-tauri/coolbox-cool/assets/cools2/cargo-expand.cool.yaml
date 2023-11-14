@@ -8,17 +8,44 @@ macos:
   install_tasks:
   - !InstallTask
     name: cargo-expand
-    args: null
-    envs: null
     installer: cargo
   uninstall_tasks:
   - !UninstallTask
     name: cargo-expand
-    args: null
     installer: cargo
   check_tasks:
   - !CheckTask
     name: cargo-expand
     installer: cargo
-windows: null
-linux: null
+windows:
+  need_restart: false
+  dependencies:
+    - cargo
+  install_tasks:
+    - !InstallTask
+      name: cargo-expand
+      installer: cargo
+  uninstall_tasks:
+    - !UninstallTask
+      name: cargo-expand
+      installer: cargo
+  check_tasks:
+    - !CheckTask
+      name: cargo-expand
+      installer: cargo
+linux:
+  need_restart: false
+  dependencies:
+    - cargo
+  install_tasks:
+    - !InstallTask
+      name: cargo-expand
+      installer: cargo
+  uninstall_tasks:
+    - !UninstallTask
+      name: cargo-expand
+      installer: cargo
+  check_tasks:
+    - !CheckTask
+      name: cargo-expand
+      installer: cargo

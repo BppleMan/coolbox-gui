@@ -31,6 +31,7 @@ mod copy_task;
 mod decompress_task;
 mod delete_task;
 mod download_task;
+mod env_task;
 mod exists_task;
 mod git_task;
 mod install_task;

@@ -15,9 +15,9 @@ license-file = "LICENSE"
 repository = "https://github.com/BppleMan/coolbox"
 
 [package]
-name = "coolbox"
+name = "CoolBox"
 description = "A tool box for your terminal."
-default-run = "coolbox"
+default-run = "CoolBox"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

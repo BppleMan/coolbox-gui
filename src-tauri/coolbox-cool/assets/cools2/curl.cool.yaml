@@ -8,17 +8,43 @@ macos:
   install_tasks:
   - !InstallTask
     name: curl
-    args: null
-    envs: null
     installer: brew
   uninstall_tasks:
   - !UninstallTask
     name: curl
-    args: null
     installer: brew
   check_tasks:
   - !CheckTask
     name: curl
     installer: brew
-windows: null
-linux: null
+windows:
+  need_restart: false
+  dependencies: []
+  install_tasks:
+    - !InstallTask
+      name: cURL.cURL
+      args: [ "--disable-interactivity", "-e", "--id" ]
+      installer: winget
+  uninstall_tasks:
+    - !UninstallTask
+      name: cURL.cURL
+      installer: winget
+  check_tasks:
+    - !CheckTask
+      name: curl
+      installer: winget
+linux:
+  need_restart: false
+  dependencies: []
+  install_tasks:
+    - !InstallTask
+      name: curl
+      installer: apt
+  uninstall_tasks:
+    - !UninstallTask
+      name: curl
+      installer: apt
+  check_tasks:
+    - !CheckTask
+      name: curl
+      installer: apt

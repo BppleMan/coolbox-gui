@@ -7,19 +7,18 @@ macos:
   install_tasks:
   - !DownloadTask
     url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
-    dest: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/install.sh
+    dest: {{TEMP_DIR}}/coolbox/homebrew/install.sh
   - !CommandTask
-    script: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/install.sh
+    script: {{TEMP_DIR}}/coolbox/homebrew/install.sh
     envs:
-    - - SUDO_ASKPASS
-      - /Users/bppleman/coolbox/coolbox-gui/src-tauri/target/debug/deps/coolbox-askpass
+    - [ "SUDO_ASKPASS", "{{CURRENT_DIR}}/coolbox-askpass" ]
     shell: bash
   uninstall_tasks:
   - !DownloadTask
     url: https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh
-    dest: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/uninstall.sh
+    dest: {{TEMP_DIR}}/coolbox/homebrew/uninstall.sh
   - !CommandTask
-    script: /var/folders/vt/gjcv51_575j21zj511gh2fwh0000gn/T/cool/homebrew/uninstall.sh
+    script: {{TEMP_DIR}}/coolbox/homebrew/uninstall.sh
     envs:
       - ["NONINTERACTIVE", "1"]
     shell: bash

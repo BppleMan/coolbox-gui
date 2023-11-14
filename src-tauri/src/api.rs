@@ -1,9 +1,10 @@
-use std::collections::HashMap;
-use std::iter::Map;
+use std::env;
 use std::ops::Deref;
 use std::str::FromStr;
+use std::string::ToString;
 
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use cool::error::CoolError;
 use cool::result::CoolResult;
@@ -13,6 +14,22 @@ use cool::{SafeCool, COOL_LIST};
 use crate::cool_data::CoolData;
 use crate::event::EventLoop;
 use crate::server::ASK_PASS_TRIGGER_CHANNEL;
+
+static APP_INFO: AppInfo = AppInfo {
+    name: env!("CARGO_PKG_NAME"),
+    version: env!("CARGO_PKG_VERSION"),
+};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppInfo {
+    pub name: &'static str,
+    pub version: &'static str,
+}
+
+#[tauri::command]
+pub fn app_info() -> AppInfo {
+    APP_INFO.clone()
+}
 
 #[tauri::command(async)]
 pub fn serialize_cool_list() -> Vec<CoolData> {

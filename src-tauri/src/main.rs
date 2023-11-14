@@ -19,6 +19,7 @@ mod task_data;
 #[tokio::main]
 async fn main() -> CoolResult<()> {
     init_backtrace();
+    info!("{}:{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     let (shutdown, server_handle) = start_server();
     tauri::Builder::default()
         .setup(|app| {
@@ -29,6 +30,7 @@ async fn main() -> CoolResult<()> {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            api::app_info,
             api::serialize_cool_list,
             api::install_cools,
             api::uninstall_cools,

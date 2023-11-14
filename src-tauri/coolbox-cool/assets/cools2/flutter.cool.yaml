@@ -8,17 +8,29 @@ macos:
   install_tasks:
   - !InstallTask
     name: flutter
-    args: null
-    envs: null
     installer: brew
   uninstall_tasks:
   - !UninstallTask
     name: flutter
-    args: null
     installer: brew
   check_tasks:
   - !CheckTask
     name: flutter
     installer: brew
-windows: null
+windows:
+  need_restart: false
+  dependencies:
+    - homebrew
+  install_tasks:
+    - !InstallTask
+      name: flutter
+      installer: brew
+  uninstall_tasks:
+    - !UninstallTask
+      name: flutter
+      installer: brew
+  check_tasks:
+    - !CheckTask
+      name: flutter
+      installer: brew
 linux: null

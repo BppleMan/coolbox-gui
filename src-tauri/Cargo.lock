@@ -3,6 +3,26 @@
 version = 3
 
 [[package]]
+name = "CoolBox"
+version = "0.1.1"
+dependencies = [
+ "cool",
+ "coolbox-grpc",
+ "dashmap",
+ "once_cell",
+ "prost",
+ "rayon",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "thiserror",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -720,26 +740,6 @@ dependencies = [
  "walkdir",
  "which 5.0.0",
  "zip",
-]
-
-[[package]]
-name = "coolbox"
-version = "0.1.1"
-dependencies = [
- "cool",
- "coolbox-grpc",
- "dashmap",
- "once_cell",
- "prost",
- "rayon",
- "schemars",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "thiserror",
- "tokio",
- "tonic",
 ]
 
 [[package]]

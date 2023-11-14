@@ -8,17 +8,44 @@ macos:
   install_tasks:
   - !InstallTask
     name: exa
-    args: null
-    envs: null
     installer: cargo
   uninstall_tasks:
   - !UninstallTask
     name: exa
-    args: null
     installer: cargo
   check_tasks:
   - !CheckTask
     name: exa
     installer: cargo
-windows: null
-linux: null
+windows:
+  need_restart: false
+  dependencies:
+    - cargo
+  install_tasks:
+    - !InstallTask
+      name: exa
+      installer: cargo
+  uninstall_tasks:
+    - !UninstallTask
+      name: exa
+      installer: cargo
+  check_tasks:
+    - !CheckTask
+      name: exa
+      installer: cargo
+linux:
+  need_restart: false
+  dependencies:
+    - cargo
+  install_tasks:
+    - !InstallTask
+      name: exa
+      installer: cargo
+  uninstall_tasks:
+    - !UninstallTask
+      name: exa
+      installer: cargo
+  check_tasks:
+    - !CheckTask
+      name: exa
+      installer: cargo
