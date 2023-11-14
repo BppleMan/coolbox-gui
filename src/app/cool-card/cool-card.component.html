@@ -14,15 +14,18 @@
             <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="install($event)">
                 Install
             </button>
-            <mat-progress-bar class="absolute left-0 right-0 bottom-0" [value]="50"></mat-progress-bar>
+            <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="uninstall($event)">
+                Uninstall
+            </button>
+            <mat-progress-bar  mode="determinate" class="absolute left-0 right-0 bottom-0" [value]="progress"></mat-progress-bar>
         </mat-expansion-panel-header>
-        <mat-divider class="my-2"></mat-divider>
         <mat-stepper orientation="vertical" linear="true" #stepper >
-            <mat-step class="-mx-4" *ngFor="let task of cool.install_tasks" class="relative">
+            <mat-step class="-mx-4" *ngFor="let task of cool.install_tasks; index as i" class="relative">
                 <ng-template matStepLabel>{{task.name}}</ng-template>
                 <div class="code-container border-solid border border-[#1F242F] rounded-lg p-2 bg-[#191A22] divide-y divide-solid divide-[#1F242F]">
                     <code class="block select-text pt-2" [highlight]="task.description" [languages]="['bash']"></code>
-                    <code class="block box-border pt-2 select-text border-x-0 overflow-y-auto max-h-[76px] no-scrollbar" [highlight]="task.description + task.description + task.description + task.description" [languages]="['bash']"></code>
+                    <code id="{{cool.name + '_' + i}}" class="block box-border pt-2 select-text border-x-0 overflow-y-auto max-h-[66px] no-scrollbar whitespace-pre-line overscroll-contain"
+                     [highlight]="taskConsoleMessages[i]" [languages]="['bash']"></code>
                 </div>
                 <img class="absolute right-2 top-2 w-4 h-4 cursor-pointer" src="assets/images/btn_copy.png" (click)="copy(task.description)"/>
             </mat-step>

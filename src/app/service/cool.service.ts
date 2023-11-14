@@ -25,11 +25,19 @@ export class CoolService {
         })
     }
 
+    async uninstall_cool(cools: Cool[]): Promise<void> {
+        return invoke("uninstall_cools", {cools: cools.map((c) => c.name)}).then((result) => {
+        })
+        .catch((err) => {
+            console.log(err)
+        })
+    }
+
     async listen_task_event(cool_map$: BehaviorSubject<Map<string, Cool>>) {
         await listen("task_event", async (event: Event<TaskEvent>) => {
             console.log("task_event", event)
             let cool = cool_map$.value.get(event.payload.cool_name)
-            cool?.events?.next([...cool?.events?.value ?? [], event.payload])
+            cool?.events?.next([...(cool?.events?.value ?? []), event.payload])
         })
     }
 }
