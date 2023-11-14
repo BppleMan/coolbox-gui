@@ -10,7 +10,7 @@ import {MatExpansionModule} from "@angular/material/expansion"
 import {MatListModule} from "@angular/material/list"
 import {BehaviorSubject, map, Observable} from "rxjs"
 import {CoolCardComponent} from "../cool-card/cool-card.component"
-import {Cool} from "../model/models"
+import {Cool, State} from "../model/models"
 import {CoolService} from "../service/cool.service"
 
 @Component({
@@ -57,6 +57,7 @@ export class CoolListComponent implements OnInit {
 
         // get cools from backend
         this.cool_service.cool_list().then((cools: Cool[]) => {
+            console.log("cool_list", cools)
             this.cools$.next(cools.map((cool) => new Cool(cool)))
         })
         .catch((err) => {
@@ -70,6 +71,7 @@ export class CoolListComponent implements OnInit {
 
         // if cool_map$ changed, then update selected_count
         this.cool_map$.subscribe((cool_map: Map<string, Cool>) => {
+            console.log("cool_map", cool_map)
             cool_map.forEach((cool) => {
                 cool.selected.subscribe((selected) => {
                     if (selected) {
@@ -96,6 +98,8 @@ export class CoolListComponent implements OnInit {
     toggleSelectAll(all_selected: boolean) {
         if (all_selected) {
             this.cools$.value.forEach((cool) => cool.selected.next(true))
+            // test for cool state change
+            this.cools$.value[0].state = State.Installing
         } else {
             this.cools$.value.forEach((cool) => cool.selected.next(false))
         }

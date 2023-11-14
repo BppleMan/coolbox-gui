@@ -42,7 +42,14 @@ pub fn install_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
 pub fn uninstall_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
     cools.par_iter().try_for_each(|c| {
         let cool = SafeCool::from_str(c)?;
-        cool.lock().unwrap().uninstall(&None)?;
+        let (tx, rx) = cool::channel::unbounded();
+
+        rayon::spawn(move || {
+            while let Ok(event) = rx.recv() {
+                EventLoop::task_event(event);
+            }
+        });
+        cool.lock().unwrap().uninstall(&Some(tx))?;
         Ok(())
     })
 }
