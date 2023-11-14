@@ -35,9 +35,13 @@ export enum State {
     Installed = "Installed",
     Installing = "Installing",
     Uninstalling = "Uninstalling",
+    Pending = "Pending",
 }
 
 export interface CoolListItem {
     item: Cool;
     selected: boolean;
+}
+export interface CoolState {
+    Ok: State;
 }

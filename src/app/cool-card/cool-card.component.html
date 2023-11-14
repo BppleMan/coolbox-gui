@@ -10,12 +10,8 @@
 
                 </div>
             </div>
-
-            <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="install($event)">
-                Install
-            </button>
-            <button mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="uninstall($event)">
-                Uninstall
+            <button [disabled]="cool.state === 'Pending' || cool.state === 'Installing' || cool.state === 'Uninstalling'" mat-raised-button color="primary" class="ml-auto flex-shrink-0 rounded-md " (click)="doAction($event)">
+                {{formatAction()}}
             </button>
             <mat-progress-bar  mode="determinate" class="absolute left-0 right-0 bottom-0" [value]="progress"></mat-progress-bar>
         </mat-expansion-panel-header>

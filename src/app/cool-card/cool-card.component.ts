@@ -5,11 +5,11 @@ import {MatCheckboxModule} from "@angular/material/checkbox"
 import {MatRippleModule} from "@angular/material/core"
 import {MatExpansionModule, MatExpansionPanel} from "@angular/material/expansion"
 import {MatIconModule} from "@angular/material/icon"
-import {MatStepperModule} from "@angular/material/stepper"
+import {MatStepper, MatStepperModule} from "@angular/material/stepper"
 import {MatDividerModule} from "@angular/material/divider"
 import {MatProgressBarModule} from "@angular/material/progress-bar"
 import {BehaviorSubject, last} from "rxjs"
-import {Cool, CoolListItem} from "../model/models"
+import {Cool, CoolListItem, CoolState, State} from "../model/models"
 import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
 import {CoolService} from "../service/cool.service"
 
@@ -34,7 +34,9 @@ import {CoolService} from "../service/cool.service"
 })
 export class CoolCardComponent implements OnInit {
     @ViewChild("expansionPanel") panel!: MatExpansionPanel
+    @ViewChild("stepper") stepper!: MatStepper
     @Input() cool!: Cool
+    coolState$: BehaviorSubject<CoolState> = new BehaviorSubject<CoolState>({Ok: State.Pending} as CoolState)
     expanded = false
     progress: number = 0
     currentProgressStep: number = 0
@@ -43,6 +45,15 @@ export class CoolCardComponent implements OnInit {
     constructor(private cool_service: CoolService, private cdr: ChangeDetectorRef) {
     }
     ngOnInit() {
+        // fetch cool from backend
+        this.cool_service.check_cool([this.cool.name]).then((coolStates: CoolState[]) => {
+            console.log("cool detail", coolStates[0])
+            this.coolState$.next(coolStates[0])
+        })
+        this.coolState$.subscribe((state) => {
+            this.cool.state = state.Ok
+        })
+
         // subscribe cool.events to update the progress bar
         this.cool.events.subscribe((events) => {
             console.log('events', events)
@@ -55,6 +66,15 @@ export class CoolCardComponent implements OnInit {
                 // need new line every time
                 this.taskConsoleMessages[last_event.task_index] += `${last_event.message.message}
                 `
+                // change stepper if necessary
+                // 倒数第二个event（如果存在的话）
+                if (events.length > 1) {
+                    const last_second_event = events[events.length - 2]
+                    if (last_event.task_index > last_second_event.task_index) {
+                        this.stepper.next()
+                    }
+                }
+                
                 this.cdr.detectChanges()
                 setTimeout(() => {
                     const element = document.getElementById(this.cool.name + '_' + last_event.task_index)
@@ -71,6 +91,11 @@ export class CoolCardComponent implements OnInit {
                 if (last_event.task_state == "Finished") {
                     // whatever current animation is, cancel it, and smooth animate to 100%
                     this.animateProgress(100)
+                    // TODO should we fetch cool state again?
+                    this.cool_service.check_cool([this.cool.name]).then((coolStates: CoolState[]) => {
+                        console.log("cool detail", coolStates[0])
+                        this.coolState$.next(coolStates[0])
+                    })
                 } else {
                     let progressStep = (last_event.task_index + 1) / this.cool.install_tasks.length * 100 - 10
                     // should animate from current progres to finalProgress in a proper speed using animation frame
@@ -81,6 +106,28 @@ export class CoolCardComponent implements OnInit {
                 
             }
         })
+    }
+
+    formatAction() {
+        if (this.coolState$.value.Ok == State.Installed) {
+            return "Uninstall"
+        } else if (this.coolState$.value.Ok == State.Ready) {
+            return "Install"
+        } else if (this.coolState$.value.Ok == State.Installing) {
+            return "Installing"
+        } else if (this.coolState$.value.Ok == State.Uninstalling) {
+            return "Uninstalling"
+        } else {
+            return "Pending"
+        }
+    }
+
+    doAction(event: MouseEvent) {
+        if (this.cool.state == State.Ready) {
+            this.install(event)
+        } else if (this.cool.state == State.Installed) {
+            this.uninstall(event)
+        }
     }
 
     animateProgress(to: number) {
