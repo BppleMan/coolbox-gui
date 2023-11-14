@@ -21,7 +21,6 @@ export class AskPassService {
         return new Promise<void>(async (resolve, reject) => {
             try {
                 await listen("ask_pass", async () => {
-                    console.log("ask_pass")
                     const dialogRef = this.dialog.open(PasswordDialogComponent)
                     dialogRef.afterClosed().subscribe(async password => {
                         await this.callback_ask_pass(password || "")

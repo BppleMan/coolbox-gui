@@ -4,7 +4,7 @@ import {invoke} from "@tauri-apps/api"
 import {Event, listen} from "@tauri-apps/api/event"
 import {BehaviorSubject, Observable} from "rxjs"
 import {TaskEvent} from "../model/event"
-import {Cool} from "../model/models"
+import {Cool, CoolState} from "../model/models"
 
 @Injectable({
     providedIn: "root",
@@ -40,4 +40,9 @@ export class CoolService {
             cool?.events?.next([...(cool?.events?.value ?? []), event.payload])
         })
     }
+
+    async check_cool(names: string[]): Promise<CoolState[]> {
+        return invoke("check_cools", {cools: names})
+    }
 }
+

@@ -75,13 +75,13 @@ pub fn uninstall_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
 }
 
 #[tauri::command(async)]
-pub fn check_cools(cools: Vec<String>) -> Vec<CoolResult<CoolState, CoolError>> {
+pub fn check_cools(cools: Vec<String>) -> Vec<CoolState> {
     cools
         .par_iter()
         .map(|c| {
-            let cool = SafeCool::from_str(c)?;
+            let cool = SafeCool::from_str(c).unwrap();
             let state = cool.lock().unwrap().check();
-            Ok(state)
+            state
         })
         .collect::<Vec<_>>()
 }
