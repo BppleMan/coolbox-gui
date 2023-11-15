@@ -13,6 +13,7 @@ import {BehaviorSubject} from "rxjs"
 import {Cool, CoolState, format_cool_state} from "../model/models"
 import {CoolService} from "../service/cool.service"
 import {STEPPER_GLOBAL_OPTIONS} from '@angular/cdk/stepper';
+import { TranslateModule } from "@ngx-translate/core"
 
 const ActionMap = new Map<CoolState, string>([
     [CoolState.Ready, "Install"],
@@ -25,7 +26,19 @@ const ActionMap = new Map<CoolState, string>([
 @Component({
     selector: "app-cool-card",
     standalone: true,
-    imports: [CommonModule, MatButtonModule, MatCheckboxModule, MatExpansionModule, MatIconModule, MatStepperModule, MatRippleModule, HighlightModule, MatDividerModule, MatProgressBarModule],
+    imports: [
+        CommonModule,
+        MatButtonModule,
+        MatCheckboxModule,
+        MatExpansionModule,
+        MatIconModule,
+        MatStepperModule,
+        MatRippleModule,
+        HighlightModule,
+        MatDividerModule,
+        MatProgressBarModule,
+        TranslateModule
+    ],
     templateUrl: "./cool-card.component.html",
     styleUrls: ["./cool-card.component.scss"],
     providers: [

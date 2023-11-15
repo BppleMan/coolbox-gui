@@ -11,7 +11,7 @@
                 </div>
             </div>
             <button [disabled]="cool.state === 'Pending' || cool.state === 'Installing' || cool.state === 'Uninstalling'" mat-stroked-button color="primary" class="btn-action ml-auto pl-8 flex-shrink-0 rounded-md border-[#42307D]" (click)="doAction($event)">
-                {{(actionState|async)}}
+                {{('COOL_STATE.' + actionState.value | translate )}}
             </button>
             <mat-progress-bar *ngIf="cool.state === 'Installing' || cool.state === 'Uninstalling'" mode="determinate" class="absolute left-0 right-0 bottom-0" [value]="progress"></mat-progress-bar>
         </mat-expansion-panel-header>

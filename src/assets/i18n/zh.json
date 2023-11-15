@@ -1,0 +1,14 @@
+{
+  "COOL_LIST": {
+    "SELECTED": "已选",
+    "ITEMS": "项",
+    "INSTALL_ALL": "全部安装"
+  },
+  "COOL_STATE": {
+    "Install": "安装",
+    "Uninstall": "卸载",
+    "Pending": "请求中",
+    "Installing": "安装中",
+    "Uninstalling": "卸载中"
+  }
+}

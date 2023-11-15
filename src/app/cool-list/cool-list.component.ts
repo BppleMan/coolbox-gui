@@ -12,7 +12,7 @@ import {BehaviorSubject, map} from "rxjs"
 import {CoolCardComponent} from "../cool-card/cool-card.component"
 import {Cool, CoolState} from "../model/models"
 import {CoolService} from "../service/cool.service"
-
+import {TranslateModule} from "@ngx-translate/core"
 @Component({
     selector: "app-cool-list",
     standalone: true,
@@ -29,6 +29,7 @@ import {CoolService} from "../service/cool.service"
         CdkVirtualScrollViewport,
         CdkFixedSizeVirtualScroll,
         CdkVirtualForOf,
+        TranslateModule
     ],
     templateUrl: "./cool-list.component.html",
     styleUrls: ["./cool-list.component.scss"],

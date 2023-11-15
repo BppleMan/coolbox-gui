@@ -1,0 +1,14 @@
+{
+  "COOL_LIST": {
+    "SELECTED": "Select",
+    "ITEMS": "Items",
+    "INSTALL_ALL": "Install All"
+  },
+  "COOL_STATE": {
+    "Install": "Install",
+    "Uninstall": "Uninstall",
+    "Pending": "Pending",
+    "Installing": "Installing",
+    "Uninstalling": "Uninstalling"
+  }
+}
