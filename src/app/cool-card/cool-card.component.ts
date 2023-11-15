@@ -12,6 +12,7 @@ import {HIGHLIGHT_OPTIONS, HighlightModule} from "ngx-highlightjs"
 import {BehaviorSubject} from "rxjs"
 import {Cool, CoolState, format_cool_state} from "../model/models"
 import {CoolService} from "../service/cool.service"
+import {STEPPER_GLOBAL_OPTIONS} from '@angular/cdk/stepper';
 
 const ActionMap = new Map<CoolState, string>([
     [CoolState.Ready, "Install"],
@@ -38,6 +39,9 @@ const ActionMap = new Map<CoolState, string>([
                 },
             },
         },
+        {
+            provide: STEPPER_GLOBAL_OPTIONS, useValue: {displayDefaultIndicatorType: false}
+        }
     ],
 })
 export class CoolCardComponent implements OnInit {
@@ -51,6 +55,7 @@ export class CoolCardComponent implements OnInit {
     currentProgressStep: number = 0
     progressAnimationId: number = 0
     taskConsoleMessages: string[] = []
+    editable: boolean = true
 
     constructor(private cool_service: CoolService, private cdr: ChangeDetectorRef) {
     }
@@ -76,15 +81,15 @@ export class CoolCardComponent implements OnInit {
                 }
                 // need new line every time
                 this.taskConsoleMessages[last_event.task_index] += last_event.message.message + "\n"
-
+                this.stepper.selectedIndex = last_event.task_index
                 // change stepper if necessary
                 // 倒数第二个event（如果存在的话）
-                if (events.length > 1) {
-                    const last_second_event = events[events.length - 2]
-                    if (last_event.task_index > last_second_event.task_index) {
-                        this.stepper.next()
-                    }
-                }
+                // if (events.length > 1) {
+                //     const last_second_event = events[events.length - 2]
+                //     if (last_event.task_index > last_second_event.task_index) {
+                //         this.stepper.selectedIndex = last_event.task_index
+                //     }
+                // }
 
                 this.cdr.detectChanges()
                 setTimeout(() => {
@@ -100,13 +105,14 @@ export class CoolCardComponent implements OnInit {
 
                 // TODO we should use a better algorithm to calculate the progress
                 if (last_event.task_state == "Finished") {
-                    // whatever current animation is, cancel it, and smooth animate to 100%
+                    // whatever current animation is, cancel it, and smoothly animate to 100%
                     this.animateProgress(100)
                     // TODO should we fetch cool state again?
                     this.cool_service.check_cool([this.cool.name]).then((coolStates: CoolState[]) => {
                         console.log("cool detail", coolStates[0])
                         this.coolState$.next(coolStates[0])
                     })
+                    
                 } else {
                     let progressStep = (last_event.task_index + 1) / this.cool.install_tasks.length * 100 - 10
                     // should animate from current progres to finalProgress in a proper speed using animation frame
@@ -121,8 +127,12 @@ export class CoolCardComponent implements OnInit {
 
     doAction(event: MouseEvent) {
         if (this.coolState$.value == CoolState.Ready) {
+            // change state to installing
+            this.coolState$.next(CoolState.Installing)
             this.install(event)
         } else if (this.coolState$.value == CoolState.Installed) {
+            // change state to uninstalling
+            this.coolState$.next(CoolState.Uninstalling)
             this.uninstall(event)
         }
     }
@@ -146,6 +156,10 @@ export class CoolCardComponent implements OnInit {
                 this.cdr.detectChanges()
             } else {
                 clearInterval(this.progressAnimationId)
+                if (this.progress >= 100) {
+                    this.progress = 0
+                    this.currentProgressStep = 0
+                }
             }
         }, 200)
     }
@@ -194,5 +208,17 @@ export class CoolCardComponent implements OnInit {
     uninstall(event: MouseEvent) {
         event.stopPropagation()
         this.cool_service.uninstall_cool([this.cool]).then()
+    }
+    formatComplete(index: number): boolean {
+        let isComplete = false
+        if (this.cool.events.value.length) {
+            if (this.cool.events.value[this.cool.events.value.length - 1].task_index > index) {
+                isComplete = true
+            } else if (this.cool.events.value[this.cool.events.value.length - 1].task_index == index) {
+                isComplete = this.cool.events.value[this.cool.events.value.length - 1].task_state == "Finished"
+            }
+            
+        } 
+        return isComplete
     }
 }
