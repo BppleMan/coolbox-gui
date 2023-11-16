@@ -6,10 +6,16 @@
             (change)="toggleSelectAll($event.checked)"
             class="-ml-3 flex-shrink-0 select-none"
         >
-            <span>{{'COOL_LIST.SELECTED' | translate}} </span>{{selected_count}}<span> {{'COOL_LIST.ITEMS' | translate}}</span>
+            <span>{{ "COOL_LIST.SELECTED" | translate }} </span
+            >{{ selected_count
+            }}<span> {{ "COOL_LIST.ITEMS" | translate }}</span>
         </mat-checkbox>
-        <button mat-raised-button color="primary" class="btn-all rounded-lg ml-auto relative pl-10">
-            {{'COOL_LIST.INSTALL_ALL' | translate}}
+        <button
+            mat-raised-button
+            color="primary"
+            class="btn-all rounded-lg ml-auto relative pl-10"
+        >
+            {{ "COOL_LIST.INSTALL_ALL" | translate }}
         </button>
     </div>
     <mat-accordion class="grow" multi displayMode="flat">

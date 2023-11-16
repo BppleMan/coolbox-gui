@@ -1,7 +1,13 @@
 <mat-toolbar class="bg-transparent pl-0 pr-0 mx-10 w-auto">
     <span class="block select-none text-4xl font-bold">CoolBox</span>
-    <mat-button-toggle-group name="language" aria-label="Language" class="ml-auto" [value]="localize" (change)="localizeChange($event.value)">
+    <mat-button-toggle-group
+        name="language"
+        aria-label="Language"
+        class="ml-auto"
+        [value]="localize"
+        (change)="localizeChange($event.value)"
+    >
         <mat-button-toggle value="en-US">EN</mat-button-toggle>
         <mat-button-toggle value="zh">中文</mat-button-toggle>
-      </mat-button-toggle-group>
+    </mat-button-toggle-group>
 </mat-toolbar>

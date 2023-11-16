@@ -87,7 +87,7 @@ export class CoolCardComponent implements OnInit {
         // subscribe cool.events to update the progress bar
         this.cool.events.subscribe((events) => {
             if (events.length > 0) {
-                let last_event = events[events.length - 1]
+                const last_event = events[events.length - 1]
                 // this.taskConsoleMessages[last_event.task_index] += last_event.message.message + "\n"
                 if (!this.taskConsoleMessages[last_event.task_index]) {
                     this.taskConsoleMessages[last_event.task_index] = ""
@@ -127,7 +127,7 @@ export class CoolCardComponent implements OnInit {
                     })
                     
                 } else {
-                    let progressStep = (last_event.task_index + 1) / this.cool.install_tasks.length * 100 - 10
+                    const progressStep = (last_event.task_index + 1) / this.cool.install_tasks.length * 100 - 10
                     // should animate from current progres to finalProgress in a proper speed using animation frame
                     if (this.currentProgressStep != progressStep) {
                         this.animateProgress(progressStep)
@@ -180,7 +180,7 @@ export class CoolCardComponent implements OnInit {
 
     get currentTask() {
         if (this.cool.events.value.length > 0) {
-            let last_event = this.cool.events.value[this.cool.events.value.length - 1]
+            const last_event = this.cool.events.value[this.cool.events.value.length - 1]
             return this.cool.install_tasks[last_event.task_index]
         }
         return null

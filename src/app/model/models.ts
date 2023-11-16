@@ -40,16 +40,16 @@ export enum CoolState {
 
 export function format_cool_state(state: CoolState): CoolState {
     switch (state) {
-        case CoolState.Ready:
-            return CoolState.Ready
-        case CoolState.Installed:
-            return CoolState.Installed
-        case CoolState.Installing:
-            return CoolState.Installing
-        case CoolState.Uninstalling:
-            return CoolState.Uninstalling
-        default:
-            return CoolState.Pending
+    case CoolState.Ready:
+        return CoolState.Ready
+    case CoolState.Installed:
+        return CoolState.Installed
+    case CoolState.Installing:
+        return CoolState.Installing
+    case CoolState.Uninstalling:
+        return CoolState.Uninstalling
+    default:
+        return CoolState.Pending
     }
 }
 

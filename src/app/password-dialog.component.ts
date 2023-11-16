@@ -1,5 +1,5 @@
-import { Component, Inject, OnInit} from '@angular/core';
-import { FormControl, NgModel, Validators } from '@angular/forms';
+import { Component, Inject} from '@angular/core';
+import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,10 +9,10 @@ import {FormsModule} from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
-  selector: 'app-password-dialog',
-  standalone: true,
-  template: `
-    <h1 mat-dialog-title [translate]="'DIALOG.PASSWORD_TITLE'"></h1>
+    selector: 'app-password-dialog',
+    standalone: true,
+    template: `
+    <h1 mat-dialog-title >{{'DIALOG.PASSWORD_TITLE' | translate}}</h1>
     <!-- <h1 mat-dialog-title>{{data.title}}</h1> -->
     <div mat-dialog-content>
       hello
@@ -25,17 +25,17 @@ import { TranslateModule } from '@ngx-translate/core';
       <button mat-button [mat-dialog-close]="passwordControl.value" cdkFocusInitial>Ok</button>
     </div>
   `,
-  imports: [MatFormFieldModule, MatInputModule, MatButtonModule, ReactiveFormsModule, FormsModule, MatDialogModule, TranslateModule],
+    imports: [MatFormFieldModule, MatInputModule, MatButtonModule, ReactiveFormsModule, FormsModule, MatDialogModule, TranslateModule],
   
 })
 export class PasswordDialogComponent {
-  passwordControl = new FormControl('', Validators.required);
+    passwordControl = new FormControl('', Validators.required);
   @Inject(MAT_DIALOG_DATA)
-  public data: {title: string} = {title: "title"};
+    public data: {title: string} = {title: "title"};
 
   constructor(public dialogRef: MatDialogRef<PasswordDialogComponent>) {}
 
   onNoClick(): void {
-    this.dialogRef.close();
+      this.dialogRef.close();
   }
 }

@@ -48,7 +48,7 @@ export class CoolListComponent implements OnInit {
         // create a middle observable to transform cools to cool_map
         const middleObservable = this.cools$.pipe(
             map(cools => {
-                let cool_map: Map<string, Cool> = new Map<string, Cool>()
+                const cool_map: Map<string, Cool> = new Map<string, Cool>()
                 cools.forEach((cool) => {
                     cool_map.set(cool.name, cool)
                 })
@@ -60,9 +60,9 @@ export class CoolListComponent implements OnInit {
         this.cool_service.cool_list().then((cools: Cool[]) => {
             this.cools$.next(cools.map((cool) => new Cool(cool)))
         })
-        .catch((err) => {
+            .catch(() => {
             // TODO show toast
-        })
+            })
 
         // if middleObservable changed, then update cool_map$
         middleObservable.subscribe((cool_map: Map<string, Cool>) => {

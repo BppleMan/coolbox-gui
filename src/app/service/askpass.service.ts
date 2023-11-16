@@ -18,7 +18,8 @@ export class AskPassService {
     }
 
     async listen_ask_pass(): Promise<void> {
-        return new Promise<void>(async (resolve, reject) => {
+        // eslint-disable-next-line no-async-promise-executor
+        return new Promise<void>( async (resolve, reject) => {
             try {
                 await listen("ask_pass", async () => {
                     this.zone.run(async () => {

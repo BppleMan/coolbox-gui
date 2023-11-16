@@ -1,34 +1,99 @@
 <div
-     class="cool-card box-border relative flex flex-row p-4 pb-10 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{cool.selected.value ? 'selected' : ''}}"
+    class="cool-card box-border relative flex flex-row p-4 pb-10 mb-4 rounded-xl overflow-auto select-none bg-[#101828] {{
+        cool.selected.value ? 'selected' : ''
+    }}"
 >
-    <mat-expansion-panel #expansionPanel hideToggle class="grow shadow-none" [expanded]="expanded" (opened)="setOpened()" (closed)="setClosed()">
-        <mat-expansion-panel-header class="relative p-0 h-auto {{(cool.state === 'Installing' || cool.state === 'Uninstalling') ? 'pb6' : 'pb2'}}" #panelH (click)="toggle_select($event)">
+    <mat-expansion-panel
+        #expansionPanel
+        hideToggle
+        class="grow shadow-none"
+        [expanded]="expanded"
+        (opened)="setOpened()"
+        (closed)="setClosed()"
+    >
+        <mat-expansion-panel-header
+            class="relative p-0 h-auto {{
+                cool.state === 'Installing' || cool.state === 'Uninstalling'
+                    ? 'pb6'
+                    : 'pb2'
+            }}"
+            #panelH
+            (click)="toggle_select($event)"
+        >
             <div class="flex grow">
                 <div class="flex grow flex-col">
-                    <div class="text-lg">{{cool.name}}</div>
-                    <div class="text-base text-[#CECFD2] font-normal leading-6">{{cool.description}}</div>
-
+                    <div class="text-lg">{{ cool.name }}</div>
+                    <div class="text-base text-[#CECFD2] font-normal leading-6">
+                        {{ cool.description }}
+                    </div>
                 </div>
             </div>
-            <button [disabled]="cool.state === 'Pending' || cool.state === 'Installing' || cool.state === 'Uninstalling'" mat-stroked-button color="primary" class="btn-action ml-auto pl-8 flex-shrink-0 rounded-md border-[#42307D]" (click)="doAction($event)">
-                {{('COOL_STATE.' + actionState.value | translate )}}
+            <button
+                [disabled]="
+                    cool.state === 'Pending' ||
+                    cool.state === 'Installing' ||
+                    cool.state === 'Uninstalling'
+                "
+                mat-stroked-button
+                color="primary"
+                class="btn-action ml-auto pl-8 flex-shrink-0 rounded-md border-[#42307D]"
+                (click)="doAction($event)"
+            >
+                {{ "COOL_STATE." + actionState.value | translate }}
             </button>
-            <mat-progress-bar *ngIf="cool.state === 'Installing' || cool.state === 'Uninstalling'" mode="determinate" class="absolute left-0 right-0 bottom-0" [value]="progress"></mat-progress-bar>
+            <mat-progress-bar
+                *ngIf="
+                    cool.state === 'Installing' || cool.state === 'Uninstalling'
+                "
+                mode="determinate"
+                class="absolute left-0 right-0 bottom-0"
+                [value]="progress"
+            ></mat-progress-bar>
         </mat-expansion-panel-header>
-        <mat-stepper orientation="vertical" linear="true" #stepper >
-            <mat-step class="-mx-4" *ngFor="let task of cool.install_tasks; index as i" class="relative" [label]="task.name" [completed]="formatComplete(i)" [optional]="true">
+        <mat-stepper orientation="vertical" linear="true" #stepper>
+            <mat-step
+                class="-mx-4"
+                *ngFor="let task of cool.install_tasks; index as i"
+                class="relative"
+                [label]="task.name"
+                [completed]="formatComplete(i)"
+                [optional]="true"
+            >
                 <!-- <ng-template matStepLabel >{{task.name}}</ng-template> -->
-                
-                <div class="code-container border-solid border border-[#1F242F] rounded-lg p-2 bg-[#191A22] divide-y divide-solid divide-[#1F242F]">
-                    <code class="block select-text pt-2 bg-transparent" [highlight]="task.description" [languages]="['bash']"></code>
-                    <code *ngIf="taskConsoleMessages[i]" id="{{cool.name + '_' + i}}" class="block box-border bg-transparent pt-2 select-text border-x-0 overflow-y-auto max-h-[66px] no-scrollbar whitespace-pre-line overscroll-contain"
-                     [highlight]="taskConsoleMessages[i]" [languages]="['bash']"></code>
+
+                <div
+                    class="code-container border-solid border border-[#1F242F] rounded-lg p-2 bg-[#191A22] divide-y divide-solid divide-[#1F242F]"
+                >
+                    <code
+                        class="block select-text pt-2 bg-transparent"
+                        [highlight]="task.description"
+                        [languages]="['bash']"
+                    ></code>
+                    <code
+                        *ngIf="taskConsoleMessages[i]"
+                        id="{{ cool.name + '_' + i }}"
+                        class="block box-border bg-transparent pt-2 select-text border-x-0 overflow-y-auto max-h-[66px] no-scrollbar whitespace-pre-line overscroll-contain"
+                        [highlight]="taskConsoleMessages[i]"
+                        [languages]="['bash']"
+                    ></code>
                 </div>
-                <img class="absolute right-2 top-2 w-4 h-4 cursor-pointer" src="assets/images/btn_copy.png" (click)="copy(task.description)"/>
+                <img
+                    class="absolute right-2 top-2 w-4 h-4 cursor-pointer"
+                    alt="Copy to clipboard"
+                    src="assets/images/btn_copy.png"
+                    (click)="copy(task.description)"
+                />
             </mat-step>
         </mat-stepper>
     </mat-expansion-panel>
-    <div class="toggle-panel cursor-pointer absolute left-0 right-0 bottom-0 flex grow items-center justify-center py-2" (click)="toggle_panel($event)">
-        <img class="img-expand w-5 h-5 block {{expanded ? 'img-rotate' : ''}}" src="assets/images/ic_expand_down.png"/>
+    <div
+        class="toggle-panel cursor-pointer absolute left-0 right-0 bottom-0 flex grow items-center justify-center py-2"
+        (click)="toggle_panel($event)"
+    >
+        <img
+            alt="Toggle panel"
+            class="img-expand w-5 h-5 block {{ expanded ? 'img-rotate' : '' }}"
+            src="assets/images/ic_expand_down.png"
+        />
     </div>
 </div>

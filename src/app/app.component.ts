@@ -1,5 +1,4 @@
 import {Component, OnInit} from "@angular/core"
-import {HighlightAutoResult} from "ngx-highlightjs"
 import {AskPassService} from "./service/askpass.service"
 
 @Component({
