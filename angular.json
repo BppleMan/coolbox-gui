@@ -65,10 +65,10 @@
                     "builder": "@angular-devkit/build-angular:dev-server",
                     "configurations": {
                         "production": {
-                            "browserTarget": "coolbox-gui:build:production"
+                          "buildTarget": "coolbox-gui:build:production"
                         },
                         "development": {
-                            "browserTarget": "coolbox-gui:build:development"
+                          "buildTarget": "coolbox-gui:build:development"
                         }
                     },
                     "defaultConfiguration": "development"
@@ -76,7 +76,7 @@
                 "extract-i18n": {
                     "builder": "@angular-devkit/build-angular:extract-i18n",
                     "options": {
-                        "browserTarget": "coolbox-gui:build"
+                      "buildTarget": "coolbox-gui:build"
                     }
                 },
                 "test": {
