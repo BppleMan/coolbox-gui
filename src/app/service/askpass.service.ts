@@ -1,4 +1,4 @@
-import {Injectable} from "@angular/core"
+import {Injectable, NgZone} from "@angular/core"
 
 import {MatDialog} from "@angular/material/dialog"
 
@@ -10,7 +10,7 @@ import {PasswordDialogComponent} from "../password-dialog.component"
     providedIn: "root",
 })
 export class AskPassService {
-    constructor(private dialog: MatDialog) {
+    constructor(private dialog: MatDialog, private zone: NgZone) {
     }
 
     async callback_ask_pass(password: string): Promise<void> {
@@ -21,10 +21,15 @@ export class AskPassService {
         return new Promise<void>(async (resolve, reject) => {
             try {
                 await listen("ask_pass", async () => {
-                    const dialogRef = this.dialog.open(PasswordDialogComponent)
-                    dialogRef.afterClosed().subscribe(async password => {
-                        await this.callback_ask_pass(password || "")
+                    this.zone.run(async () => {
+                        const dialogRef = this.dialog.open(PasswordDialogComponent, {
+                            data: {title: "DIALOG.PASSWORD_TITLE"},
+                        })
+                        dialogRef.afterClosed().subscribe(async password => {
+                            await this.callback_ask_pass(password || "")
+                        })
                     })
+                    
                 })
             } catch (error) {
                 reject(error)

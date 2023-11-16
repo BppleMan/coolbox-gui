@@ -10,5 +10,9 @@
     "Pending": "Pending",
     "Installing": "Installing",
     "Uninstalling": "Uninstalling"
+  },
+  "DIALOG": {
+    "PASSWORD_TITLE": "We need your permission",
+    "PASSWORD_CONTENT": "We need to apply for administrator privileges for {{value}}, we promise not to use the password for any purpose other than installing {{value}}"
   }
 }

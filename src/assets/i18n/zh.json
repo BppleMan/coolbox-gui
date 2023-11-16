@@ -10,5 +10,9 @@
     "Pending": "请求中",
     "Installing": "安装中",
     "Uninstalling": "卸载中"
+  },
+  "DIALOG": {
+    "PASSWORD_TITLE": "我们需要您赋予权限",
+    "PASSWORD_CONTENT": "我们需要为{{value}}申请管理员权限，我们承诺不会将密码用于除安装{{value}}以外的任何目的"
   }
 }
