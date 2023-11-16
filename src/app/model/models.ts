@@ -2,15 +2,15 @@ import {BehaviorSubject} from "rxjs"
 import {TaskEvent} from "./event"
 
 export class Cool {
-    name: string;
-    description: string;
-    state: CoolState;
-    dependencies: string[];
-    install_tasks: Task[];
-    uninstall_tasks: Task[];
-    check_tasks: Task[];
-    selected: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-    events: BehaviorSubject<TaskEvent[]> = new BehaviorSubject<TaskEvent[]>([]);
+    name: string
+    description: string
+    state: CoolState
+    dependencies: string[]
+    install_tasks: Task[]
+    uninstall_tasks: Task[]
+    check_tasks: Task[]
+    selected: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false)
+    events: BehaviorSubject<TaskEvent[]> = new BehaviorSubject<TaskEvent[]>([])
 
     constructor(
         cool: Cool,

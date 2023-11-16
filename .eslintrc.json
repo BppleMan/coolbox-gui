@@ -30,8 +30,7 @@
             "prefix": "app",
             "style": "kebab-case"
           }
-        ],
-        "indent": ["error", 4]
+        ]
       }
     },
     {
@@ -61,6 +60,15 @@
       "rules": {
         // NOTE: WE ARE OVERRIDING THE DEFAULT CONFIG TO ALWAYS SET THE PARSER TO ANGULAR (SEE BELOW)
         "prettier/prettier": ["error", { "parser": "angular" }]
+      }
+    },
+    {
+      "files": [
+        "*.ts"
+      ],
+      "rules": {
+        "indent": ["error", 4],
+        "semi": ["error", "never"]
       }
     }
   ]

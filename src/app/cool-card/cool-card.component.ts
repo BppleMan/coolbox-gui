@@ -1,28 +1,28 @@
-import { CommonModule } from "@angular/common";
+import { CommonModule } from "@angular/common"
 import {
     ChangeDetectorRef,
     Component,
     Input,
     OnInit,
     ViewChild,
-} from "@angular/core";
-import { MatButtonModule } from "@angular/material/button";
-import { MatCheckboxModule } from "@angular/material/checkbox";
-import { MatRippleModule } from "@angular/material/core";
-import { MatDividerModule } from "@angular/material/divider";
+} from "@angular/core"
+import { MatButtonModule } from "@angular/material/button"
+import { MatCheckboxModule } from "@angular/material/checkbox"
+import { MatRippleModule } from "@angular/material/core"
+import { MatDividerModule } from "@angular/material/divider"
 import {
     MatExpansionModule,
     MatExpansionPanel,
-} from "@angular/material/expansion";
-import { MatIconModule } from "@angular/material/icon";
-import { MatProgressBarModule } from "@angular/material/progress-bar";
-import { MatStepper, MatStepperModule } from "@angular/material/stepper";
-import { HIGHLIGHT_OPTIONS, HighlightModule } from "ngx-highlightjs";
-import { BehaviorSubject } from "rxjs";
-import { Cool, CoolState, format_cool_state } from "../model/models";
-import { CoolService } from "../service/cool.service";
-import { STEPPER_GLOBAL_OPTIONS } from "@angular/cdk/stepper";
-import { TranslateModule } from "@ngx-translate/core";
+} from "@angular/material/expansion"
+import { MatIconModule } from "@angular/material/icon"
+import { MatProgressBarModule } from "@angular/material/progress-bar"
+import { MatStepper, MatStepperModule } from "@angular/material/stepper"
+import { HighlightModule } from "ngx-highlightjs"
+import { BehaviorSubject } from "rxjs"
+import { Cool, CoolState, format_cool_state } from "../model/models"
+import { CoolService } from "../service/cool.service"
+import { STEPPER_GLOBAL_OPTIONS } from "@angular/cdk/stepper"
+import { TranslateModule } from "@ngx-translate/core"
 
 const ActionMap = new Map<CoolState, string>([
     [CoolState.Ready, "Install"],
@@ -30,7 +30,7 @@ const ActionMap = new Map<CoolState, string>([
     [CoolState.Installing, "Installing"],
     [CoolState.Uninstalling, "Uninstalling"],
     [CoolState.Pending, "Pending"],
-]);
+])
 
 @Component({
     selector: "app-cool-card",
@@ -68,21 +68,21 @@ const ActionMap = new Map<CoolState, string>([
     ],
 })
 export class CoolCardComponent implements OnInit {
-    @ViewChild("expansionPanel") panel!: MatExpansionPanel;
-    @ViewChild("stepper") stepper!: MatStepper;
-    @Input() cool!: Cool;
+    @ViewChild("expansionPanel") panel!: MatExpansionPanel
+    @ViewChild("stepper") stepper!: MatStepper
+    @Input() cool!: Cool
     coolState$: BehaviorSubject<CoolState> = new BehaviorSubject<CoolState>(
         CoolState.Pending,
-    );
+    )
     actionState: BehaviorSubject<string> = new BehaviorSubject<string>(
         ActionMap.get(CoolState.Pending)!,
-    );
-    expanded = false;
-    progress: number = 0;
-    currentProgressStep: number = 0;
-    progressAnimationId: number = 0;
-    taskConsoleMessages: string[] = [];
-    editable: boolean = true;
+    )
+    expanded = false
+    progress: number = 0
+    currentProgressStep: number = 0
+    progressAnimationId: number = 0
+    taskConsoleMessages: string[] = []
+    editable: boolean = true
 
     constructor(
         private cool_service: CoolService,
@@ -97,26 +97,26 @@ export class CoolCardComponent implements OnInit {
                 console.log(
                     `[${this.cool.name}] state:`,
                     format_cool_state(coolStates[0]),
-                );
-                this.coolState$.next(format_cool_state(coolStates[0]));
-            });
+                )
+                this.coolState$.next(format_cool_state(coolStates[0]))
+            })
 
         this.coolState$.subscribe((state) => {
-            this.actionState.next(ActionMap.get(state)!);
-        });
+            this.actionState.next(ActionMap.get(state)!)
+        })
 
         // subscribe cool.events to update the progress bar
         this.cool.events.subscribe((events) => {
             if (events.length > 0) {
-                const last_event = events[events.length - 1];
+                const last_event = events[events.length - 1]
                 // this.taskConsoleMessages[last_event.task_index] += last_event.message.message + "\n"
                 if (!this.taskConsoleMessages[last_event.task_index]) {
-                    this.taskConsoleMessages[last_event.task_index] = "";
+                    this.taskConsoleMessages[last_event.task_index] = ""
                 }
                 // need new line every time
                 this.taskConsoleMessages[last_event.task_index] +=
-                    last_event.message.message + "\n";
-                this.stepper.selectedIndex = last_event.task_index;
+                    last_event.message.message + "\n"
+                this.stepper.selectedIndex = last_event.task_index
                 // change stepper if necessary
                 // 倒数第二个event（如果存在的话）
                 // if (events.length > 1) {
@@ -126,14 +126,14 @@ export class CoolCardComponent implements OnInit {
                 //     }
                 // }
 
-                this.cdr.detectChanges();
+                this.cdr.detectChanges()
                 setTimeout(() => {
                     const element = document.getElementById(
                         this.cool.name + "_" + last_event.task_index,
-                    );
-                    console.log("element", element);
-                    element && (element.scrollTop = element.scrollHeight - 40);
-                }, 100);
+                    )
+                    console.log("element", element)
+                    element && (element.scrollTop = element.scrollHeight - 40)
+                }, 100)
                 // the prgress bar reaches 100% only when the last event.tasl_state is "Finished"
                 // first we should know how much this.cool's install_tasks.length is, then we can calculate the progress
                 // basic logic is, if the length is only one, the progress bar animate from 0% to 90% in a proper speed, then wait for the last event to animate from 90% to 100%
@@ -143,130 +143,130 @@ export class CoolCardComponent implements OnInit {
                 // TODO we should use a better algorithm to calculate the progress
                 if (last_event.task_state == "Finished") {
                     // whatever current animation is, cancel it, and smoothly animate to 100%
-                    this.animateProgress(100);
+                    this.animateProgress(100)
                     // TODO should we fetch cool state again?
                     this.cool_service
                         .check_cool([this.cool.name])
                         .then((coolStates: CoolState[]) => {
-                            console.log("cool detail", coolStates[0]);
-                            this.coolState$.next(coolStates[0]);
-                        });
+                            console.log("cool detail", coolStates[0])
+                            this.coolState$.next(coolStates[0])
+                        })
                 } else {
                     const progressStep =
                         ((last_event.task_index + 1) /
                             this.cool.install_tasks.length) *
                             100 -
-                        10;
+                        10
                     // should animate from current progres to finalProgress in a proper speed using animation frame
                     if (this.currentProgressStep != progressStep) {
-                        this.animateProgress(progressStep);
+                        this.animateProgress(progressStep)
                     }
                 }
             }
-        });
+        })
     }
 
     doAction(event: MouseEvent) {
         if (this.coolState$.value == CoolState.Ready) {
             // change state to installing
-            this.coolState$.next(CoolState.Installing);
-            this.install(event);
+            this.coolState$.next(CoolState.Installing)
+            this.install(event)
         } else if (this.coolState$.value == CoolState.Installed) {
             // change state to uninstalling
-            this.coolState$.next(CoolState.Uninstalling);
-            this.uninstall(event);
+            this.coolState$.next(CoolState.Uninstalling)
+            this.uninstall(event)
         }
     }
 
     animateProgress(to: number) {
         // TODO
         if (this.progressAnimationId) {
-            clearInterval(this.progressAnimationId);
+            clearInterval(this.progressAnimationId)
         }
-        const initialProgress = this.progress;
+        const initialProgress = this.progress
         // should calculate the proper speed, which means the interval is dynamic due to the distance between initialProgress and to
         // if the distance is too large, the interval should be larger
         // if the distance is too small, the interval should be smaller
 
-        const distance = to - initialProgress;
-        const step = Math.ceil(distance / 10);
-        console.log("step", step);
+        const distance = to - initialProgress
+        const step = Math.ceil(distance / 10)
+        console.log("step", step)
         this.progressAnimationId = setInterval(() => {
             if (this.progress < to) {
-                this.progress += step;
-                this.cdr.detectChanges();
+                this.progress += step
+                this.cdr.detectChanges()
             } else {
-                clearInterval(this.progressAnimationId);
+                clearInterval(this.progressAnimationId)
                 if (this.progress >= 100) {
-                    this.progress = 0;
-                    this.currentProgressStep = 0;
+                    this.progress = 0
+                    this.currentProgressStep = 0
                 }
             }
-        }, 200);
+        }, 200)
     }
 
     get currentTask() {
         if (this.cool.events.value.length > 0) {
             const last_event =
-                this.cool.events.value[this.cool.events.value.length - 1];
-            return this.cool.install_tasks[last_event.task_index];
+                this.cool.events.value[this.cool.events.value.length - 1]
+            return this.cool.install_tasks[last_event.task_index]
         }
-        return null;
+        return null
     }
 
     toggle_select(event: MouseEvent) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.cool.selected.next(!this.cool.selected.value);
+        event.preventDefault()
+        event.stopPropagation()
+        this.cool.selected.next(!this.cool.selected.value)
     }
 
     toggle_panel(event: MouseEvent) {
-        console.log("toggle_selected");
-        event.preventDefault();
-        event.stopPropagation();
-        this.panel.toggle();
+        console.log("toggle_selected")
+        event.preventDefault()
+        event.stopPropagation()
+        this.panel.toggle()
     }
 
     setOpened() {
-        this.expanded = true;
+        this.expanded = true
     }
 
     setClosed() {
-        this.expanded = false;
+        this.expanded = false
     }
 
     copy(content: string) {
-        console.log("copy", content);
-        navigator.clipboard.writeText(content);
+        console.log("copy", content)
+        navigator.clipboard.writeText(content)
         // TODO we should show toast here to indicate the copy action
     }
 
     install(event: MouseEvent) {
-        event.stopPropagation();
-        this.cool_service.install_cool([this.cool]).then();
+        event.stopPropagation()
+        this.cool_service.install_cool([this.cool]).then()
     }
 
     uninstall(event: MouseEvent) {
-        event.stopPropagation();
-        this.cool_service.uninstall_cool([this.cool]).then();
+        event.stopPropagation()
+        this.cool_service.uninstall_cool([this.cool]).then()
     }
     formatComplete(index: number): boolean {
-        let isComplete = false;
+        let isComplete = false
         if (this.cool.events.value.length) {
             if (
                 this.cool.events.value[this.cool.events.value.length - 1]
                     .task_index > index
             ) {
-                isComplete = true;
+                isComplete = true
             } else if (
                 this.cool.events.value[this.cool.events.value.length - 1]
                     .task_index == index
             ) {
                 isComplete =
                     this.cool.events.value[this.cool.events.value.length - 1]
-                        .task_state == "Finished";
+                        .task_state == "Finished"
             }
         }
-        return isComplete;
+        return isComplete
     }
 }
