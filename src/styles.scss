@@ -34,8 +34,7 @@ $cool-box-theme: palette-helper.modify-background($cool-box-theme, #101828);
 @tailwind components;
 @tailwind utilities;
 
-//noinspection CssUnknownTarget
-@import "~highlight.js/styles/tokyo-night-dark.css";
+@import "highlight.js/styles/tokyo-night-dark.css";
 //@import "~highlight.js/styles/devibeans.css";
 
 html, body {
@@ -66,7 +65,7 @@ app-root {
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
-  
+
         /* Hide scrollbar for IE, Edge and Firefox */
         .no-scrollbar {
             -ms-overflow-style: none;  /* IE and Edge */
