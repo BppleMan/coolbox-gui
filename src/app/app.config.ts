@@ -1,21 +1,21 @@
-import { HttpClient, provideHttpClient } from "@angular/common/http";
-import { ApplicationConfig, importProvidersFrom, NgZone } from "@angular/core";
+import { HttpClient, provideHttpClient } from "@angular/common/http"
+import { ApplicationConfig, importProvidersFrom, NgZone } from "@angular/core"
 import {
-    MatDialog,
-    MatDialogModule,
-    MatDialogRef,
-} from "@angular/material/dialog";
-import { provideRouter } from "@angular/router";
-import { TranslateLoader, TranslateModule } from "@ngx-translate/core";
-import { TranslateHttpLoader } from "@ngx-translate/http-loader";
-import { HIGHLIGHT_OPTIONS, HighlightModule } from "ngx-highlightjs";
+    MatDialogModule
+} from "@angular/material/dialog"
+import { provideRouter } from "@angular/router"
+import { TranslateLoader, TranslateModule } from "@ngx-translate/core"
+import { TranslateHttpLoader } from "@ngx-translate/http-loader"
+import { HIGHLIGHT_OPTIONS, HighlightModule } from "ngx-highlightjs"
+import { provideAnimations } from "@angular/platform-browser/animations"
 
-import { routes } from "./app.routes";
+import { routes } from "./app.routes"
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideRouter(routes),
         provideHttpClient(),
+        provideAnimations(),
         importProvidersFrom(
             TranslateModule.forRoot({
                 loader: {
@@ -43,8 +43,8 @@ export const appConfig: ApplicationConfig = {
             },
         },
     ],
-};
+}
 
 export function HttpLoaderFactory(http: HttpClient) {
-    return new TranslateHttpLoader(http);
+    return new TranslateHttpLoader(http)
 }
