@@ -1,13 +1,11 @@
-use crate::shell::Shell;
 use color_eyre::Report;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-#[error(transparent)]
+#[error("Shell error: {shell:?} {script:?} {envs:?}\n{inner_error:?}")]
 pub struct ShellError {
-    pub shell: Shell,
+    pub shell: String,
     pub script: String,
-    pub envs: Vec<(String, String)>,
-    #[source]
+    pub envs: Option<Vec<(String, String)>>,
     pub inner_error: Option<Report>,
 }

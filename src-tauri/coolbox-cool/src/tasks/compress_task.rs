@@ -13,8 +13,8 @@ use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
-use crate::error::ExecutableError;
-use crate::result::ExecutableResult;
+use crate::error::{CompressTaskError, InnerError, TaskError};
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
@@ -31,57 +31,90 @@ impl CompressTask {
         Self { src, dest }
     }
 
-    pub fn compress_zip(&self, mut send: Box<MessageSender>) -> ExecutableResult {
+    pub fn compress_zip(&self, mut send: Box<MessageSender>) -> CoolResult<(), TaskError> {
         let src = PathBuf::from(&self.src);
-        let parent = src
-            .parent()
-            .ok_or_else(|| ExecutableError::PathNoParent(eyre!("No parent: {}", src.display())))?;
-        let dest = File::create(&self.dest)?;
+        let parent = src.parent().ok_or_else(|| TaskError::CompressTaskError {
+            task: self.clone(),
+            source: CompressTaskError::SourceNoParent(self.src.clone()),
+        })?;
+        let dest = File::create(&self.dest).map_err(|e| self.map_inner_error(e))?;
         let mut zip = ZipWriter::new(dest);
         for entry in WalkDir::new(&self.src) {
-            let entry = entry?;
+            let entry = entry.map_err(|e| self.map_inner_error(e))?;
             if entry.file_type().is_dir() {
                 zip.add_directory(
-                    entry.path().strip_prefix(parent)?.display().to_string(),
+                    entry
+                        .path()
+                        .strip_prefix(parent)
+                        .map_err(|e| self.map_inner_error(e))?
+                        .display()
+                        .to_string(),
                     FileOptions::default(),
-                )?;
+                )
+                .map_err(|e| self.map_inner_error(e))?;
                 send(format!("Add directory {}", entry.path().display()).into_info());
             } else if entry.file_type().is_file() {
                 zip.start_file(
-                    entry.path().strip_prefix(parent)?.display().to_string(),
+                    entry
+                        .path()
+                        .strip_prefix(parent)
+                        .map_err(|e| self.map_inner_error(e))?
+                        .display()
+                        .to_string(),
                     FileOptions::default().compression_method(CompressionMethod::Stored),
-                )?;
-                let mut file = File::open(entry.path())?;
+                )
+                .map_err(|e| self.map_inner_error(e))?;
+                let mut file = File::open(entry.path()).map_err(|e| self.map_inner_error(e))?;
                 let mut buf = vec![];
-                file.read_to_end(&mut buf)?;
-                zip.write_all(&buf)?;
+                file.read_to_end(&mut buf)
+                    .map_err(|e| self.map_inner_error(e))?;
+                zip.write_all(&buf).map_err(|e| self.map_inner_error(e))?;
                 send(format!("Add file {}", entry.path().display()).into_info());
             } else if entry.file_type().is_symlink() {
                 zip.add_symlink(
-                    entry.path().strip_prefix(parent)?.display().to_string(),
-                    entry.path().read_link()?.display().to_string(),
+                    entry
+                        .path()
+                        .strip_prefix(parent)
+                        .map_err(|e| self.map_inner_error(e))?
+                        .display()
+                        .to_string(),
+                    entry
+                        .path()
+                        .read_link()
+                        .map_err(|e| self.map_inner_error(e))?
+                        .display()
+                        .to_string(),
                     FileOptions::default().compression_method(CompressionMethod::Stored),
-                )?;
+                )
+                .map_err(|e| self.map_inner_error(e))?;
                 send(format!("Add symlink {}", entry.path().display()).into_info());
             }
         }
-        zip.finish()?;
+        zip.finish().map_err(|e| self.map_inner_error(e))?;
 
         Ok(())
     }
 
-    pub fn compress_tar_gz(&self, mut send: Box<MessageSender>) -> ExecutableResult {
+    pub fn compress_tar_gz(&self, mut send: Box<MessageSender>) -> CoolResult<(), TaskError> {
         let src = PathBuf::from(&self.src);
-        let dest = File::create(&self.dest)?;
+        let dest = File::create(&self.dest).map_err(|e| self.map_inner_error(e))?;
 
         let gz = GzEncoder::new(dest, flate2::Compression::default());
         let mut tar = tar::Builder::new(gz);
         tar.follow_symlinks(false);
-        tar.append_dir_all(src.file_name().unwrap(), &self.src)?;
-        tar.finish()?;
+        tar.append_dir_all(src.file_name().unwrap(), &self.src)
+            .map_err(|e| self.map_inner_error(e))?;
+        tar.finish().map_err(|e| self.map_inner_error(e))?;
         send(format!("Add directory {}", &self.src).into_info());
 
         Ok(())
+    }
+
+    fn map_inner_error(&self, error: impl Into<InnerError>) -> TaskError {
+        TaskError::CompressTaskError {
+            task: self.clone(),
+            source: CompressTaskError::InnerError(error.into()),
+        }
     }
 }
 
@@ -98,15 +131,16 @@ impl Display for CompressTask {
 }
 
 impl<'a> Executable<'a> for CompressTask {
-    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         if self.dest.ends_with(".zip") {
             self.compress_zip(send)
         } else if self.dest.ends_with(".tar.gz") {
             self.compress_tar_gz(send)
         } else {
-            let error =
-                ExecutableError::UnsupportedCompressType(eyre!("Not support: {}", self.dest));
-            Err(error)
+            Err(TaskError::CompressTaskError {
+                task: self.clone(),
+                source: CompressTaskError::UnsupportedCompressType(self.dest.clone()),
+            })
         }
     }
 }

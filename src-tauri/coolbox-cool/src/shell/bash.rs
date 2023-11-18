@@ -8,6 +8,10 @@ use crate::shell::ShellExecutor;
 pub struct Bash;
 
 impl ShellExecutor for Bash {
+    fn name(&self) -> &'static str {
+        "bash"
+    }
+
     fn interpreter(&self) -> Command {
         Command::new("bash")
     }

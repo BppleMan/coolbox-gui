@@ -6,7 +6,8 @@ use fs_extra::dir::TransitProcessResult;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::result::ExecutableResult;
+use crate::error::{CopyTaskError, InnerError, TaskError};
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
@@ -21,6 +22,13 @@ pub struct CopyTask {
 impl CopyTask {
     pub fn new(src: String, dest: String) -> Self {
         Self { src, dest }
+    }
+
+    fn map_inner_error(&self, e: impl Into<InnerError>) -> TaskError {
+        TaskError::CopyTaskError {
+            task: self.clone(),
+            source: CopyTaskError::InnerError(e.into()),
+        }
     }
 }
 
@@ -37,9 +45,9 @@ impl Display for CopyTask {
 }
 
 impl<'a> Executable<'a> for CopyTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
-        let src = PathBuf::from_str(&self.src)?;
-        let dest = PathBuf::from_str(&self.dest)?;
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
+        let src = PathBuf::from_str(&self.src).map_err(|e| self.map_inner_error(e))?;
+        let dest = PathBuf::from_str(&self.dest).map_err(|e| self.map_inner_error(e))?;
         if src.is_dir() {
             let options = fs_extra::dir::CopyOptions::new()
                 .skip_exist(true)
@@ -47,7 +55,8 @@ impl<'a> Executable<'a> for CopyTask {
             fs_extra::dir::copy_with_progress(&self.src, &self.dest, &options, |transit| {
                 send(transit.as_info());
                 TransitProcessResult::OverwriteAll
-            })?;
+            })
+            .map_err(|e| self.map_inner_error(e))?;
         } else {
             let options = fs_extra::file::CopyOptions::new().skip_exist(true);
             if dest.is_dir() {
@@ -59,11 +68,13 @@ impl<'a> Executable<'a> for CopyTask {
                     |transit| {
                         send(transit.as_info(dest.to_string_lossy()));
                     },
-                )?;
+                )
+                .map_err(|e| self.map_inner_error(e))?;
             } else {
                 fs_extra::file::copy_with_progress(&self.src, &self.dest, &options, |transit| {
                     send(transit.as_info(dest.to_string_lossy()));
-                })?;
+                })
+                .map_err(|e| self.map_inner_error(e))?;
             }
         }
         Ok(())

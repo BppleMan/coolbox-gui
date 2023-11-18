@@ -6,9 +6,10 @@ use fs_extra::dir::{CopyOptions, TransitProcessResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
-use crate::result::ExecutableResult;
+use crate::error::{InnerError, MoveTaskError, TaskError};
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct MoveTask {
@@ -21,6 +22,13 @@ pub struct MoveTask {
 impl MoveTask {
     pub fn new(src: String, dest: String) -> Self {
         Self { src, dest }
+    }
+
+    fn map_inner_error(&self, error: impl Into<InnerError>) -> TaskError {
+        TaskError::MoveTaskError {
+            task: self.clone(),
+            source: MoveTaskError::InnerError(error.into()),
+        }
     }
 }
 
@@ -37,9 +45,9 @@ impl Display for MoveTask {
 }
 
 impl<'a> Executable<'a> for MoveTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
-        let src = PathBuf::from_str(&self.src)?;
-        let dest = PathBuf::from_str(&self.dest)?;
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
+        let src = PathBuf::from_str(&self.src).map_err(|e| self.map_inner_error(e))?;
+        let dest = PathBuf::from_str(&self.dest).map_err(|e| self.map_inner_error(e))?;
         if src.is_dir() {
             fs_extra::dir::move_dir_with_progress(
                 &self.src,
@@ -49,7 +57,8 @@ impl<'a> Executable<'a> for MoveTask {
                     send(transit.as_info());
                     TransitProcessResult::OverwriteAll
                 },
-            )?;
+            )
+            .map_err(|e| self.map_inner_error(e))?;
         } else {
             let options = fs_extra::file::CopyOptions::new().skip_exist(true);
             if dest.is_dir() {
@@ -61,7 +70,8 @@ impl<'a> Executable<'a> for MoveTask {
                     |transit| {
                         send(transit.as_info(dest.to_string_lossy()));
                     },
-                )?;
+                )
+                .map_err(|e| self.map_inner_error(e))?;
             } else {
                 fs_extra::file::move_file_with_progress(
                     &self.src,
@@ -70,7 +80,8 @@ impl<'a> Executable<'a> for MoveTask {
                     |transit| {
                         send(transit.as_info(dest.to_string_lossy()));
                     },
-                )?;
+                )
+                .map_err(|e| self.map_inner_error(e))?;
             }
         }
         Ok(())

@@ -1,8 +1,5 @@
-use backtrace::Backtrace;
-use color_eyre::Report;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use thiserror::Error;
 
 #[derive(Debug)]
 pub struct EnvUtilError {}

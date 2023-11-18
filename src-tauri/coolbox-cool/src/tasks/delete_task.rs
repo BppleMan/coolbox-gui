@@ -1,9 +1,10 @@
 use std::fmt::{Display, Formatter};
 
+use crate::error::{DeleteTaskError, TaskError};
+use crate::result::CoolResult;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
@@ -25,8 +26,11 @@ impl Display for DeleteTask {
 }
 
 impl<'a> Executable<'a> for DeleteTask {
-    fn execute(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
-        fs_extra::remove_items(&[&self.path])?;
+    fn execute(&self, _send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
+        fs_extra::remove_items(&[&self.path]).map_err(|e| TaskError::DeleteTaskError {
+            task: self.clone(),
+            source: DeleteTaskError::InnerError(e.into()),
+        })?;
         Ok(())
     }
 }

@@ -52,6 +52,9 @@ backtrace = "0.3.69"
 [target.'cfg(windows)'.dependencies]
 winreg.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+winreg.workspace = true
+
 [dev-dependencies]
 uuid = "1.4.1"
 http = "0.2.9"

@@ -1,12 +1,11 @@
 use std::fmt::{Display, Formatter};
 use std::path::Path;
 
-use color_eyre::eyre::eyre;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::ExecutableError;
-use crate::result::ExecutableResult;
+use crate::error::TaskError;
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
@@ -34,14 +33,11 @@ impl Display for ExistsTask {
 }
 
 impl<'a> Executable<'a> for ExistsTask {
-    fn execute(&self, _send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, _send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         if Path::new(&self.path).exists() {
             Ok(())
         } else {
-            Err(ExecutableError::FileNotExists(eyre!(
-                "{} does not exist",
-                self.path
-            )))
+            Err(TaskError::ExistsTaskError(self.path.clone()))
         }
     }
 }

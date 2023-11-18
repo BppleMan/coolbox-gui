@@ -1,3 +1,4 @@
+use crate::error::ShellError;
 use crossbeam::channel::Sender;
 use log::info;
 use schemars::JsonSchema;
@@ -21,7 +22,7 @@ impl Installable for Dnf {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("installing {} with dnf", name);
 
         let mut arguments = vec!["-y"];
@@ -43,7 +44,7 @@ impl Installable for Dnf {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("uninstalling {} with rpm", name);
 
         let mut arguments = vec![];
@@ -64,7 +65,7 @@ impl Installable for Dnf {
         name: &str,
         _args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool> {
+    ) -> CoolResult<bool, ShellError> {
         info!("checking {}", name);
 
         Bash.run(&format!("dnf list installed {}", name), envs, None)

@@ -1,12 +1,11 @@
 use std::fmt::{Display, Formatter};
 
-use color_eyre::eyre::eyre;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::ExecutableError;
+use crate::error::{CheckTaskError, TaskError};
 use crate::installer::{Installable, Installer};
-use crate::result::ExecutableResult;
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
@@ -29,19 +28,25 @@ impl Display for CheckTask {
 }
 
 impl<'a> Executable<'a> for CheckTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         self.installer
             .check_available(&self.name, None, None)
-            .map_err(ExecutableError::ShellError)
+            .map_err(|e| TaskError::CheckTaskError {
+                task: self.clone(),
+                source: CheckTaskError::ShellError(e),
+            })
             .and_then(|result| {
                 if result {
                     send(format!("{} is available", &self.name).into_info());
                     Ok(())
                 } else {
-                    Err(ExecutableError::NotAvailable(eyre!(
-                        "{} is not available",
-                        &self.name
-                    )))
+                    Err(TaskError::CheckTaskError {
+                        task: self.clone(),
+                        source: CheckTaskError::NotAvailable {
+                            name: self.name.clone(),
+                            installer: self.installer.name().to_string(),
+                        },
+                    })
                 }
             })
     }

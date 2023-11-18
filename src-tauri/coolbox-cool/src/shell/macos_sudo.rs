@@ -1,6 +1,5 @@
 use std::process::Command;
 
-use color_eyre::Result;
 use schemars::JsonSchema;
 
 use crate::shell::ShellExecutor;
@@ -9,13 +8,17 @@ use crate::shell::ShellExecutor;
 pub struct MacOSSudo;
 
 impl ShellExecutor for MacOSSudo {
+    fn name(&self) -> &'static str {
+        "macos_sudo"
+    }
+
     fn interpreter(&self) -> Command {
         let mut command = Command::new("osascript");
         command.arg("-e");
         command
     }
 
-    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> Result<Command> {
+    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> Command {
         let mut command = self.interpreter();
 
         command.arg(format!(
@@ -28,7 +31,7 @@ impl ShellExecutor for MacOSSudo {
             command.env_clear();
         }
 
-        Ok(command)
+        command
     }
 }
 

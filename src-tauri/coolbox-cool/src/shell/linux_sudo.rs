@@ -8,6 +8,10 @@ use crate::shell::ShellExecutor;
 pub struct LinuxSudo;
 
 impl ShellExecutor for LinuxSudo {
+    fn name(&self) -> &'static str {
+        "linux_sudo"
+    }
+
     fn interpreter(&self) -> Command {
         let mut command = Command::new("pkexec");
         command.arg("bash");

@@ -1,3 +1,4 @@
+use crate::shell::ShellExecutor;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 

@@ -1,16 +1,14 @@
 mod env_util_error;
-mod executable_error;
 mod inner_error;
-mod installer_error;
 mod shell_error;
 mod storage_error;
+mod task_error;
 
 pub use env_util_error::*;
-pub use executable_error::*;
 pub use inner_error::*;
-pub use installer_error::*;
 pub use shell_error::*;
 pub use storage_error::*;
+pub use task_error::*;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -35,12 +33,7 @@ pub enum CoolError {
 }
 
 impl CoolError {
-    pub fn from(
-        cool_name: String,
-        task_name: String,
-        task_index: usize,
-        error: ExecutableError,
-    ) -> Self {
+    pub fn from(cool_name: String, task_name: String, task_index: usize, error: TaskError) -> Self {
         Self::ExecuteError {
             cool_name,
             task_name,

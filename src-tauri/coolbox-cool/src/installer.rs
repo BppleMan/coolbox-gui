@@ -1,11 +1,11 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 
 use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::error::InstallerError;
+use crate::error::ShellError;
 pub use apt::*;
 pub use brew::*;
 pub use cargo::*;
@@ -34,7 +34,7 @@ pub trait Installable {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<(), InstallerError>;
+    ) -> CoolResult<(), ShellError>;
 
     fn uninstall(
         &self,
@@ -42,14 +42,14 @@ pub trait Installable {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<(), InstallerError>;
+    ) -> CoolResult<(), ShellError>;
 
     fn check_available(
         &self,
         name: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool, InstallerError>;
+    ) -> CoolResult<bool, ShellError>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
@@ -88,6 +88,12 @@ impl AsMut<dyn Installable> for Installer {
     }
 }
 
+impl Display for Installer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_ref().name())
+    }
+}
+
 impl Installable for Installer {
     fn name(&self) -> &'static str {
         self.as_ref().name()
@@ -99,7 +105,7 @@ impl Installable for Installer {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<(), InstallerError> {
+    ) -> CoolResult<(), ShellError> {
         self.as_ref().install(name, args, envs, sender)
     }
 
@@ -109,7 +115,7 @@ impl Installable for Installer {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<(), InstallerError> {
+    ) -> CoolResult<(), ShellError> {
         self.as_ref().uninstall(name, args, envs, sender)
     }
 
@@ -118,7 +124,7 @@ impl Installable for Installer {
         name: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool, InstallerError> {
+    ) -> CoolResult<bool, ShellError> {
         self.as_ref().check_available(name, args, envs)
     }
 }

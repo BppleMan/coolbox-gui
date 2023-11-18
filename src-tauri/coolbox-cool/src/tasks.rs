@@ -11,6 +11,7 @@ pub use copy_task::*;
 pub use decompress_task::*;
 pub use delete_task::*;
 pub use download_task::*;
+pub use env_task::*;
 pub use exists_task::*;
 pub use git_task::*;
 pub use install_task::*;
@@ -18,9 +19,9 @@ pub use move_task::*;
 pub use uninstall_task::*;
 pub use which_task::*;
 
-use crate::error::ExecutableError;
+use crate::error::TaskError;
 use crate::installer::Installer;
-use crate::result::{CoolResult, ExecutableResult};
+use crate::result::CoolResult;
 use crate::shell::Shell;
 use crate::{IntoError, Message, MessageSender, TaskState, TasksMessageSender};
 
@@ -40,10 +41,10 @@ mod uninstall_task;
 mod which_task;
 
 pub trait Executable<'a>: Display + Send + Sync {
-    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult;
+    fn execute(&self, send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError>;
 }
 
-pub fn spawn_task<'a, F>(task: impl Executable<'a>, send: F) -> ExecutableResult
+pub fn spawn_task<'a, F>(task: impl Executable<'a>, send: F) -> CoolResult<(), TaskError>
 where
     F: FnMut(Message) + 'a,
 {
@@ -59,6 +60,7 @@ pub enum Task {
     DecompressTask(DecompressTask),
     DeleteTask(DeleteTask),
     DownloadTask(DownloadTask),
+    EnvTask(EnvTask),
     ExistsTask(ExistsTask),
     GitTask(GitTask),
     InstallTask(InstallTask),
@@ -77,6 +79,7 @@ impl Task {
             Task::DecompressTask(_) => "Decompress Task",
             Task::DeleteTask(_) => "Delete Task",
             Task::DownloadTask(_) => "Download Task",
+            Task::EnvTask(_) => "Env Task",
             Task::ExistsTask(_) => "Exists Task",
             Task::GitTask(_) => "Git Task",
             Task::InstallTask(_) => "Install Task",
@@ -195,7 +198,7 @@ impl Display for Task {
 }
 
 impl<'a> Executable<'a> for Task {
-    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         self.as_ref().execute(send)
     }
 }
@@ -207,7 +210,7 @@ impl Tasks {
     pub fn execute<'a>(
         &'a self,
         mut sender: Box<TasksMessageSender<'a>>,
-    ) -> CoolResult<(), (String, usize, ExecutableError)> {
+    ) -> CoolResult<(), (String, usize, TaskError)> {
         self.0.iter().enumerate().try_for_each(|(i, task)| {
             let result = task
                 .execute(Box::new(|message| {

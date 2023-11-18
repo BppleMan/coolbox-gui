@@ -3,13 +3,12 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 
-use color_eyre::eyre::{eyre, Context};
 use futures::stream::StreamExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::ExecutableError;
-use crate::result::ExecutableResult;
+use crate::error::{DownloadTaskError, InnerError, TaskError};
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
@@ -24,6 +23,13 @@ impl DownloadTask {
     pub fn new(url: String, dest: String) -> Self {
         Self { url, dest }
     }
+
+    fn map_inner_error(&self, error: impl Into<InnerError>) -> TaskError {
+        TaskError::DownloadTaskError {
+            task: self.clone(),
+            source: DownloadTaskError::InnerError(error.into()),
+        }
+    }
 }
 
 impl Display for DownloadTask {
@@ -33,11 +39,12 @@ impl Display for DownloadTask {
 }
 
 impl<'a> Executable<'a> for DownloadTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         let url = self.url.clone();
         let dest = PathBuf::from(&self.dest);
         let (tx, rx) = crossbeam::channel::bounded(1);
         let (msg_tx, msg_rx) = crossbeam::channel::unbounded();
+        let task = self.clone();
         rayon::spawn(move || {
             let rt = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -46,22 +53,19 @@ impl<'a> Executable<'a> for DownloadTask {
             let result = rt.block_on(async {
                 let res = reqwest::get(&url)
                     .await
-                    .map_err(|e| ExecutableError::ReqwestError(eyre!(e)))?;
+                    .map_err(|e| task.map_inner_error(e))?;
                 let mut written = 0u64;
                 let total_size = res.content_length();
                 let mut bytes_stream = res.bytes_stream();
                 if let Some(parent) = dest.parent() {
-                    fs_extra::dir::create_all(parent, true)
-                        .with_context(|| format!("failed to create {}", parent.display()))
-                        .map_err(ExecutableError::CreatePathError)?;
+                    fs_extra::dir::create_all(parent, true).map_err(|e| task.map_inner_error(e))?;
                 }
                 let mut file = OpenOptions::new()
                     .create(true)
                     .write(true)
                     .append(true)
                     .open(&dest)
-                    .with_context(|| format!("failed to open {}", dest.display()))
-                    .map_err(ExecutableError::CreatePathError)?;
+                    .map_err(|e| task.map_inner_error(e))?;
                 while let Some(Ok(chunk)) = bytes_stream.next().await {
                     written += chunk.len() as u64;
                     file.write_all(&chunk).unwrap();
@@ -72,7 +76,7 @@ impl<'a> Executable<'a> for DownloadTask {
                         )
                         .unwrap();
                 }
-                ExecutableResult::Ok(())
+                CoolResult::<(), TaskError>::Ok(())
             });
             tx.send(result).unwrap();
         });

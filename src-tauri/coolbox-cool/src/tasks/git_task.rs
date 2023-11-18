@@ -9,8 +9,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::error::ExecutableError;
-use crate::result::ExecutableResult;
+use crate::error::GitTaskError::CannotFastForward;
+use crate::error::{GitTaskError, TaskError};
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
@@ -24,51 +25,84 @@ impl GitTask {
         Self { command }
     }
 
-    pub fn clone(&self, url: &str, dest: &str) -> ExecutableResult {
+    pub fn clone(&self, url: &str, dest: &str) -> CoolResult<(), TaskError> {
         let mut repo_builder = RepoBuilder::new();
         repo_builder.fetch_options(default_fetch_options());
-        repo_builder.clone(url, Path::new(dest))?;
+        repo_builder
+            .clone(url, Path::new(dest))
+            .map_err(|e| self.map_error(e))?;
         Ok(())
     }
 
-    pub fn pull(&self, src: &str, mut send: Box<MessageSender>) -> ExecutableResult {
-        let repo = Repository::open(src).map_err(|e| ExecutableError::GitError(eyre!(e)))?;
-        let remotes = repo.remotes()?;
+    pub fn pull(&self, src: &str, mut send: Box<MessageSender>) -> CoolResult<(), TaskError> {
+        let repo = Repository::open(src).map_err(|e| self.map_error(e))?;
+        let remotes = repo.remotes().map_err(|e| self.map_error(e))?;
         let remote = match remotes.iter().find(|r| r == &Some("origin")) {
             Some(o) => o.unwrap(),
             None => match remotes.iter().find(|r| r.is_some()) {
                 None => {
-                    return Err(ExecutableError::GitError(eyre!("no remote found")));
+                    return Err(TaskError::GitTaskError {
+                        task: Clone::clone(self),
+                        source: GitTaskError::NotFoundRemote,
+                    });
                 }
                 Some(o) => o.unwrap(),
             },
         };
-        let mut remote = repo.find_remote(remote)?;
-        remote.fetch::<&str>(&[], Some(&mut default_fetch_options()), None)?;
+        let mut remote = repo.find_remote(remote).map_err(|e| self.map_error(e))?;
+        remote
+            .fetch::<&str>(&[], Some(&mut default_fetch_options()), None)
+            .map_err(|e| self.map_error(e))?;
         let head = match repo.head() {
             Ok(head) => head,
             Err(_) => {
                 self.checkout_empty(&repo, remote.name().unwrap())?;
-                repo.head()?
+                repo.head().map_err(|e| self.map_error(e))?
             }
         };
-        let head_branch = repo.find_branch(head.shorthand().unwrap(), BranchType::Local)?;
-        let head_commit = head_branch.get().peel_to_commit()?;
-        let remote_branch = head_branch.upstream()?;
-        let remote_commit = remote_branch.get().peel_to_commit()?;
-        if repo.graph_descendant_of(remote_commit.id(), head_commit.id())? {
-            repo.set_head_detached(remote_commit.id())?;
-            repo.checkout_head(None)?;
+        let head_branch = repo
+            .find_branch(head.shorthand().unwrap(), BranchType::Local)
+            .map_err(|e| self.map_error(e))?;
+        let head_commit = head_branch
+            .get()
+            .peel_to_commit()
+            .map_err(|e| self.map_error(e))?;
+        let remote_branch = head_branch.upstream().map_err(|e| self.map_error(e))?;
+        let remote_commit = remote_branch
+            .get()
+            .peel_to_commit()
+            .map_err(|e| self.map_error(e))?;
+        if repo
+            .graph_descendant_of(remote_commit.id(), head_commit.id())
+            .map_err(|e| self.map_error(e))?
+        {
+            repo.set_head_detached(remote_commit.id())
+                .map_err(|e| self.map_error(e))?;
+            repo.checkout_head(None).map_err(|e| self.map_error(e))?;
             Ok(())
         } else if remote_commit.id() != head_commit.id() {
-            let error = eyre!(
-                "rebase {:?}[{}] onto {:?}[{}] cannot fast-forward",
-                head_branch.name()?,
-                head_commit.id(),
-                remote_branch.name()?,
-                remote_commit.id(),
-            );
-            Err(ExecutableError::GitError(error))
+            let error = CannotFastForward {
+                head_branch_name: head_branch
+                    .name()
+                    .map_err(|e| TaskError::GitTaskError {
+                        task: Clone::clone(self),
+                        source: GitTaskError::GitError(e),
+                    })?
+                    .map(|s| s.to_string()),
+                head_commit_id: head_commit.id().to_string(),
+                remote_branch_name: remote_branch
+                    .name()
+                    .map_err(|e| TaskError::GitTaskError {
+                        task: Clone::clone(self),
+                        source: GitTaskError::GitError(e),
+                    })?
+                    .map(|s| s.to_string()),
+                remote_commit_id: remote_commit.id().to_string(),
+            };
+            Err(TaskError::GitTaskError {
+                task: Clone::clone(self),
+                source: error,
+            })
         } else {
             let msg = eyre!("already up to date");
             send(format!("{:?}", msg).into_info());
@@ -76,48 +110,91 @@ impl GitTask {
         }
     }
 
-    pub fn checkout(&self, src: &str, branch: &str, create: bool) -> ExecutableResult {
-        let repo = Repository::open(src)?;
+    pub fn checkout(&self, src: &str, branch: &str, create: bool) -> CoolResult<(), TaskError> {
+        let repo = Repository::open(src).map_err(|e| TaskError::GitTaskError {
+            task: Clone::clone(self),
+            source: GitTaskError::GitError(e),
+        })?;
         let branch = match repo.find_branch(branch, BranchType::Local) {
             Ok(branch) => Ok(branch),
             Err(e) => {
                 if create {
-                    let head = repo.head()?;
-                    let head_commit = head.peel_to_commit()?;
-                    Ok(repo.branch(branch, &head_commit, true)?)
+                    let head = repo.head().map_err(|e| TaskError::GitTaskError {
+                        task: Clone::clone(self),
+                        source: GitTaskError::GitError(e),
+                    })?;
+                    let head_commit =
+                        head.peel_to_commit().map_err(|e| TaskError::GitTaskError {
+                            task: Clone::clone(self),
+                            source: GitTaskError::GitError(e),
+                        })?;
+                    Ok(repo
+                        .branch(branch, &head_commit, true)
+                        .map_err(|e| self.map_error(e))?)
                 } else {
-                    Err(ExecutableError::GitError(eyre!(e)))
+                    Err(self.map_error(e))
                 }
             }
         }?;
-        let commit = branch.get().peel_to_commit()?;
-        repo.set_head_detached(commit.id())?;
-        repo.set_head(branch.get().name().unwrap())?;
-        repo.checkout_head(None)?;
+        let commit = branch
+            .get()
+            .peel_to_commit()
+            .map_err(|e| self.map_error(e))?;
+        repo.set_head_detached(commit.id())
+            .map_err(|e| self.map_error(e))?;
+        repo.set_head(branch.get().name().unwrap())
+            .map_err(|e| self.map_error(e))?;
+        repo.checkout_head(None).map_err(|e| self.map_error(e))?;
         Ok(())
     }
 
-    fn checkout_empty(&self, repo: &Repository, remote: &str) -> ExecutableResult {
-        let mut remote = repo.find_remote(remote)?;
-        remote.connect(Direction::Fetch)?;
-        let default_branch = String::from_utf8(remote.default_branch()?.to_vec())
-            .map_err(|e| ExecutableError::GitError(eyre!(e)))?;
+    fn checkout_empty(&self, repo: &Repository, remote: &str) -> CoolResult<(), TaskError> {
+        let mut remote = repo.find_remote(remote).map_err(|e| self.map_error(e))?;
+        remote
+            .connect(Direction::Fetch)
+            .map_err(|e| self.map_error(e))?;
+        let default_branch = String::from_utf8(
+            remote
+                .default_branch()
+                .map_err(|e| self.map_error(e))?
+                .to_vec(),
+        )
+        .map_err(|e| TaskError::GitTaskError {
+            task: Clone::clone(self),
+            source: GitTaskError::OtherError(e.into()),
+        })?;
         let short_name = Path::new(&default_branch)
             .file_name()
             .unwrap()
             .to_string_lossy()
             .to_string();
-        if let Some(reference) = repo.references()?.flatten().find(|r| {
-            r.name()
-                .map(|name| r.is_remote() && name.contains(&short_name))
-                .unwrap_or(false)
-        }) {
-            let commit = reference.peel_to_commit()?;
-            let mut main = repo.branch(&short_name, &commit, false)?;
-            main.set_upstream(Some(reference.shorthand().unwrap()))?;
-            repo.checkout_head(None)?;
+        if let Some(reference) = repo
+            .references()
+            .map_err(|e| self.map_error(e))?
+            .flatten()
+            .find(|r| {
+                r.name()
+                    .map(|name| r.is_remote() && name.contains(&short_name))
+                    .unwrap_or(false)
+            })
+        {
+            let commit = reference.peel_to_commit().map_err(|e| self.map_error(e))?;
+            let mut main = repo
+                .branch(&short_name, &commit, false)
+                .map_err(|e| self.map_error(e))?;
+            main.set_upstream(Some(reference.shorthand().unwrap()))
+                .map_err(|e| self.map_error(e))?;
+            repo.checkout_head(None).map_err(|e| self.map_error(e))?;
         }
         Ok(())
+    }
+
+    #[inline]
+    fn map_error(&self, e: git2::Error) -> TaskError {
+        TaskError::GitTaskError {
+            task: Clone::clone(self),
+            source: GitTaskError::GitError(e),
+        }
     }
 }
 
@@ -146,7 +223,7 @@ impl Display for GitTask {
 }
 
 impl<'a> Executable<'a> for GitTask {
-    fn execute(&self, send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         match self.command.clone() {
             GitCommand::Clone { .. } => {}
             GitCommand::Pull { src } => self.pull(&src, send)?,

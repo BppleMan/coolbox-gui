@@ -1,11 +1,12 @@
+use crate::error::ShellError;
 use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use tracing::info;
 
 use crate::installer::Installable;
-use crate::Message;
 use crate::result::CoolResult;
 use crate::shell::{Bash, ShellExecutor};
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Brew;
@@ -21,7 +22,7 @@ impl Installable for Brew {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("installing {} with brew", name);
 
         let arguments = match args {
@@ -46,7 +47,7 @@ impl Installable for Brew {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("uninstalling {} with brew", name);
 
         let arguments = match args {
@@ -70,7 +71,7 @@ impl Installable for Brew {
         name: &str,
         _args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool> {
+    ) -> CoolResult<bool, ShellError> {
         info!("checking {} with brew", name);
 
         Ok(Bash.run(&format!("brew list {}", name), envs, None).is_ok())

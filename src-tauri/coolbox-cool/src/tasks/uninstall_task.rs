@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::ExecutableError;
+use crate::error::{InstallTaskError, TaskError};
 use crate::installer::{Installable, Installer};
-use crate::result::ExecutableResult;
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
@@ -52,7 +52,7 @@ impl Display for UninstallTask {
 }
 
 impl<'a> Executable<'a> for UninstallTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         let this = self.clone();
 
         let (tx1, rx1) = crossbeam::channel::unbounded();
@@ -69,7 +69,10 @@ impl<'a> Executable<'a> for UninstallTask {
                     None,
                     tx1,
                 )
-                .map_err(ExecutableError::ShellError);
+                .map_err(|e| TaskError::UninstallTaskError {
+                    task: this.clone(),
+                    source: InstallTaskError::ShellError(e),
+                });
             tx2.send(result).unwrap();
         });
         while let Ok(msg) = rx1.recv() {

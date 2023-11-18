@@ -1,3 +1,4 @@
+use crate::error::ShellError;
 use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use tracing::info;
@@ -21,7 +22,7 @@ impl Installable for WinGet {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("installing {} with winget", name);
 
         let mut scripts = args.map_or(vec![], |args| args.to_vec());
@@ -38,7 +39,7 @@ impl Installable for WinGet {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("uninstalling {} with apt-get", name);
 
         let mut arguments = vec!["-y", "--purge"];
@@ -64,8 +65,7 @@ impl Installable for WinGet {
         name: &str,
         _args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool> {
-        todo!();
+    ) -> CoolResult<bool, ShellError> {
         info!("checking {} with dpkg", name);
         Ok(Bash.run("dpkg", envs, None).is_ok())
     }

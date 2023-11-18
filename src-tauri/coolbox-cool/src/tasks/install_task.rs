@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::ExecutableError;
+use crate::error::{InstallTaskError, TaskError};
 use crate::installer::{Installable, Installer};
-use crate::result::ExecutableResult;
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
@@ -54,13 +54,14 @@ impl Display for InstallTask {
 }
 
 impl<'a> Executable<'a> for InstallTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         let (tx1, rx1) = crossbeam::channel::unbounded();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
         let installer = self.installer.clone();
         let name = self.name.clone();
         let args = self.args.clone();
         let envs = self.envs.clone();
+        let task = self.clone();
         rayon::spawn(move || {
             let result = installer
                 .install(
@@ -77,7 +78,10 @@ impl<'a> Executable<'a> for InstallTask {
                         .as_deref(),
                     tx1,
                 )
-                .map_err(ExecutableError::ShellError);
+                .map_err(|e| TaskError::InstallTaskError {
+                    task,
+                    source: InstallTaskError::ShellError(e),
+                });
             tx2.send(result).unwrap();
         });
         while let Ok(msg) = rx1.recv() {

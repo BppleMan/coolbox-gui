@@ -6,7 +6,6 @@ use crate::env_util::EnvVar;
 use color_eyre::eyre::Context;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 
 use crate::error::StorageError;
 use crate::login_shell::LoginShell;
@@ -201,7 +200,6 @@ mod test {
     use crate::local_storage::LocalStorage;
     use crate::login_shell::LoginShell;
     use crate::result::CoolResult;
-    use crate::unix_env_util::EnvUtil;
 
     #[test]
     fn smoke() -> CoolResult<()> {

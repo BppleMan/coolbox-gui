@@ -4,8 +4,8 @@ use log::info;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::error::ExecutableError;
-use crate::result::ExecutableResult;
+use crate::error::{CommandTaskError, TaskError};
+use crate::result::CoolResult;
 use crate::shell::{Shell, ShellExecutor};
 use crate::tasks::{Executable, MessageSender};
 use crate::Message;
@@ -42,7 +42,7 @@ impl Display for CommandTask {
 }
 
 impl<'a> Executable<'a> for CommandTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         info!("{}", self);
         let envs = self.envs.clone();
         let script = self.script.clone();
@@ -50,15 +50,19 @@ impl<'a> Executable<'a> for CommandTask {
 
         let (tx1, rx1) = crossbeam::channel::unbounded::<Message>();
         let (tx2, rx2) = crossbeam::channel::bounded(1);
+        let task = self.clone();
         rayon::spawn(move || {
             let envs = envs.as_ref().map(|envs| {
                 envs.iter()
                     .map(|(k, v)| (k.as_str(), v.as_str()))
                     .collect::<Vec<_>>()
             });
-            let result = shell
-                .run(&script, envs.as_deref(), Some(tx1))
-                .map_err(ExecutableError::ShellError);
+            let result = shell.run(&script, envs.as_deref(), Some(tx1)).map_err(|e| {
+                TaskError::CommandTaskError {
+                    task,
+                    source: CommandTaskError::ShellError(e),
+                }
+            });
             tx2.send(result).unwrap();
         });
         while let Ok(message) = rx1.recv() {

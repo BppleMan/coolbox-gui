@@ -1,3 +1,4 @@
+use crate::error::ShellError;
 use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use tracing::info;
@@ -21,7 +22,7 @@ impl Installable for Apt {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("installing {} with apt-get", name);
 
         let mut arguments = vec!["-y"];
@@ -40,7 +41,7 @@ impl Installable for Apt {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("uninstalling {} with apt-get", name);
 
         let mut arguments = vec!["-y", "--purge"];
@@ -66,7 +67,7 @@ impl Installable for Apt {
         name: &str,
         _args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool> {
+    ) -> CoolResult<bool, ShellError> {
         info!("checking {} with dpkg", name);
         Ok(Bash.run("dpkg", envs, None).is_ok())
     }

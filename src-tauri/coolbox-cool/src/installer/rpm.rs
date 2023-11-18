@@ -1,11 +1,12 @@
+use crate::error::ShellError;
 use crossbeam::channel::Sender;
 use log::info;
 use schemars::JsonSchema;
 
 use crate::installer::Installable;
-use crate::Message;
 use crate::result::CoolResult;
 use crate::shell::{Bash, ShellExecutor};
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Rpm;
@@ -21,7 +22,7 @@ impl Installable for Rpm {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("installing {} with rpm", name);
 
         let mut arguments = vec![];
@@ -43,7 +44,7 @@ impl Installable for Rpm {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         info!("uninstalling {} with rpm", name);
 
         let mut arguments = vec![];
@@ -64,7 +65,7 @@ impl Installable for Rpm {
         name: &str,
         _args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool> {
+    ) -> CoolResult<bool, ShellError> {
         info!("checking {}", name);
 
         Bash.run(&format!("rpm -q {}", name), envs, None)

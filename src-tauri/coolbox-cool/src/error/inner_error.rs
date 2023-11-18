@@ -3,10 +3,10 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum InnerError {
     #[error(transparent)]
-    ZipError(zip::result::ZipError),
+    ZipError(#[from] zip::result::ZipError),
 
     #[error(transparent)]
-    IOError(std::io::Error),
+    IOError(#[from] std::io::Error),
 
     #[error(transparent)]
     StripPrefixError(#[from] std::path::StripPrefixError),
@@ -24,5 +24,5 @@ pub enum InnerError {
     ReqwestError(#[from] reqwest::Error),
 
     #[error(transparent)]
-    GitError(#[from] git2::Error),
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
 }

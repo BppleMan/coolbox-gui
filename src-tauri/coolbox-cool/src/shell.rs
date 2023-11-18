@@ -14,6 +14,7 @@ pub use macos_sudo::*;
 pub use sh::*;
 pub use zsh::*;
 
+use crate::error::{InnerError, ShellError};
 use crate::result::CoolResult;
 use crate::{IntoInfo, Message};
 
@@ -34,19 +35,6 @@ pub enum Shell {
     Cmd(Cmd),
 }
 
-impl Shell {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Shell::Bash(_) => "bash",
-            Shell::LinuxSudo(_) => "linux_sudo",
-            Shell::MacOSSudo(_) => "macos_sudo",
-            Shell::Sh(_) => "sh",
-            Shell::Zsh(_) => "zsh",
-            Shell::Cmd(_) => "cmd",
-        }
-    }
-}
-
 impl AsRef<dyn ShellExecutor> for Shell {
     fn as_ref(&self) -> &(dyn ShellExecutor + 'static) {
         match self {
@@ -61,21 +49,25 @@ impl AsRef<dyn ShellExecutor> for Shell {
 }
 
 impl ShellExecutor for Shell {
+    fn name(&self) -> &'static str {
+        self.as_ref().name()
+    }
+
     fn interpreter(&self) -> Command {
         self.as_ref().interpreter()
     }
 
-    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> CoolResult<Command> {
+    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> Command {
         self.as_ref().command(script, envs)
     }
 
     fn run(
         &self,
-        cmd: &str,
+        script: &str,
         envs: Option<&[(&str, &str)]>,
         sender: Option<Sender<Message>>,
-    ) -> CoolResult<()> {
-        self.as_ref().run(cmd, envs, sender)
+    ) -> CoolResult<(), ShellError> {
+        self.as_ref().run(script, envs, sender)
     }
 }
 
@@ -114,6 +106,8 @@ impl<'de> Deserialize<'de> for Shell {
 }
 
 pub trait ShellExecutor {
+    fn name(&self) -> &'static str;
+
     fn interpreter(&self) -> Command;
 
     fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> Command {
@@ -132,7 +126,7 @@ pub trait ShellExecutor {
         script: &str,
         envs: Option<&[(&str, &str)]>,
         sender: Option<Sender<Message>>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), ShellError> {
         let mut command = self.command(script, envs);
         let command_desc = format!("{:?}", command);
         info!("run: {}", command_desc);
@@ -141,24 +135,28 @@ pub trait ShellExecutor {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        let mut child = command.spawn()?;
+        let mut child = command
+            .spawn()
+            .map_err(|e| map_err(self.name(), script, envs, Some(e)))?;
 
         let out_reader = BufReader::new(child.stdout.take().unwrap());
         let err_reader = BufReader::new(child.stderr.take().unwrap());
         let (tx, rx) = crossbeam::channel::bounded(1);
+        let name = self.name();
         rayon::scope(|s| {
             s.spawn(|_| redirect(out_reader, &sender));
             s.spawn(|_| redirect(err_reader, &sender));
             s.spawn(|_| {
-                let result = child.wait_with_output();
+                let result = child
+                    .wait_with_output()
+                    .map_err(|e| map_err(name, script, envs, Some(e)));
                 tx.send(result).unwrap();
             })
         });
 
-        let result = rx.recv().unwrap()?;
-        match result.status.success() {
+        match rx.recv().unwrap()?.status.success() {
             true => Ok(()),
-            false => Err(eyre!("run command failed: {}", command_desc)),
+            false => Err(map_err(self.name(), script, envs, None::<InnerError>)),
         }
     }
 }
@@ -175,6 +173,24 @@ fn redirect(mut reader: impl BufRead, sender: &Option<Sender<Message>>) {
                 .unwrap();
         }
         buf.clear();
+    }
+}
+
+fn map_err(
+    shell: &str,
+    script: &str,
+    envs: Option<&[(&str, &str)]>,
+    e: Option<impl Into<InnerError>>,
+) -> ShellError {
+    ShellError {
+        shell: shell.to_string(),
+        script: script.to_string(),
+        envs: envs.map(|envs| {
+            envs.iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect::<Vec<_>>()
+        }),
+        inner_error: e.map(|e| eyre!(e.into())),
     }
 }
 

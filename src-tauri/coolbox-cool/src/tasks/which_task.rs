@@ -1,12 +1,11 @@
 use std::fmt::{Display, Formatter};
 
-use color_eyre::eyre::eyre;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use which::which;
 
-use crate::error::ExecutableError;
-use crate::result::ExecutableResult;
+use crate::error::TaskError;
+use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
 use crate::IntoInfo;
 
@@ -34,16 +33,16 @@ impl Display for WhichTask {
 }
 
 impl<'a> Executable<'a> for WhichTask {
-    fn execute(&self, mut send: Box<MessageSender<'a>>) -> ExecutableResult {
+    fn execute(&self, mut send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         match which(&self.command) {
             Ok(result) => {
                 send(result.to_string_lossy().into_info());
                 Ok(())
             }
-            Err(_) => {
-                let report = eyre!("{} not found", &self.command);
-                Err(ExecutableError::CommandNotFound(report))
-            }
+            Err(e) => Err(TaskError::WhichTaskError {
+                task: self.clone(),
+                source: e,
+            }),
         }
     }
 }
