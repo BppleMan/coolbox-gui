@@ -1,8 +1,5 @@
-pub use color_eyre::*;
-pub use crossbeam::*;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Deserializer};
-pub use tracing::*;
 
 pub use cool::*;
 pub use cool_event::*;
@@ -14,14 +11,19 @@ mod cool;
 mod cool2;
 mod cool_event;
 mod cool_list;
+mod env_util;
 pub mod error;
 mod extension;
 pub mod installer;
+pub mod local_storage;
+mod login_shell;
 pub mod result;
 pub mod shell;
 pub mod state;
 pub mod tasks;
 mod trace;
+#[cfg(unix)]
+pub mod unix_env_util;
 
 lazy_static! {
     pub static ref DEFAULT_TEMP_DIR: std::path::PathBuf = std::env::temp_dir();

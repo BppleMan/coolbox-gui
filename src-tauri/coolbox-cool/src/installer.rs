@@ -5,6 +5,7 @@ use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::error::InstallerError;
 pub use apt::*;
 pub use brew::*;
 pub use cargo::*;
@@ -13,8 +14,8 @@ pub use rpm::*;
 pub use winget::*;
 pub use yum::*;
 
-use crate::Message;
 use crate::result::CoolResult;
+use crate::Message;
 
 mod apt;
 mod brew;
@@ -33,7 +34,7 @@ pub trait Installable {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()>;
+    ) -> CoolResult<(), InstallerError>;
 
     fn uninstall(
         &self,
@@ -41,14 +42,14 @@ pub trait Installable {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()>;
+    ) -> CoolResult<(), InstallerError>;
 
     fn check_available(
         &self,
         name: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool>;
+    ) -> CoolResult<bool, InstallerError>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
@@ -98,7 +99,7 @@ impl Installable for Installer {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), InstallerError> {
         self.as_ref().install(name, args, envs, sender)
     }
 
@@ -108,7 +109,7 @@ impl Installable for Installer {
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
         sender: Sender<Message>,
-    ) -> CoolResult<()> {
+    ) -> CoolResult<(), InstallerError> {
         self.as_ref().uninstall(name, args, envs, sender)
     }
 
@@ -117,7 +118,7 @@ impl Installable for Installer {
         name: &str,
         args: Option<&[&str]>,
         envs: Option<&[(&str, &str)]>,
-    ) -> CoolResult<bool> {
+    ) -> CoolResult<bool, InstallerError> {
         self.as_ref().check_available(name, args, envs)
     }
 }

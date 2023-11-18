@@ -29,9 +29,9 @@ mod test {
                 println!("{}", message);
             });
         });
-        Sh.run(&script, None, Some(sender.clone()))?;
-        Bash.run(&script, None, Some(sender.clone()))?;
-        Zsh.run(&script, None, Some(sender))?;
+        Sh.run(&script, Some(&[]), Some(sender.clone()))?;
+        Bash.run(&script, Some(&[]), Some(sender.clone()))?;
+        Zsh.run(&script, Some(&[]), Some(sender))?;
         Ok(())
     }
 }

@@ -1,10 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{GlobalWindowEvent, Manager, WindowEvent};
+use tauri::Manager;
+use tracing::info;
 
+use cool::init_backtrace;
 use cool::result::CoolResult;
-use cool::{info, init_backtrace};
 
 use crate::event::EventLoop;
 use crate::server::start_server;

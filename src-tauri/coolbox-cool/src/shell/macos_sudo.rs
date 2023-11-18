@@ -24,6 +24,8 @@ impl ShellExecutor for MacOSSudo {
         ));
         if let Some(envs) = envs {
             command.envs(envs.to_vec());
+        } else {
+            command.env_clear();
         }
 
         Ok(command)

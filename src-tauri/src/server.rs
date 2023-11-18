@@ -4,18 +4,18 @@ use once_cell::sync::Lazy;
 use tokio::task::JoinHandle;
 use tonic::{Request, Response, Status};
 
-use cool::channel::{Receiver, Sender};
 use cool::result::CoolResult;
-use cool::{channel, info};
 use coolbox_grpc::ask_pass_server::{AskPass, AskPassServer};
 use coolbox_grpc::{EmptyRequest, StringResponse};
+use crossbeam::channel::{Receiver, Sender};
+use tracing::info;
 
 use crate::event::EventLoop;
 
 #[allow(clippy::type_complexity)]
 pub static ASK_PASS_TRIGGER_CHANNEL: Lazy<(Mutex<Sender<String>>, Mutex<Receiver<String>>)> =
     Lazy::new(|| {
-        let (tx, rx) = channel::unbounded::<String>();
+        let (tx, rx) = crossbeam::channel::unbounded::<String>();
         (Mutex::new(tx), Mutex::new(rx))
     });
 

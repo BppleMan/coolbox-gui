@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ExecutableError;
 use crate::installer::{Installable, Installer};
-use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CheckTask {

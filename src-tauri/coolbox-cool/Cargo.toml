@@ -44,7 +44,13 @@ dashmap.workspace = true
 tokio.workspace = true
 futures.workspace = true
 schemars.workspace = true
-glob = "0.3.1"
+glob.workspace = true
+directories.workspace = true
+regex.workspace = true
+backtrace = "0.3.69"
+
+[target.'cfg(windows)'.dependencies]
+winreg.workspace = true
 
 [dev-dependencies]
 uuid = "1.4.1"

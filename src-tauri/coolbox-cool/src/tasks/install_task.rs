@@ -94,7 +94,7 @@ mod test {
     use crate::init_backtrace;
     use crate::installer::{Brew, Installable, Installer};
     use crate::result::CoolResult;
-    use crate::tasks::{InstallTask, spawn_task};
+    use crate::tasks::{spawn_task, InstallTask};
 
     #[test]
     fn install_bat() -> CoolResult<()> {

@@ -61,6 +61,10 @@ tonic = "0.10.2"
 prost = "0.12.1"
 clap = { version = "4.4.6", features = ["derive"] }
 schemars = "0.8.15"
+directories = "5.0.1"
+glob = "0.3.1"
+regex = "1.9.4"
+winreg = "0.51.0"
 
 [dependencies]
 cool = { path = "coolbox-cool" }
@@ -68,6 +72,8 @@ coolbox-grpc = { path = "coolbox-grpc" }
 
 tauri = { version = "1.5.2", features = [] }
 
+color-eyre.workspace = true
+tracing.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 dashmap.workspace = true
@@ -77,6 +83,7 @@ tonic.workspace = true
 prost.workspace = true
 tokio.workspace = true
 once_cell.workspace = true
+crossbeam.workspace = true
 
 [build-dependencies]
 cool = { path = "coolbox-cool" }

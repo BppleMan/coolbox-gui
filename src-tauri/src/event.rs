@@ -1,17 +1,18 @@
-use cool::channel::{Receiver, Sender};
-use cool::{channel, info, TaskEvent};
+use cool::TaskEvent;
+use crossbeam::channel::{Receiver, Sender};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::sync::Mutex;
 use tauri::Window;
+use tracing::info;
 
 #[allow(clippy::type_complexity)]
 static EVENT_LOOP_CHANNEL: Lazy<(
     Mutex<Sender<MainWindowEvent>>,
     Mutex<Receiver<MainWindowEvent>>,
 )> = Lazy::new(|| {
-    let (tx, rx) = channel::unbounded();
+    let (tx, rx) = crossbeam::channel::unbounded();
     (Mutex::new(tx), Mutex::new(rx))
 });
 

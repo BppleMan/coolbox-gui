@@ -45,7 +45,7 @@ pub fn serialize_cool_list() -> Vec<CoolData> {
 pub fn install_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
     cools.par_iter().try_for_each(|c| {
         let cool = SafeCool::from_str(c)?;
-        let (tx, rx) = cool::channel::unbounded();
+        let (tx, rx) = crossbeam::channel::unbounded();
 
         rayon::spawn(move || {
             while let Ok(event) = rx.recv() {
@@ -62,7 +62,7 @@ pub fn install_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
 pub fn uninstall_cools(cools: Vec<String>) -> CoolResult<(), CoolError> {
     cools.par_iter().try_for_each(|c| {
         let cool = SafeCool::from_str(c)?;
-        let (tx, rx) = cool::channel::unbounded();
+        let (tx, rx) = crossbeam::channel::unbounded();
 
         rayon::spawn(move || {
             while let Ok(event) = rx.recv() {

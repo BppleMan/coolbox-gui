@@ -19,6 +19,8 @@ impl ShellExecutor for Cmd {
         command.arg("/C").arg(script);
         if let Some(envs) = envs {
             command.envs(envs.to_vec());
+        } else {
+            command.env_clear();
         }
 
         Ok(command)

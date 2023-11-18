@@ -75,20 +75,20 @@ impl Installable for Apt {
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod test {
-    use crate::cool_test::init_test;
-    use crate::installer::apt::APT;
-    use crate::installer::Installable;
+    use crate::init_backtrace;
+    use crate::installer::{Apt, Installable};
     use crate::result::CoolResult;
 
     #[test]
     #[ignore]
     fn test() -> CoolResult<()> {
-        init_test();
-        if !APT.check_available("bat", None)? {
-            APT.install("bat", None)?;
+        init_backtrace();
+        let (tx, _rx) = crossbeam::channel::unbounded();
+        if !Apt.check_available("bat", None, Some(&[]))? {
+            Apt.install("bat", None, Some(&[]), tx.clone())?;
         }
-        if APT.check_available("bat", None)? {
-            APT.uninstall("bat", None)?;
+        if Apt.check_available("bat", None, Some(&[]))? {
+            Apt.uninstall("bat", None, Some(&[]), tx)?;
         }
         Ok(())
     }

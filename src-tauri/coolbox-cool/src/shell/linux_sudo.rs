@@ -25,7 +25,7 @@ mod test {
     fn test() -> CoolResult<()> {
         color_eyre::install()?;
         let script = reqwest::blocking::get("https://sh.rustup.rs")?.text()?;
-        let result = LinuxSudo.run(script, Some(&["-h"]), None)?;
+        let result = LinuxSudo.run(format!("bash -c \"{}\" --help", script), Some(&[]), None)?;
         println!("{}", result);
         Ok(())
     }

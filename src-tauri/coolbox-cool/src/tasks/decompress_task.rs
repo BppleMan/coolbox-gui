@@ -1,22 +1,22 @@
-use std::{fmt, fs, io};
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{fmt, fs, io};
 
 use color_eyre::eyre::eyre;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use serde::ser::Error;
+use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 use zip::ZipArchive;
 
 use crate::error::ExecutableError;
-use crate::IntoInfo;
 use crate::result::ExecutableResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DecompressTask {

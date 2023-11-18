@@ -116,13 +116,15 @@ impl<'de> Deserialize<'de> for Shell {
 pub trait ShellExecutor {
     fn interpreter(&self) -> Command;
 
-    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> CoolResult<Command> {
+    fn command(&self, script: &str, envs: Option<&[(&str, &str)]>) -> Command {
         let mut command = self.interpreter();
         command.arg("-c").arg(script);
         if let Some(envs) = envs {
             command.envs(envs.to_vec());
+        } else {
+            command.env_clear();
         }
-        Ok(command)
+        command
     }
 
     fn run(
@@ -131,7 +133,7 @@ pub trait ShellExecutor {
         envs: Option<&[(&str, &str)]>,
         sender: Option<Sender<Message>>,
     ) -> CoolResult<()> {
-        let mut command = self.command(script, envs)?;
+        let mut command = self.command(script, envs);
         let command_desc = format!("{:?}", command);
         info!("run: {}", command_desc);
         command
