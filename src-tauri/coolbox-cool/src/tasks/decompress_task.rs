@@ -94,8 +94,8 @@ impl DecompressTask {
                                 send(format!("create dir: {}", parent.display()).into_info());
                             }
                         }
-                        if cfg!(unix)
-                            && file.unix_mode().is_some()
+                        #[cfg(unix)]
+                        if file.unix_mode().is_some()
                             && file.unix_mode().unwrap() & 0o120000 == 0o120000
                         {
                             use std::os::unix::fs::PermissionsExt;

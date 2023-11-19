@@ -16,14 +16,13 @@ pub mod error;
 mod extension;
 pub mod installer;
 pub mod local_storage;
+#[cfg(unix)]
 mod login_shell;
 pub mod result;
 pub mod shell;
 pub mod state;
 pub mod tasks;
 mod trace;
-#[cfg(unix)]
-pub mod unix_env_util;
 
 lazy_static! {
     pub static ref DEFAULT_TEMP_DIR: std::path::PathBuf = std::env::temp_dir();

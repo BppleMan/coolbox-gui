@@ -1,12 +1,13 @@
 use std::fs;
 
+#[cfg(unix)]
+use crate::env_util::CoolProfile;
 use color_eyre::eyre::{eyre, Context};
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
 
 use crate::error::StorageError;
 use crate::result::CoolResult;
-use crate::unix_env_util::CoolProfile;
 
 pub static PROJECT_DIR: Lazy<Option<ProjectDirs>> =
     Lazy::new(|| ProjectDirs::from("com", "dragit", "coolbox"));

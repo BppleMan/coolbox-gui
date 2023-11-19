@@ -2,6 +2,16 @@ use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use serde::{Deserialize, Serialize};
 
+#[cfg(unix)]
+mod unix_env_util;
+#[cfg(windows)]
+mod win_env_util;
+
+#[cfg(unix)]
+pub use unix_env_util::*;
+#[cfg(windows)]
+pub use win_env_util::*;
+
 pub trait EnvUtil {
     fn envs(&self) -> Vec<EnvVar>;
     fn export(&self, env_var: impl Into<EnvVar>);
