@@ -11,7 +11,7 @@ mod cool;
 mod cool2;
 mod cool_event;
 mod cool_list;
-mod env_util;
+mod env_manager;
 pub mod error;
 mod extension;
 pub mod installer;

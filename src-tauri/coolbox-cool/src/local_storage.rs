@@ -1,7 +1,7 @@
 use std::fs;
 
 #[cfg(unix)]
-use crate::env_util::CoolProfile;
+use crate::env_manager::CoolProfile;
 use color_eyre::eyre::{eyre, Context};
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
