@@ -24,7 +24,7 @@ import { CoolService } from "../service/cool.service"
 import { STEPPER_GLOBAL_OPTIONS } from "@angular/cdk/stepper"
 import { TranslateModule } from "@ngx-translate/core"
 
-const ActionMap = new Map<CoolState, string>([
+const ACTION_MAP = new Map<CoolState, string>([
     [CoolState.Ready, "Install"],
     [CoolState.Installed, "Uninstall"],
     [CoolState.Installing, "Installing"],
@@ -74,9 +74,11 @@ export class CoolCardComponent implements OnInit {
     coolState$: BehaviorSubject<CoolState> = new BehaviorSubject<CoolState>(
         CoolState.Pending,
     )
+
     actionState: BehaviorSubject<string> = new BehaviorSubject<string>(
-        ActionMap.get(CoolState.Pending)!,
+        ACTION_MAP.get(CoolState.Pending)!,
     )
+
     expanded = false
     progress: number = 0
     currentProgressStep: number = 0
@@ -102,7 +104,7 @@ export class CoolCardComponent implements OnInit {
             })
 
         this.coolState$.subscribe((state) => {
-            this.actionState.next(ActionMap.get(state)!)
+            this.actionState.next(ACTION_MAP.get(state)!)
         })
 
         // subscribe cool.events to update the progress bar
@@ -152,14 +154,14 @@ export class CoolCardComponent implements OnInit {
                             this.coolState$.next(coolStates[0])
                         })
                 } else {
-                    const progressStep =
+                    const progress_step =
                         ((last_event.task_index + 1) /
                             this.cool.install_tasks.length) *
                             100 -
                         10
                     // should animate from current progres to finalProgress in a proper speed using animation frame
-                    if (this.currentProgressStep != progressStep) {
-                        this.animateProgress(progressStep)
+                    if (this.currentProgressStep != progress_step) {
+                        this.animateProgress(progress_step)
                     }
                 }
             }
@@ -183,12 +185,12 @@ export class CoolCardComponent implements OnInit {
         if (this.progressAnimationId) {
             clearInterval(this.progressAnimationId)
         }
-        const initialProgress = this.progress
+        const initial_progress = this.progress
         // should calculate the proper speed, which means the interval is dynamic due to the distance between initialProgress and to
         // if the distance is too large, the interval should be larger
         // if the distance is too small, the interval should be smaller
 
-        const distance = to - initialProgress
+        const distance = to - initial_progress
         const step = Math.ceil(distance / 10)
         console.log("step", step)
         this.progressAnimationId = setInterval(() => {
@@ -250,23 +252,24 @@ export class CoolCardComponent implements OnInit {
         event.stopPropagation()
         this.cool_service.uninstall_cool([this.cool]).then()
     }
+
     formatComplete(index: number): boolean {
-        let isComplete = false
+        let is_complete = false
         if (this.cool.events.value.length) {
             if (
                 this.cool.events.value[this.cool.events.value.length - 1]
                     .task_index > index
             ) {
-                isComplete = true
+                is_complete = true
             } else if (
                 this.cool.events.value[this.cool.events.value.length - 1]
                     .task_index == index
             ) {
-                isComplete =
+                is_complete =
                     this.cool.events.value[this.cool.events.value.length - 1]
                         .task_state == "Finished"
             }
         }
-        return isComplete
+        return is_complete
     }
 }

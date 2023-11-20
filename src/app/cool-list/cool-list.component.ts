@@ -46,7 +46,7 @@ export class CoolListComponent implements OnInit {
 
     ngOnInit() {
         // create a middle observable to transform cools to cool_map
-        const middleObservable = this.cools$.pipe(
+        const middle_observable = this.cools$.pipe(
             map(cools => {
                 const cool_map: Map<string, Cool> = new Map<string, Cool>()
                 cools.forEach((cool) => {
@@ -65,7 +65,7 @@ export class CoolListComponent implements OnInit {
             })
 
         // if middleObservable changed, then update cool_map$
-        middleObservable.subscribe((cool_map: Map<string, Cool>) => {
+        middle_observable.subscribe((cool_map: Map<string, Cool>) => {
             this.cool_map$.next(cool_map)
         })
 

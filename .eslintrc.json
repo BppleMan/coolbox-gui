@@ -68,7 +68,17 @@
       ],
       "rules": {
         "indent": ["error", 4],
-        "semi": ["error", "never"]
+        "semi": ["error", "never"],
+        "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
+        // no camel case for variables & properties & functions, only using snake_caseStrict like 'a_desc_var'
+        "@typescript-eslint/naming-convention": [
+          "error",
+          {
+            "selector": "variable",
+            "format": [ "UPPER_CASE", "snake_case"],
+            "leadingUnderscore": "allow"
+          }
+        ]
       }
     }
   ]
