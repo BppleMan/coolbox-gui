@@ -2,9 +2,10 @@ use crate::shell::ShellExecutor;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
+use crate::error::ShellError;
+use crate::local_storage::USER_DIRS;
 use color_eyre::eyre::eyre;
 
-use crate::local_storage::user_dir;
 use crate::result::CoolResult;
 use crate::shell::{Bash, Shell, Zsh};
 
@@ -25,24 +26,41 @@ impl LoginShell {
     }
 
     #[cfg(target_os = "macos")]
-    fn detect_shell() -> CoolResult<Shell> {
+    fn detect_shell() -> CoolResult<Shell, ShellError> {
         let result = Command::new("dscl")
             .args([
                 ".",
                 "-read",
-                format!("{}/", user_dir()?.home_dir().display()).as_str(),
+                format!("{}/", USER_DIRS.home_dir().display()).as_str(),
                 "UserShell",
             ])
             .stdout(Stdio::piped())
-            .spawn()?
-            .wait_with_output()?;
-        let ls = String::from_utf8(result.stdout)?;
+            .spawn()
+            .map_err(|e| ShellError {
+                shell: "dscl".to_string(),
+                script: format!(". -read {}/ UserShell", USER_DIRS.home_dir().display()),
+                envs: None,
+                inner_error: Some(e.into()),
+            })?
+            .wait_with_output()
+            .map_err(|e| ShellError {
+                shell: "dscl".to_string(),
+                script: format!(". -read {}/ UserShell", USER_DIRS.home_dir().display()),
+                envs: None,
+                inner_error: Some(e.into()),
+            })?;
+        let ls = String::from_utf8(result.stdout).unwrap();
         if ls.trim().ends_with("zsh") {
             Ok(Shell::Zsh(Zsh))
         } else if ls.trim().ends_with("bash") {
             Ok(Shell::Bash(Bash))
         } else {
-            Err(eyre!("Unsupported login shell: {}", ls.trim()))
+            Err(ShellError {
+                shell: "dscl".to_string(),
+                script: format!(". -read {}/ UserShell", USER_DIRS.home_dir().display()),
+                envs: None,
+                inner_error: Some(eyre!("Unsupported login shell: {}", ls.trim())),
+            })
         }
     }
 
@@ -65,8 +83,8 @@ impl LoginShell {
 
     fn detect_profile(shell: &Shell) -> CoolResult<PathBuf> {
         match &shell {
-            Shell::Bash(_) => Ok(user_dir()?.home_dir().join(".bashrc")),
-            Shell::Zsh(_) => Ok(user_dir()?.home_dir().join(".zshrc")),
+            Shell::Bash(_) => Ok(USER_DIRS.home_dir().join(".bashrc")),
+            Shell::Zsh(_) => Ok(USER_DIRS.home_dir().join(".zshrc")),
             _ => Err(eyre!("Unsupported login shell: {}", shell.name())),
         }
     }

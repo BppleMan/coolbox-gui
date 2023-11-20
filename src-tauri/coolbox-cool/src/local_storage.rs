@@ -1,7 +1,8 @@
 use std::fs;
+use std::path::PathBuf;
 
 #[cfg(unix)]
-use crate::env_manager::CoolProfile;
+use crate::env_manager::ShellProfile;
 use color_eyre::eyre::{eyre, Context};
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
@@ -9,39 +10,35 @@ use once_cell::sync::Lazy;
 use crate::error::StorageError;
 use crate::result::CoolResult;
 
-pub static PROJECT_DIR: Lazy<Option<ProjectDirs>> =
-    Lazy::new(|| ProjectDirs::from("com", "dragit", "coolbox"));
+pub static PROJECT_DIRS: Lazy<ProjectDirs> =
+    Lazy::new(|| match ProjectDirs::from("com", "dragit", "coolbox") {
+        Some(project_dirs) => project_dirs,
+        None => panic!("{}", StorageError::NotFoundHomeDir),
+    });
 
-pub static USER_DIR: Lazy<Option<UserDirs>> = Lazy::new(UserDirs::new);
-
-pub fn project_dir() -> CoolResult<&'static ProjectDirs, StorageError> {
-    PROJECT_DIR
-        .as_ref()
-        .ok_or(StorageError::NotFoundHomeDir(eyre!("not found")))
-}
-
-pub fn user_dir() -> CoolResult<&'static UserDirs, StorageError> {
-    USER_DIR
-        .as_ref()
-        .ok_or(StorageError::NotFoundHomeDir(eyre!("not found")))
-}
+pub static USER_DIRS: Lazy<UserDirs> = Lazy::new(|| match UserDirs::new() {
+    Some(user_dirs) => user_dirs,
+    None => panic!("{}", StorageError::NotFoundHomeDir),
+});
 
 pub struct LocalStorage;
 
 impl LocalStorage {
     #[cfg(unix)]
-    pub fn cool_profile(&self) -> CoolResult<CoolProfile, StorageError> {
-        let cool_profile = project_dir()?.config_dir().join("coolrc");
+    pub fn cool_profile(&self) -> ShellProfile {
+        let cool_profile = PROJECT_DIRS.config_dir().join("cool_profile.sh");
+        #[cfg(test)]
+        let cool_profile = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
+            .join("target")
+            .join("tmp")
+            .join("cool_profile_test.sh");
         if let Some(parent) = cool_profile.parent() {
             fs_extra::dir::create_all(parent, false)
-                .with_context(|| format!("path: {}", parent.display()))
-                .map_err(StorageError::FsExtraError)?;
+                .unwrap_or_else(|_| panic!("Failed to create parent dir: {}", parent.display()));
         }
         if !cool_profile.exists() {
-            fs::File::create(&cool_profile)
-                .with_context(|| format!("path: {}", cool_profile.display()))
-                .map_err(StorageError::IoError)?;
+            fs::File::create(&cool_profile).expect("Failed to create cool_profile.sh");
         }
-        CoolProfile::new(cool_profile)
+        ShellProfile::new(cool_profile)
     }
 }

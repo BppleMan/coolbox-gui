@@ -47,7 +47,7 @@ schemars.workspace = true
 glob.workspace = true
 directories.workspace = true
 regex.workspace = true
-backtrace = "0.3.69"
+bitflags.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 winreg.workspace = true

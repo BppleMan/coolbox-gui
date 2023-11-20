@@ -1,3 +1,5 @@
-pub struct EnvUtil;
+use crate::env_manager::EnvManagerBackend;
 
-impl EnvUtil {}
+pub struct RegEditor;
+
+impl EnvManagerBackend for RegEditor {}

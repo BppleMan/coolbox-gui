@@ -65,6 +65,7 @@ directories = "5.0.1"
 glob = "0.3.1"
 regex = "1.9.4"
 winreg = "0.51.0"
+bitflags = "2.4.0"
 
 [dependencies]
 cool = { path = "coolbox-cool" }
