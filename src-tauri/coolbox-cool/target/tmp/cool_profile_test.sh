@@ -1,7 +1,7 @@
 # ===start===
-# COOL_TEST=2
+# COOL_TEST=1
 if [ -z "${COOL_TEST}" ]; then
-    export COOL_TEST="2"
+    export COOL_TEST="1"
 fi
 # ===end===
 

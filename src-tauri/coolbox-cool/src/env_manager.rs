@@ -236,16 +236,24 @@ mod test {
         assert!(std::env::var("COOL_TEST").is_err());
         EnvManager.export(
             EnvVariable::try_from(["COOL_TEST", "1"])?,
-            EnvLevel::Process,
+            EnvLevel::Process | EnvLevel::User,
         )?;
         pretty_assertions::assert_str_eq!("1".to_string(), std::env::var("COOL_TEST").unwrap());
 
-        EnvManager.export(
-            EnvVariable::try_from(["COOL_TEST", "2"])?,
-            EnvLevel::Process | EnvLevel::User,
-        )?;
-        pretty_assertions::assert_str_eq!("2".to_string(), std::env::var("COOL_TEST").unwrap());
+        let cool_profile = LocalStorage.cool_profile();
+        pretty_assertions::assert_eq!(COOL_PROFILE.lock().unwrap().deref(), &cool_profile);
 
+        let origin_path = std::env::var("PATH")?;
+        EnvManager.append_path("/tmp", EnvLevel::Process | EnvLevel::User)?;
+        pretty_assertions::assert_str_eq!(
+            format!("/tmp:{}", origin_path),
+            std::env::var("PATH").unwrap()
+        );
+        let cool_profile = LocalStorage.cool_profile();
+        pretty_assertions::assert_eq!(COOL_PROFILE.lock().unwrap().deref(), &cool_profile);
+
+        EnvManager.remove_path("/tmp", EnvLevel::Process | EnvLevel::User)?;
+        pretty_assertions::assert_str_eq!(origin_path, std::env::var("PATH").unwrap());
         let cool_profile = LocalStorage.cool_profile();
         pretty_assertions::assert_eq!(COOL_PROFILE.lock().unwrap().deref(), &cool_profile);
         Ok(())

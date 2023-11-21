@@ -5,6 +5,7 @@ use std::sync::{Mutex, Once};
 
 use crate::env_manager::{EnvLevel, EnvManagerBackend, EnvVariable};
 use color_eyre::eyre::Context;
+use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -51,6 +52,26 @@ static FILTER_ENV: Lazy<HashSet<&'static str>> =
 pub static COOL_PROFILE: Lazy<Mutex<ShellProfile>> =
     Lazy::new(|| Mutex::new(LocalStorage.cool_profile()));
 
+lazy_static! {
+    static ref BLOCK_REGEX: Regex =
+        regex::RegexBuilder::new(r#"#\s===start===\s*\n((.|\s)*?)#\s===end==="#)
+            .multi_line(true)
+            .build()
+            .unwrap();
+    static ref AT_PATH_REGEX: Regex = regex::RegexBuilder::new(r#"#\s@path=[^=\s]+$"#)
+        .multi_line(true)
+        .build()
+        .unwrap();
+    static ref AT_SOURCE_REGEX: Regex = regex::RegexBuilder::new(r#"#\s@source=[^=\s]+$"#)
+        .multi_line(true)
+        .build()
+        .unwrap();
+    static ref EXPORT_REGEX: Regex = regex::RegexBuilder::new(r#"#\s[^=\s]+?=[^=\s]+$"#)
+        .multi_line(true)
+        .build()
+        .unwrap();
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ShellProfile {
     profile_path: PathBuf,
@@ -67,80 +88,47 @@ impl ShellProfile {
                 path.display().to_string().as_str()
             )
         });
+        let (env_vars, paths, sources) = BLOCK_REGEX.find_iter(&content).fold(
+            (
+                BTreeMap::<String, EnvVariable>::new(),
+                BTreeSet::<String>::new(),
+                BTreeSet::<String>::new(),
+            ),
+            |(mut vars, mut paths, mut sources), item| {
+                let item = item.as_str();
+                if AT_PATH_REGEX.is_match(item) {
+                    let path = AT_PATH_REGEX
+                        .find(item)
+                        .unwrap()
+                        .as_str()
+                        .trim_start_matches("# @path=")
+                        .to_string();
+                    paths.insert(path);
+                } else if AT_SOURCE_REGEX.is_match(item) {
+                    let source = AT_SOURCE_REGEX
+                        .find(item)
+                        .unwrap()
+                        .as_str()
+                        .trim_start_matches("# @source=");
+                    sources.insert(source.to_string());
+                } else {
+                    let export = EXPORT_REGEX
+                        .find(item)
+                        .unwrap()
+                        .as_str()
+                        .trim_start_matches("# ");
+                    let env = EnvVariable::try_from(export).unwrap();
+                    vars.insert(env.key.clone(), env);
+                }
+                (vars, paths, sources)
+            },
+        );
         Self {
             profile_path: path,
-            paths: Self::parse_path(&content),
-            env_vars: Self::parse_var(&content),
-            sources: Self::parse_source(&content),
+            paths,
+            env_vars,
+            sources,
         }
-    }
-
-    fn parse_path(content: &str) -> BTreeSet<String> {
-        let at_path = r#"#\s@path=[^=\s]+$"#;
-        let path_block = format!(r#"#\s===start===\n{}\n((.|\s)*?)#\s===end==="#, at_path);
-        let at_path_regex = regex::RegexBuilder::new(&path_block)
-            .multi_line(true)
-            .build()
-            .unwrap();
-        let path_block_regex = regex::RegexBuilder::new(&path_block)
-            .multi_line(true)
-            .build()
-            .unwrap();
-        path_block_regex
-            .find_iter(content)
-            .filter_map(|m| {
-                let item = m.as_str();
-                at_path_regex
-                    .find(item)
-                    .map(|value| value.as_str().trim_start_matches("# @path=").to_string())
-            })
-            .collect::<BTreeSet<_>>()
-    }
-
-    fn parse_var(content: &str) -> BTreeMap<String, EnvVariable> {
-        let export = r#"#\s[^=\s]+?=[^=\s]+"#;
-        let export_block = format!(r#"#\s===start===\n{}\n((.|\s)*?)#\s===end==="#, export);
-        let export_regex = regex::RegexBuilder::new(r#"#\s[^=\s]+?=[^=\s]+"#)
-            .multi_line(true)
-            .build()
-            .unwrap();
-        let export_block_regex = regex::RegexBuilder::new(&export_block)
-            .multi_line(true)
-            .build()
-            .unwrap();
-        export_block_regex
-            .find_iter(content)
-            .filter_map(|m| {
-                let item = m.as_str();
-                export_regex
-                    .find(item)
-                    .map(|value| EnvVariable::try_from(value.as_str().trim_start_matches("# ")))
-            })
-            .flatten()
-            .map(|env| (env.key.clone(), env))
-            .collect::<BTreeMap<_, _>>()
-    }
-
-    fn parse_source(content: &str) -> BTreeSet<String> {
-        let at_source = r#"#\s@source=[^=\s]+$"#;
-        let source_block = format!(r#"#\s===start===\n{}\n((.|\s)*?)#\s===end==="#, at_source);
-        let at_source_regex = regex::RegexBuilder::new(&source_block)
-            .multi_line(true)
-            .build()
-            .unwrap();
-        let source_block_regex = regex::RegexBuilder::new(&source_block)
-            .multi_line(true)
-            .build()
-            .unwrap();
-        source_block_regex
-            .find_iter(content)
-            .filter_map(|m| {
-                let item = m.as_str();
-                at_source_regex
-                    .find(item)
-                    .map(|value| value.as_str().trim_start_matches("# @source=").to_string())
-            })
-            .collect::<BTreeSet<_>>()
     }
 
     pub fn write(&self) {
