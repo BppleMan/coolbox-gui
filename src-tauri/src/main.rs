@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use cool::env_manager::{ShellProfile, COOL_PROFILE};
 use tauri::Manager;
 use tracing::info;
 
@@ -22,6 +23,7 @@ async fn main() -> CoolResult<()> {
     init_backtrace();
     info!("{}:{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     let (shutdown, server_handle) = start_server();
+    ShellProfile::watch(&COOL_PROFILE)?;
     tauri::Builder::default()
         .setup(|app| {
             let main_window = app.get_window("main").unwrap();

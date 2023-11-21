@@ -1,6 +1,7 @@
-use bitflags::{bitflags, Flags};
+use bitflags::bitflags;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::ops::DerefMut;
+use std::fmt::{Display, Formatter};
 
 #[cfg(unix)]
 pub use shell_profile::*;
@@ -19,15 +20,15 @@ mod win_env_util;
 pub struct EnvManager;
 
 impl EnvManager {
-    pub fn envs(&self) -> Vec<EnvVariable> {
+    pub fn envs(&self) -> Vec<EnvVar> {
         std::env::vars()
-            .map(|(k, v)| EnvVariable { key: k, value: v })
+            .map(|(k, v)| EnvVar { key: k, value: v })
             .collect()
     }
 
     pub fn export(
         &mut self,
-        env_var: impl Into<EnvVariable>,
+        env_var: impl Into<EnvVar>,
         level: EnvLevel,
     ) -> CoolResult<(), EnvError> {
         let env_var = env_var.into();
@@ -137,7 +138,7 @@ impl EnvManager {
 }
 
 pub trait EnvManagerBackend {
-    fn export(&mut self, env_var: impl Into<EnvVariable>) -> CoolResult<(), EnvError>;
+    fn export(&mut self, env_var: impl Into<EnvVar>) -> CoolResult<(), EnvError>;
 
     fn unset(&mut self, key: impl AsRef<str>) -> CoolResult<(), EnvError>;
 
@@ -162,13 +163,13 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct EnvVariable {
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize, JsonSchema)]
+pub struct EnvVar {
     pub key: String,
     pub value: String,
 }
 
-impl EnvVariable {
+impl EnvVar {
     pub fn new(key: impl Into<String>, value: impl Into<String>) -> CoolResult<Self, EnvError> {
         let key = key.into();
         if key.is_empty() {
@@ -182,7 +183,7 @@ impl EnvVariable {
     }
 }
 
-impl TryFrom<&str> for EnvVariable {
+impl TryFrom<&str> for EnvVar {
     type Error = EnvError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -191,13 +192,13 @@ impl TryFrom<&str> for EnvVariable {
         }
         let split_items = value.split('=').collect::<Vec<&str>>();
         match split_items.len() {
-            2 => EnvVariable::new(split_items[0].to_string(), split_items[1].to_string()),
+            2 => EnvVar::new(split_items[0].to_string(), split_items[1].to_string()),
             _ => Err(EnvError::InvalidEnvVar(value.to_string())),
         }
     }
 }
 
-impl<T, U> TryFrom<(T, U)> for EnvVariable
+impl<T, U> TryFrom<(T, U)> for EnvVar
 where
     T: Into<String>,
     U: Into<String>,
@@ -205,11 +206,11 @@ where
     type Error = EnvError;
 
     fn try_from(value: (T, U)) -> Result<Self, Self::Error> {
-        EnvVariable::new(value.0, value.1)
+        EnvVar::new(value.0, value.1)
     }
 }
 
-impl<T, U> TryFrom<[T; 2]> for EnvVariable
+impl<T, U> TryFrom<[T; 2]> for EnvVar
 where
     T: ToOwned<Owned = U>,
     U: Into<String>,
@@ -217,13 +218,19 @@ where
     type Error = EnvError;
 
     fn try_from(value: [T; 2]) -> Result<Self, Self::Error> {
-        EnvVariable::new(value[0].to_owned(), value[1].to_owned())
+        EnvVar::new(value[0].to_owned(), value[1].to_owned())
+    }
+}
+
+impl Display for EnvVar {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}={}", self.key, self.value)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::env_manager::{EnvLevel, EnvManager, EnvVariable, COOL_PROFILE};
+    use crate::env_manager::{EnvLevel, EnvManager, EnvVar, COOL_PROFILE};
     use crate::init_backtrace;
     use crate::local_storage::LocalStorage;
     use crate::result::CoolResult;
@@ -231,15 +238,14 @@ mod test {
 
     #[cfg(unix)]
     #[test]
-    fn smoke() -> CoolResult<()> {
+    fn smoke_unix() -> CoolResult<()> {
         init_backtrace();
         assert!(std::env::var("COOL_TEST").is_err());
         EnvManager.export(
-            EnvVariable::try_from(["COOL_TEST", "1"])?,
+            EnvVar::try_from(["COOL_TEST", "1"])?,
             EnvLevel::Process | EnvLevel::User,
         )?;
         pretty_assertions::assert_str_eq!("1".to_string(), std::env::var("COOL_TEST").unwrap());
-
         let cool_profile = LocalStorage.cool_profile();
         pretty_assertions::assert_eq!(COOL_PROFILE.lock().unwrap().deref(), &cool_profile);
 

@@ -11,13 +11,13 @@ mod cool;
 mod cool2;
 mod cool_event;
 mod cool_list;
-mod env_manager;
+pub mod env_manager;
 pub mod error;
 mod extension;
 pub mod installer;
 pub mod local_storage;
 #[cfg(unix)]
-mod login_shell;
+pub mod login_shell;
 pub mod result;
 pub mod shell;
 pub mod state;

@@ -1,15 +1,19 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::fmt::{Display, Formatter};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::fmt::Display;
 use std::path::PathBuf;
-use std::sync::{Mutex, Once};
+use std::sync::Mutex;
 
-use crate::env_manager::{EnvLevel, EnvManagerBackend, EnvVariable};
 use color_eyre::eyre::Context;
+use crossbeam::channel::internal::SelectHandle;
 use lazy_static::lazy_static;
+use notify::{RecursiveMode, Watcher};
+use notify_debouncer_full::{new_debouncer, DebounceEventResult};
 use once_cell::sync::Lazy;
 use regex::Regex;
+use tracing::error;
 
-use crate::error::{EnvError, StorageError};
+use crate::env_manager::{EnvManagerBackend, EnvVar};
+use crate::error::EnvError;
 use crate::local_storage::LocalStorage;
 use crate::login_shell::LoginShell;
 use crate::result::CoolResult;
@@ -76,7 +80,7 @@ lazy_static! {
 pub struct ShellProfile {
     profile_path: PathBuf,
     paths: BTreeSet<String>,
-    env_vars: BTreeMap<String, EnvVariable>,
+    env_vars: BTreeMap<String, EnvVar>,
     sources: BTreeSet<String>,
 }
 
@@ -88,41 +92,7 @@ impl ShellProfile {
                 path.display().to_string().as_str()
             )
         });
-        let (env_vars, paths, sources) = BLOCK_REGEX.find_iter(&content).fold(
-            (
-                BTreeMap::<String, EnvVariable>::new(),
-                BTreeSet::<String>::new(),
-                BTreeSet::<String>::new(),
-            ),
-            |(mut vars, mut paths, mut sources), item| {
-                let item = item.as_str();
-                if AT_PATH_REGEX.is_match(item) {
-                    let path = AT_PATH_REGEX
-                        .find(item)
-                        .unwrap()
-                        .as_str()
-                        .trim_start_matches("# @path=")
-                        .to_string();
-                    paths.insert(path);
-                } else if AT_SOURCE_REGEX.is_match(item) {
-                    let source = AT_SOURCE_REGEX
-                        .find(item)
-                        .unwrap()
-                        .as_str()
-                        .trim_start_matches("# @source=");
-                    sources.insert(source.to_string());
-                } else {
-                    let export = EXPORT_REGEX
-                        .find(item)
-                        .unwrap()
-                        .as_str()
-                        .trim_start_matches("# ");
-                    let env = EnvVariable::try_from(export).unwrap();
-                    vars.insert(env.key.clone(), env);
-                }
-                (vars, paths, sources)
-            },
-        );
+        let (env_vars, paths, sources) = Self::parse(&content);
         Self {
             profile_path: path,
             paths,
@@ -163,10 +133,46 @@ impl ShellProfile {
         }
         fs_extra::file::write_all(&self.profile_path, &content).unwrap();
     }
+
+    pub fn watch(
+        this: &'static Mutex<Self>,
+    ) -> CoolResult<crossbeam::channel::Receiver<DebounceEventResult>> {
+        let (tx, rx) = crossbeam::channel::unbounded();
+        let mut debouncer = new_debouncer(std::time::Duration::from_secs(2), None, tx)?;
+        debouncer.watcher().watch(
+            &this.lock().unwrap().profile_path,
+            RecursiveMode::NonRecursive,
+        )?;
+        let cloned_rx = rx.clone();
+        rayon::spawn(move || {
+            while let Ok(events) = cloned_rx.recv() {
+                match events {
+                    Ok(events) => events.into_iter().for_each(|_event| {
+                        let mut this = this.lock().unwrap();
+                        if this.profile_path.exists() {
+                            this.update();
+                        } else {
+                            this.write();
+                        }
+                    }),
+                    Err(errors) => errors.iter().for_each(|err| error!("{}", err)),
+                }
+            }
+        });
+        Ok(rx)
+    }
+
+    pub fn update(&mut self) {
+        let content = fs_extra::file::read_to_string(&self.profile_path).unwrap();
+        let (env_vars, paths, sources) = Self::parse(&content);
+        self.env_vars = env_vars;
+        self.paths = paths;
+        self.sources = sources;
+    }
 }
 
 impl EnvManagerBackend for ShellProfile {
-    fn export(&mut self, env_var: impl Into<EnvVariable>) -> CoolResult<(), EnvError> {
+    fn export(&mut self, env_var: impl Into<EnvVar>) -> CoolResult<(), EnvError> {
         let env_var = env_var.into();
         self.env_vars.insert(env_var.key.clone(), env_var);
         self.write();
@@ -208,7 +214,7 @@ impl ShellProfile {
     pub fn login_shell_envs(
         login_shell: &LoginShell,
         inherit_env: bool,
-    ) -> CoolResult<Vec<EnvVariable>, EnvError> {
+    ) -> CoolResult<Vec<EnvVar>, EnvError> {
         Self::profile_envs(
             login_shell,
             login_shell.user_profile.display().to_string().as_str(),
@@ -220,7 +226,7 @@ impl ShellProfile {
         login_shell: &LoginShell,
         profile: impl Into<&'a str>,
         inherit_env: bool,
-    ) -> CoolResult<Vec<EnvVariable>, EnvError> {
+    ) -> CoolResult<Vec<EnvVar>, EnvError> {
         let (tx, rx) = crossbeam::channel::unbounded();
         login_shell.shell.run(
             format!("source {} && env", profile.into()).as_str(),
@@ -233,13 +239,51 @@ impl ShellProfile {
         }
         Ok(outputs
             .into_iter()
-            .flat_map(|m| EnvVariable::try_from(m.message.as_str()))
+            .flat_map(|m| EnvVar::try_from(m.message.as_str()))
             .filter(|e| !FILTER_ENV.contains(e.key.as_str()))
             .collect())
     }
+
+    fn parse(content: &str) -> (BTreeMap<String, EnvVar>, BTreeSet<String>, BTreeSet<String>) {
+        BLOCK_REGEX.find_iter(content).fold(
+            (
+                BTreeMap::<String, EnvVar>::new(),
+                BTreeSet::<String>::new(),
+                BTreeSet::<String>::new(),
+            ),
+            |(mut vars, mut paths, mut sources), item| {
+                let item = item.as_str();
+                if AT_PATH_REGEX.is_match(item) {
+                    let path = AT_PATH_REGEX
+                        .find(item)
+                        .unwrap()
+                        .as_str()
+                        .trim_start_matches("# @path=")
+                        .to_string();
+                    paths.insert(path);
+                } else if AT_SOURCE_REGEX.is_match(item) {
+                    let source = AT_SOURCE_REGEX
+                        .find(item)
+                        .unwrap()
+                        .as_str()
+                        .trim_start_matches("# @source=");
+                    sources.insert(source.to_string());
+                } else {
+                    let export = EXPORT_REGEX
+                        .find(item)
+                        .unwrap()
+                        .as_str()
+                        .trim_start_matches("# ");
+                    let env = EnvVar::try_from(export).unwrap();
+                    vars.insert(env.key.clone(), env);
+                }
+                (vars, paths, sources)
+            },
+        )
+    }
 }
 
-pub fn render_env_var(env_var: &EnvVariable) -> String {
+pub fn render_env_var(env_var: &EnvVar) -> String {
     let content = EXPORT_ENV_TEMPLATE
         .render(
             &tera::Context::from_value(serde_json::to_value(env_var).unwrap()).unwrap(),
@@ -271,13 +315,12 @@ pub fn render_source(profile: &str) -> String {
 
 #[cfg(test)]
 mod test {
+    use std::process::Command;
+
     use crate::env_manager::shell_profile::{
         EXPORT_ENV_TEMPLATE, PATH_ENV_TEMPLATE, SOURCE_PROFILE_TEMPLATE,
     };
-    use std::process::Command;
-
     use crate::init_backtrace;
-    use crate::local_storage::LocalStorage;
     use crate::login_shell::LoginShell;
     use crate::result::CoolResult;
 

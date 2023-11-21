@@ -33,7 +33,6 @@ fs_extra.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
 walkdir.workspace = true
-#users.workspace = true
 copypasta.workspace = true
 tera.workspace = true
 git2.workspace = true
@@ -48,6 +47,8 @@ glob.workspace = true
 directories.workspace = true
 regex.workspace = true
 bitflags.workspace = true
+notify.workspace = true
+notify-debouncer-full.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 winreg.workspace = true

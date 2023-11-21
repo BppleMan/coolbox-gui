@@ -1,3 +1,4 @@
+use crate::env_manager::EnvVar;
 use crate::error::{EnvTaskError, TaskError};
 use crate::result::CoolResult;
 use crate::shell::{Bash, ShellExecutor};
@@ -9,64 +10,70 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct EnvTask {
-    pub key: String,
-    pub value: String,
+    pub command: EnvCommand,
 }
 
 impl EnvTask {
-    pub fn new(key: String, value: String) -> Self {
-        Self { key, value }
-    }
-
-    // #[cfg(target_os = "windows")]
-    // pub fn set(&self) -> CoolResult<(), ExecutableError> {
-    //     let origin =
-    //     Cmd.run(format!("setx {}"))
-    // }
-
-    #[cfg(target_os = "macos")]
-    pub fn set(&self) -> CoolResult<(), TaskError> {
-        let (tx1, rx1) = crossbeam::channel::unbounded();
-        let (tx2, rx2) = crossbeam::channel::bounded(1);
-        let task = self.clone();
-        rayon::spawn(move || {
-            let result = Bash
-                .run("dscl . -read ~/ UserShell", None, Some(tx1))
-                .map_err(|e| TaskError::EnvTaskError {
-                    task,
-                    source: EnvTaskError::ShellError(e),
-                });
-            tx2.send(result).unwrap();
-        });
-        let mut messages = vec![];
-        while let Ok(message) = rx1.recv() {
-            messages.push(message.message);
-        }
-        let login_shell = messages.join("");
-        Ok(())
-    }
-
-    pub fn detect_shell(login_shell: String) {
-        let shell = if login_shell.contains("zsh") {
-            "zsh"
-        } else if login_shell.contains("bash") {
-            "bash"
-        } else {
-            "sh"
-        };
-        println!("login shell: {}", shell);
+    pub fn new(command: EnvCommand) -> Self {
+        Self { command }
     }
 }
 
 impl Display for EnvTask {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        todo!();
     }
 }
 
 impl<'a> Executable<'a> for EnvTask {
     fn execute(&self, send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         todo!()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+pub enum EnvCommand {
+    Export(EnvVar),
+    Unset(String),
+    AppendPath(String),
+    RemovePath(String),
+    #[cfg(unix)]
+    AddSource(String),
+    #[cfg(unix)]
+    RemoveSource(String),
+}
+
+impl Display for EnvCommand {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!();
+        // match self {
+        //     EnvCommand::Export(env_var) => {
+        //         if cfg!(unix) {
+        //             write!(f, "export {}", env_var)
+        //         } else {
+        //             write!(f, "set {}", env_var)
+        //         }
+        //     }
+        //     EnvCommand::Unset(value) => {
+        //         if cfg!(unix) {
+        //             write!(f, "unset {}", value)
+        //         } else {
+        //             write!(f, "set {}=", value)
+        //         }
+        //     }
+        //     EnvCommand::AppendPath(value) => {}
+        //     EnvCommand::RemovePath(value) => {
+        //         if cfg!(unix) {
+        //             write!(f, "unset {}", value)
+        //         } else {
+        //             write!(f, "set PATH=%PATH:{};=%", value)
+        //         }
+        //     }
+        //     #[cfg(unix)]
+        //     EnvCommand::AddSource(value) => {}
+        //     #[cfg(unix)]
+        //     EnvCommand::RemoveSource(value) => {}
+        // }
     }
 }
 
