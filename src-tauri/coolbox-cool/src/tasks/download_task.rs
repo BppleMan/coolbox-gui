@@ -15,7 +15,7 @@ use crate::IntoInfo;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DownloadTask {
     pub url: String,
-    #[serde(deserialize_with = "crate::template_string")]
+    #[serde(deserialize_with = "crate::cool::template_string")]
     pub dest: String,
 }
 

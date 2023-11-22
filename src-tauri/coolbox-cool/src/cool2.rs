@@ -4,8 +4,8 @@ use std::hash::{Hash, Hasher};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::tasks::Tasks;
 use crate::Cool;
-use crate::tasks::{Task, Tasks};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Cool2 {
@@ -21,6 +21,8 @@ pub struct Cool2 {
 pub struct Platform {
     #[serde(default)]
     pub need_restart: bool,
+    #[serde(default)]
+    pub use_package_manager: bool,
     #[serde(default)]
     dependencies: HashSet<String>,
     install_tasks: Tasks,
@@ -46,6 +48,7 @@ impl From<Cool> for Cool2 {
             description: value.description,
             macos: Some(Platform {
                 need_restart: value.need_restart,
+                use_package_manager: false,
                 dependencies: value.dependencies.into_iter().collect::<HashSet<String>>(),
                 install_tasks: value.install_tasks,
                 uninstall_tasks: value.uninstall_tasks,
@@ -61,8 +64,9 @@ impl From<Cool> for Cool2 {
 mod test {
     use std::path::PathBuf;
 
-    use crate::Cool;
     use crate::installer::{Apt, Brew, Installer};
+    use crate::tasks::Task;
+    use crate::Cool;
 
     use super::*;
 
@@ -74,6 +78,7 @@ mod test {
             description: "ABC".to_string(),
             macos: Some(Platform {
                 need_restart: false,
+                use_package_manager: false,
                 dependencies: HashSet::from(["homebrew".to_string()]),
                 install_tasks: Tasks(vec![Task::install(
                     "llvm",
@@ -90,6 +95,7 @@ mod test {
             }),
             windows: Some(Platform {
                 need_restart: false,
+                use_package_manager: false,
                 dependencies: HashSet::new(),
                 install_tasks: Tasks(vec![Task::install(
                     "LLVM.LLVM",
@@ -106,6 +112,7 @@ mod test {
             }),
             linux: Some(Platform {
                 need_restart: false,
+                use_package_manager: false,
                 dependencies: HashSet::new(),
                 install_tasks: Tasks(vec![Task::install(
                     "clang-devel",

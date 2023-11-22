@@ -1,4 +1,3 @@
-use color_eyre::Report;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

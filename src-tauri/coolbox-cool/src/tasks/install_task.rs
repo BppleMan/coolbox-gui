@@ -11,9 +11,9 @@ use crate::tasks::{Executable, MessageSender};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct InstallTask {
     pub name: String,
-    #[serde(deserialize_with = "crate::template_args", default)]
+    #[serde(deserialize_with = "crate::cool::template_args", default)]
     pub args: Option<Vec<String>>,
-    #[serde(deserialize_with = "crate::template_envs", default)]
+    #[serde(deserialize_with = "crate::cool::template_envs", default)]
     pub envs: Option<Vec<(String, String)>>,
     pub installer: Installer,
 }

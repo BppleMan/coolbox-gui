@@ -51,7 +51,7 @@ where
     task.execute(Box::new(send))
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema, TaskRef)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize, JsonSchema, TaskRef)]
 pub enum Task {
     CheckTask(CheckTask),
     CommandTask(CommandTask),

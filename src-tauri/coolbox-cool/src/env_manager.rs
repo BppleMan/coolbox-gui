@@ -1,4 +1,6 @@
 use bitflags::bitflags;
+#[allow(unused_imports)]
+use bitflags::Flags;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -17,9 +19,12 @@ mod shell_profile;
 #[cfg(windows)]
 mod win_env_util;
 
-pub struct EnvManager;
+pub struct EnvManager<'a> {
+    #[cfg(unix)]
+    pub profile: &'a mut ShellProfile,
+}
 
-impl EnvManager {
+impl<'a> EnvManager<'a> {
     pub fn envs(&self) -> Vec<EnvVar> {
         std::env::vars()
             .map(|(k, v)| EnvVar { key: k, value: v })
@@ -38,7 +43,7 @@ impl EnvManager {
         }
         if level.contains(EnvLevel::User) {
             #[cfg(unix)]
-            COOL_PROFILE.lock().unwrap().export(env_var)?;
+            self.profile.export(env_var)?;
         }
         Ok(())
     }
@@ -53,7 +58,7 @@ impl EnvManager {
         }
         if level.contains(EnvLevel::User) {
             #[cfg(unix)]
-            COOL_PROFILE.lock().unwrap().unset(key)?;
+            self.profile.unset(key)?;
         }
         Ok(())
     }
@@ -74,7 +79,7 @@ impl EnvManager {
         }
         if level.contains(EnvLevel::User) {
             #[cfg(unix)]
-            COOL_PROFILE.lock().unwrap().append_path(value)?;
+            self.profile.append_path(value)?;
         }
         Ok(())
     }
@@ -99,19 +104,26 @@ impl EnvManager {
         }
         if level.contains(EnvLevel::User) {
             #[cfg(unix)]
-            COOL_PROFILE.lock().unwrap().remove_path(value)?;
+            self.profile.remove_path(value)?;
         }
         Ok(())
     }
 
     #[cfg(unix)]
-    pub fn add_source(&mut self, value: impl AsRef<str>) -> CoolResult<(), EnvError> {
+    pub fn add_source(
+        &mut self,
+        value: impl AsRef<str>,
+        login_shell: Option<&LoginShell>,
+    ) -> CoolResult<(), EnvError> {
         let value = value.as_ref();
         if value.is_empty() {
             return Err(EnvError::EmptySourceValue);
         }
-        #[cfg(unix)]
-        COOL_PROFILE.lock().unwrap().add_source(value)
+        self.profile.add_source(value)?;
+        if let Some(login_shell) = login_shell {
+            self.source_profile(login_shell, value)?;
+        }
+        Ok(())
     }
 
     #[cfg(unix)]
@@ -120,15 +132,14 @@ impl EnvManager {
         if value.is_empty() {
             return Err(EnvError::EmptySourceValue);
         }
-        #[cfg(unix)]
-        COOL_PROFILE.lock().unwrap().remove_source(value)
+        self.profile.remove_source(value)
     }
 
     #[cfg(unix)]
-    pub fn source_profile<'a>(
+    pub fn source_profile<'b>(
         &mut self,
         login_shell: &LoginShell,
-        profile: impl Into<&'a str>,
+        profile: impl Into<&'b str>,
     ) -> CoolResult<(), EnvError> {
         let envs = ShellProfile::profile_envs(login_shell, profile, false)?;
         envs.into_iter()
@@ -232,36 +243,39 @@ impl Display for EnvVar {
 mod test {
     use crate::env_manager::{EnvLevel, EnvManager, EnvVar, COOL_PROFILE};
     use crate::init_backtrace;
-    use crate::local_storage::LocalStorage;
+    use crate::local_storage::LOCAL_STORAGE;
     use crate::result::CoolResult;
-    use std::ops::Deref;
+    use std::ops::{Deref, DerefMut};
 
     #[cfg(unix)]
     #[test]
     fn smoke_unix() -> CoolResult<()> {
         init_backtrace();
         assert!(std::env::var("COOL_TEST").is_err());
-        EnvManager.export(
+        let mut env_manager = EnvManager {
+            profile: unsafe { COOL_PROFILE.deref_mut() },
+        };
+        env_manager.export(
             EnvVar::try_from(["COOL_TEST", "1"])?,
             EnvLevel::Process | EnvLevel::User,
         )?;
         pretty_assertions::assert_str_eq!("1".to_string(), std::env::var("COOL_TEST").unwrap());
-        let cool_profile = LocalStorage.cool_profile();
-        pretty_assertions::assert_eq!(COOL_PROFILE.lock().unwrap().deref(), &cool_profile);
+        let cool_profile = LOCAL_STORAGE.cool_profile();
+        pretty_assertions::assert_eq!(unsafe { COOL_PROFILE.deref() }, &cool_profile);
 
         let origin_path = std::env::var("PATH")?;
-        EnvManager.append_path("/tmp", EnvLevel::Process | EnvLevel::User)?;
+        env_manager.append_path("/tmp", EnvLevel::Process | EnvLevel::User)?;
         pretty_assertions::assert_str_eq!(
             format!("/tmp:{}", origin_path),
             std::env::var("PATH").unwrap()
         );
-        let cool_profile = LocalStorage.cool_profile();
-        pretty_assertions::assert_eq!(COOL_PROFILE.lock().unwrap().deref(), &cool_profile);
+        let cool_profile = LOCAL_STORAGE.cool_profile();
+        pretty_assertions::assert_eq!(unsafe { COOL_PROFILE.deref() }, &cool_profile);
 
-        EnvManager.remove_path("/tmp", EnvLevel::Process | EnvLevel::User)?;
+        env_manager.remove_path("/tmp", EnvLevel::Process | EnvLevel::User)?;
         pretty_assertions::assert_str_eq!(origin_path, std::env::var("PATH").unwrap());
-        let cool_profile = LocalStorage.cool_profile();
-        pretty_assertions::assert_eq!(COOL_PROFILE.lock().unwrap().deref(), &cool_profile);
+        let cool_profile = LOCAL_STORAGE.cool_profile();
+        pretty_assertions::assert_eq!(unsafe { COOL_PROFILE.deref() }, &cool_profile);
         Ok(())
     }
 }

@@ -16,9 +16,9 @@ pub struct LoginShell {
 }
 
 impl LoginShell {
-    pub fn detect() -> CoolResult<Self> {
+    pub fn detect() -> CoolResult<Self, ShellError> {
         let shell = Self::detect_shell()?;
-        let user_profile = Self::detect_profile(&shell)?;
+        let user_profile = Self::detect_profile(&shell);
         Ok(Self {
             shell,
             user_profile,
@@ -81,11 +81,11 @@ impl LoginShell {
         }
     }
 
-    fn detect_profile(shell: &Shell) -> CoolResult<PathBuf> {
+    fn detect_profile(shell: &Shell) -> PathBuf {
         match &shell {
-            Shell::Bash(_) => Ok(USER_DIRS.home_dir().join(".bashrc")),
-            Shell::Zsh(_) => Ok(USER_DIRS.home_dir().join(".zshrc")),
-            _ => Err(eyre!("Unsupported login shell: {}", shell.name())),
+            Shell::Bash(_) => USER_DIRS.home_dir().join(".bashrc"),
+            Shell::Zsh(_) => USER_DIRS.home_dir().join(".zshrc"),
+            _ => panic!("{}", eyre!("Unsupported login shell: {}", shell.name())),
         }
     }
 }

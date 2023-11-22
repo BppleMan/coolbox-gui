@@ -19,9 +19,9 @@ use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DecompressTask {
-    #[serde(deserialize_with = "crate::template_string")]
+    #[serde(deserialize_with = "crate::cool::template_string")]
     pub src: String,
-    #[serde(deserialize_with = "crate::template_string")]
+    #[serde(deserialize_with = "crate::cool::template_string")]
     pub dest: String,
 }
 

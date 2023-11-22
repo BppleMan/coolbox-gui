@@ -8,11 +8,20 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
+pub use event::*;
+pub use list::*;
+#[allow(unused_imports)]
+pub(crate) use template::*;
+
 use crate::error::CoolError;
 use crate::result::CoolResult;
-use crate::state::CoolState;
 use crate::tasks::Tasks;
-use crate::{TaskEvent, COOL_LIST};
+use state::CoolState;
+
+mod event;
+mod list;
+pub mod state;
+mod template;
 
 static INSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
 static UNINSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);

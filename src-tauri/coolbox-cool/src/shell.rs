@@ -210,32 +210,3 @@ impl ShellResult {
         }
     }
 }
-
-#[cfg(test)]
-mod test {
-    use serde::{Deserialize, Serialize};
-
-    use crate::init_backtrace;
-    use crate::result::CoolResult;
-
-    #[test]
-    fn test() -> CoolResult<()> {
-        init_backtrace();
-        #[derive(Debug, Serialize, Deserialize)]
-        pub struct Test {
-            pub name: Option<String>,
-            pub age: Option<u8>,
-        }
-
-        let test = Test {
-            name: Some("test".to_string()),
-            age: None,
-        };
-
-        let toml = toml::to_string(&test)?;
-        println!("{}", toml);
-        let test2: Test = toml::from_str(&toml)?;
-        println!("{:?}", test2);
-        Ok(())
-    }
-}

@@ -1,10 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::fmt::Display;
-use std::path::PathBuf;
-use std::sync::Mutex;
+use std::ops::{Deref, DerefMut};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use color_eyre::eyre::Context;
-use crossbeam::channel::internal::SelectHandle;
 use lazy_static::lazy_static;
 use notify::{RecursiveMode, Watcher};
 use notify_debouncer_full::{new_debouncer, DebounceEventResult};
@@ -14,7 +12,7 @@ use tracing::error;
 
 use crate::env_manager::{EnvManagerBackend, EnvVar};
 use crate::error::EnvError;
-use crate::local_storage::LocalStorage;
+use crate::local_storage::LOCAL_STORAGE;
 use crate::login_shell::LoginShell;
 use crate::result::CoolResult;
 use crate::shell::ShellExecutor;
@@ -53,8 +51,7 @@ source {{value}}
 static FILTER_ENV: Lazy<HashSet<&'static str>> =
     Lazy::new(|| HashSet::from(["HOME", "LOGNAME", "_", "SHLVL", "PWD", "OLDPWD"]));
 
-pub static COOL_PROFILE: Lazy<Mutex<ShellProfile>> =
-    Lazy::new(|| Mutex::new(LocalStorage.cool_profile()));
+pub static mut COOL_PROFILE: Lazy<ShellProfile> = Lazy::new(|| LOCAL_STORAGE.cool_profile());
 
 lazy_static! {
     static ref BLOCK_REGEX: Regex =
@@ -76,12 +73,12 @@ lazy_static! {
         .unwrap();
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug)]
 pub struct ShellProfile {
     profile_path: PathBuf,
-    paths: BTreeSet<String>,
-    env_vars: BTreeMap<String, EnvVar>,
-    sources: BTreeSet<String>,
+    paths: Arc<Mutex<BTreeSet<String>>>,
+    env_vars: Arc<Mutex<BTreeMap<String, EnvVar>>>,
+    sources: Arc<Mutex<BTreeSet<String>>>,
 }
 
 impl ShellProfile {
@@ -95,34 +92,60 @@ impl ShellProfile {
         let (env_vars, paths, sources) = Self::parse(&content);
         Self {
             profile_path: path,
-            paths,
-            env_vars,
-            sources,
+            paths: Arc::new(Mutex::new(paths)),
+            env_vars: Arc::new(Mutex::new(env_vars)),
+            sources: Arc::new(Mutex::new(sources)),
         }
+    }
+
+    pub fn locked_paths(&self) -> MutexGuard<'_, BTreeSet<String>> {
+        self.paths.lock().unwrap()
+    }
+
+    pub fn set_locked_paths(&self, paths: BTreeSet<String>) {
+        *self.paths.lock().unwrap() = paths;
+    }
+
+    pub fn locked_env_vars(&self) -> MutexGuard<'_, BTreeMap<String, EnvVar>> {
+        self.env_vars.lock().unwrap()
+    }
+
+    pub fn set_locked_env_vars(&self, env_vars: BTreeMap<String, EnvVar>) {
+        *self.env_vars.lock().unwrap() = env_vars;
+    }
+
+    pub fn locked_sources(&self) -> MutexGuard<'_, BTreeSet<String>> {
+        self.sources.lock().unwrap()
+    }
+
+    pub fn set_locked_sources(&self, sources: BTreeSet<String>) {
+        *self.sources.lock().unwrap() = sources;
     }
 
     pub fn write(&self) {
         let env_var_content = self
-            .env_vars
+            .locked_env_vars()
             .values()
             .map(render_env_var)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .join("\n");
         let source_content = self
-            .sources
+            .locked_sources()
             .iter()
             .map(|s| render_source(s))
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .join("\n");
         let path_content = self
-            .paths
+            .locked_paths()
             .iter()
             .map(|p| render_path(p))
-            .collect::<Vec<_>>();
-        let content = [
-            env_var_content.join("\n"),
-            source_content.join("\n"),
-            path_content.join("\n"),
-        ]
-        .join("\n");
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut content = [env_var_content, source_content, path_content]
+            .into_iter()
+            .filter(|it| !it.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n");
         if let Some(parent) = self.profile_path.parent() {
             if !parent.exists() {
                 std::fs::create_dir_all(parent).unwrap();
@@ -130,6 +153,9 @@ impl ShellProfile {
         }
         if !self.profile_path.exists() {
             std::fs::File::create(&self.profile_path).unwrap();
+        }
+        if !content.is_empty() {
+            content.push('\n');
         }
         fs_extra::file::write_all(&self.profile_path, &content).unwrap();
     }
@@ -165,46 +191,50 @@ impl ShellProfile {
     pub fn update(&mut self) {
         let content = fs_extra::file::read_to_string(&self.profile_path).unwrap();
         let (env_vars, paths, sources) = Self::parse(&content);
-        self.env_vars = env_vars;
-        self.paths = paths;
-        self.sources = sources;
+        self.set_locked_env_vars(env_vars);
+        self.set_locked_paths(paths);
+        self.set_locked_sources(sources);
+    }
+
+    pub fn file_path(&self) -> &Path {
+        self.profile_path.as_path()
     }
 }
 
 impl EnvManagerBackend for ShellProfile {
     fn export(&mut self, env_var: impl Into<EnvVar>) -> CoolResult<(), EnvError> {
         let env_var = env_var.into();
-        self.env_vars.insert(env_var.key.clone(), env_var);
+        self.locked_env_vars().insert(env_var.key.clone(), env_var);
         self.write();
         Ok(())
     }
 
     fn unset(&mut self, key: impl AsRef<str>) -> CoolResult<(), EnvError> {
-        self.env_vars.remove(key.as_ref());
+        self.locked_env_vars().remove(key.as_ref());
         self.write();
         Ok(())
     }
 
     fn append_path(&mut self, value: impl AsRef<str>) -> CoolResult<(), EnvError> {
-        self.paths.insert(value.as_ref().to_string());
+        self.locked_paths().insert(value.as_ref().to_string());
         self.write();
         Ok(())
     }
 
     fn remove_path(&mut self, value: impl AsRef<str>) -> CoolResult<(), EnvError> {
-        self.paths.remove(value.as_ref());
+        self.locked_paths().remove(value.as_ref());
         self.write();
         Ok(())
     }
 
     fn add_source(&mut self, value: impl AsRef<str>) -> CoolResult<(), EnvError> {
-        self.sources.insert(value.as_ref().to_string());
+        self.locked_sources().insert(value.as_ref().to_string());
         self.write();
         Ok(())
     }
 
     fn remove_source(&mut self, value: impl AsRef<str>) -> CoolResult<(), EnvError> {
-        self.sources.remove(value.as_ref());
+        self.locked_sources().remove(value.as_ref());
         self.write();
         Ok(())
     }
@@ -283,6 +313,15 @@ impl ShellProfile {
     }
 }
 
+impl PartialEq for ShellProfile {
+    fn eq(&self, other: &Self) -> bool {
+        self.profile_path == other.profile_path
+            && self.locked_env_vars().deref() == other.locked_env_vars().deref()
+            && self.locked_paths().deref() == other.locked_paths().deref()
+            && self.locked_sources().deref() == other.locked_sources().deref()
+    }
+}
+
 pub fn render_env_var(env_var: &EnvVar) -> String {
     let content = EXPORT_ENV_TEMPLATE
         .render(
@@ -290,7 +329,7 @@ pub fn render_env_var(env_var: &EnvVar) -> String {
             false,
         )
         .unwrap();
-    content.trim_start().to_string()
+    content.trim().to_string()
 }
 
 pub fn render_path(path: &str) -> String {
@@ -300,7 +339,7 @@ pub fn render_path(path: &str) -> String {
             false,
         )
         .unwrap();
-    content.trim_start().to_string()
+    content.trim().to_string()
 }
 
 pub fn render_source(profile: &str) -> String {
@@ -310,66 +349,5 @@ pub fn render_source(profile: &str) -> String {
             false,
         )
         .unwrap();
-    content.trim_start().to_string()
-}
-
-#[cfg(test)]
-mod test {
-    use std::process::Command;
-
-    use crate::env_manager::shell_profile::{
-        EXPORT_ENV_TEMPLATE, PATH_ENV_TEMPLATE, SOURCE_PROFILE_TEMPLATE,
-    };
-    use crate::init_backtrace;
-    use crate::login_shell::LoginShell;
-    use crate::result::CoolResult;
-
-    #[test]
-    fn smoke() -> CoolResult<()> {
-        init_backtrace();
-        let login_shell = LoginShell::detect()?;
-        // println!(
-        // "{:#?}",
-        // EnvUtil.profile_envs(&login_shell, "../coolrc", false)?
-        // );
-        Ok(())
-    }
-
-    #[test]
-    fn test_regex() -> CoolResult<()> {
-        init_backtrace();
-        let content = vec![
-            PATH_ENV_TEMPLATE,
-            EXPORT_ENV_TEMPLATE,
-            SOURCE_PROFILE_TEMPLATE,
-        ]
-        .join("\r");
-        // println!("{}", content);
-        let export = r#"#\s[^=\s]+?=[^=\s]+"#;
-        let export_block = format!(r#"# ===start===\n{}\n((.|\s)*?)# ===end==="#, export);
-        let export_block_regex = regex::RegexBuilder::new(&export_block)
-            // .crlf(true)
-            .multi_line(true)
-            .build()
-            .unwrap();
-        export_block_regex.find_iter(&content).for_each(|m| {
-            let item = m.as_str();
-            println!("{}", item);
-        });
-        Ok(())
-    }
-
-    #[test]
-    fn test_env() -> CoolResult<()> {
-        std::thread::spawn(move || {
-            std::env::set_var("COOL_HOME", "123456");
-        })
-        .join()
-        .unwrap();
-        let output = Command::new("zsh")
-            .args(["-c", "echo $COOL_HOME"])
-            .spawn()?
-            .wait()?;
-        Ok(())
-    }
+    content.trim().to_string()
 }

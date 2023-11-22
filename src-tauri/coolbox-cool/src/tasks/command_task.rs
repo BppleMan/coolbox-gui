@@ -12,9 +12,9 @@ use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CommandTask {
-    #[serde(deserialize_with = "crate::template_string")]
+    #[serde(deserialize_with = "crate::cool::template_string")]
     pub script: String,
-    #[serde(deserialize_with = "crate::template_envs", default)]
+    #[serde(deserialize_with = "crate::cool::template_envs", default)]
     pub envs: Option<Vec<(String, String)>>,
     pub shell: Shell,
 }

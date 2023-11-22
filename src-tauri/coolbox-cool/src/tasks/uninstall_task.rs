@@ -11,7 +11,7 @@ use crate::tasks::{Executable, MessageSender};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct UninstallTask {
     pub name: String,
-    #[serde(deserialize_with = "crate::template_args", default)]
+    #[serde(deserialize_with = "crate::cool::template_args", default)]
     pub args: Option<Vec<String>>,
     pub installer: Installer,
 }

@@ -10,7 +10,7 @@ use crate::tasks::{Executable, MessageSender};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct ExistsTask {
-    #[serde(deserialize_with = "crate::template_string")]
+    #[serde(deserialize_with = "crate::cool::template_string")]
     pub path: String,
 }
 

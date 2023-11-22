@@ -241,15 +241,15 @@ impl<'a> Executable<'a> for GitTask {
 pub enum GitCommand {
     Clone {
         url: String,
-        #[serde(deserialize_with = "crate::template_string")]
+        #[serde(deserialize_with = "crate::cool::template_string")]
         dest: String,
     },
     Pull {
-        #[serde(deserialize_with = "crate::template_string")]
+        #[serde(deserialize_with = "crate::cool::template_string")]
         src: String,
     },
     Checkout {
-        #[serde(deserialize_with = "crate::template_string")]
+        #[serde(deserialize_with = "crate::cool::template_string")]
         src: String,
         branch: String,
         create: bool,
