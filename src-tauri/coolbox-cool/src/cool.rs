@@ -8,20 +8,27 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
+pub use dependency::*;
 pub use event::*;
+pub use formula::*;
 pub use list::*;
+use state::CoolState;
+pub use state::*;
 #[allow(unused_imports)]
 pub(crate) use template::*;
+pub use version::*;
 
 use crate::error::CoolError;
 use crate::result::CoolResult;
 use crate::tasks::Tasks;
-use state::CoolState;
 
+mod dependency;
 mod event;
+mod formula;
 mod list;
-pub mod state;
+mod state;
 mod template;
+mod version;
 
 static INSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
 static UNINSTALLING: Lazy<DashMap<String, Receiver<()>>> = Lazy::new(DashMap::new);
@@ -183,7 +190,7 @@ impl Cool {
             let cool = COOL_LIST.get(d).ok_or(CoolError::NotFoundCool {
                 cool_name: d.clone(),
             })?;
-            cool.lock().unwrap().install(sender)?;
+            cool.install(sender)?;
             Ok(())
         })?;
         Ok(())
@@ -224,10 +231,11 @@ impl PartialOrd for Cool {
 
 #[cfg(test)]
 mod test {
+    use crate::cool::Cool;
+    use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::shell::{Bash, MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
-    use crate::{init_backtrace, Cool};
 
     #[test]
     fn test_cool() -> CoolResult<()> {

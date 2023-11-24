@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 use zip::ZipArchive;
 
+use crate::cool::IntoInfo;
 use crate::error::{CompressTaskError, InnerError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DecompressTask {
@@ -85,13 +85,13 @@ impl DecompressTask {
                     if file.name().ends_with('/') {
                         fs_extra::dir::create_all(&out_path, true)
                             .map_err(|e| self.map_inner_error(e))?;
-                        send(format!("create dir: {}", out_path.display()).into_info());
+                        send(format!("Decompress dir: {}", out_path.display()).into_info());
                     } else {
                         if let Some(parent) = out_path.parent() {
                             if !parent.exists() {
                                 fs_extra::dir::create_all(&out_path, true)
                                     .map_err(|e| self.map_inner_error(e))?;
-                                send(format!("create dir: {}", parent.display()).into_info());
+                                send(format!("Decompress dir: {}", parent.display()).into_info());
                             }
                         }
                         #[cfg(unix)]
@@ -109,14 +109,14 @@ impl DecompressTask {
                                 std::fs::Permissions::from_mode(file.unix_mode().unwrap()),
                             )
                             .map_err(|e| self.map_inner_error(e))?;
-                            send(format!("create symlink: {}", out_path.display()).into_info());
+                            send(format!("Decompress symlink: {}", out_path.display()).into_info());
                             continue;
                         }
                         let mut outfile =
                             File::create(&out_path).map_err(|e| self.map_inner_error(e))?;
                         std::io::copy(&mut file, &mut outfile)
                             .map_err(|e| self.map_inner_error(e))?;
-                        send(format!("create file: {}", out_path.display()).into_info());
+                        send(format!("Decompress file: {}", out_path.display()).into_info());
                     }
                 }
             }

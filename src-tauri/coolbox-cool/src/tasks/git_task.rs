@@ -9,11 +9,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
+use crate::cool::IntoInfo;
 use crate::error::GitTaskError::CannotFastForward;
 use crate::error::{GitTaskError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct GitTask {

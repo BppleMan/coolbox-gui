@@ -1,3 +1,4 @@
+use crate::cool::Message;
 use crate::error::ShellError;
 use crossbeam::channel::Sender;
 use log::info;
@@ -6,7 +7,6 @@ use schemars::JsonSchema;
 use crate::installer::Installable;
 use crate::result::CoolResult;
 use crate::shell::{Bash, ShellExecutor};
-use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, JsonSchema)]
 pub struct Yum;

@@ -1,3 +1,4 @@
+use crate::cool::{IntoInfo, MessageSender};
 use crate::env_manager::{
     render_env_var, render_path, render_source, EnvLevel, EnvManager, EnvVar, COOL_PROFILE,
 };
@@ -5,7 +6,6 @@ use crate::error::{EnvTaskError, TaskError};
 use crate::login_shell::LoginShell;
 use crate::result::CoolResult;
 use crate::tasks::Executable;
-use crate::{IntoInfo, MessageSender};
 #[allow(unused_imports)]
 use bitflags::Flags;
 use schemars::JsonSchema;

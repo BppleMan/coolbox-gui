@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use crate::cool::{DirTransitProcessInfo, FileTransitProcessInfo};
 use fs_extra::dir::TransitProcessResult;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -9,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use crate::error::{CopyTaskError, InnerError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CopyTask {

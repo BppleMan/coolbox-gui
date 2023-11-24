@@ -7,6 +7,7 @@ use log::info;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::cool::{IntoInfo, Message};
 pub use bash::*;
 pub use cmd::*;
 pub use linux_sudo::*;
@@ -16,7 +17,6 @@ pub use zsh::*;
 
 use crate::error::{InnerError, ShellError};
 use crate::result::CoolResult;
-use crate::{IntoInfo, Message};
 
 mod bash;
 mod cmd;

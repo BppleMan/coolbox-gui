@@ -1,9 +1,8 @@
-pub use cool::*;
 pub use extension::*;
 pub use trace::*;
 
-mod cool;
-mod cool2;
+pub mod cool;
+pub mod cool2;
 pub mod env_manager;
 pub mod error;
 mod extension;

@@ -5,6 +5,7 @@ use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::cool::Message;
 use crate::error::ShellError;
 pub use apt::*;
 pub use brew::*;
@@ -15,7 +16,6 @@ pub use winget::*;
 pub use yum::*;
 
 use crate::result::CoolResult;
-use crate::Message;
 
 mod apt;
 mod brew;

@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 

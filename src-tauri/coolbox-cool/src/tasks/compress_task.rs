@@ -13,10 +13,10 @@ use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
+use crate::cool::IntoInfo;
 use crate::error::{CompressTaskError, InnerError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CompressTask {
@@ -52,7 +52,7 @@ impl CompressTask {
                     FileOptions::default(),
                 )
                 .map_err(|e| self.map_inner_error(e))?;
-                send(format!("Add directory {}", entry.path().display()).into_info());
+                send(format!("Compress directory {}", entry.path().display()).into_info());
             } else if entry.file_type().is_file() {
                 zip.start_file(
                     entry
@@ -69,7 +69,7 @@ impl CompressTask {
                 file.read_to_end(&mut buf)
                     .map_err(|e| self.map_inner_error(e))?;
                 zip.write_all(&buf).map_err(|e| self.map_inner_error(e))?;
-                send(format!("Add file {}", entry.path().display()).into_info());
+                send(format!("Compress file {}", entry.path().display()).into_info());
             } else if entry.file_type().is_symlink() {
                 zip.add_symlink(
                     entry
@@ -87,7 +87,7 @@ impl CompressTask {
                     FileOptions::default().compression_method(CompressionMethod::Stored),
                 )
                 .map_err(|e| self.map_inner_error(e))?;
-                send(format!("Add symlink {}", entry.path().display()).into_info());
+                send(format!("Compress symlink {}", entry.path().display()).into_info());
             }
         }
         zip.finish().map_err(|e| self.map_inner_error(e))?;
@@ -105,7 +105,7 @@ impl CompressTask {
         tar.append_dir_all(src.file_name().unwrap(), &self.src)
             .map_err(|e| self.map_inner_error(e))?;
         tar.finish().map_err(|e| self.map_inner_error(e))?;
-        send(format!("Add directory {}", &self.src).into_info());
+        send(format!("Compress directory {}", &self.src).into_info());
 
         Ok(())
     }

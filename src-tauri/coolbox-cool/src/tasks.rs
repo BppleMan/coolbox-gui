@@ -19,11 +19,11 @@ pub use move_task::*;
 pub use uninstall_task::*;
 pub use which_task::*;
 
+use crate::cool::{IntoError, Message, MessageSender, TaskState, TasksMessageSender};
 use crate::error::TaskError;
 use crate::installer::Installer;
 use crate::result::CoolResult;
 use crate::shell::Shell;
-use crate::{IntoError, Message, MessageSender, TaskState, TasksMessageSender};
 
 mod check_task;
 mod command_task;

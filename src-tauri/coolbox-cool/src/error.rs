@@ -25,8 +25,14 @@ pub enum CoolError {
         error: String,
     },
 
+    #[error("Unsupported cool file: {file}")]
+    UnsupportedCoolFile { file: String },
+
     #[error("Not found cool: {cool_name}")]
     NotFoundCool { cool_name: String },
+
+    #[error("Cannot parse file: [{file}] as validate struct")]
+    ParseError { file: String },
 
     #[error("Cool [{cool_name}] error: {error}")]
     UnknownError { cool_name: String, error: String },

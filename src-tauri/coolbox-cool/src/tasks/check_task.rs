@@ -3,11 +3,11 @@ use std::fmt::{Display, Formatter};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::cool::IntoInfo;
 use crate::error::{CheckTaskError, TaskError};
 use crate::installer::{Installable, Installer};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CheckTask {

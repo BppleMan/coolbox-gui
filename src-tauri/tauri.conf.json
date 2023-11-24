@@ -7,7 +7,7 @@
     },
     "package": {
         "productName": "coolbox",
-        "version": "0.1.0"
+        "version": "0.1.1"
     },
     "tauri": {
         "allowlist": {
@@ -57,10 +57,10 @@
         "windows": [
             {
                 "fullscreen": false,
+                "width": 960
                 "height": 800,
                 "resizable": true,
                 "title": "CoolBox",
-                "width": 960
             }
         ]
     }

@@ -6,10 +6,10 @@ use fs_extra::dir::{CopyOptions, TransitProcessResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::cool::{DirTransitProcessInfo, FileTransitProcessInfo};
 use crate::error::{InnerError, MoveTaskError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
-use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct MoveTask {
