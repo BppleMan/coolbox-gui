@@ -1,4 +1,4 @@
-use crate::env_manager::EnvManagerBackend;
+use crate::EnvManagerBackend;
 
 pub struct RegEditor;
 

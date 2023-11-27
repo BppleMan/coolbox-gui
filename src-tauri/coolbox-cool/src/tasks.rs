@@ -19,11 +19,11 @@ pub use move_task::*;
 pub use uninstall_task::*;
 pub use which_task::*;
 
-use crate::cool::{IntoError, Message, MessageSender, TaskState, TasksMessageSender};
 use crate::error::TaskError;
 use crate::installer::Installer;
 use crate::result::CoolResult;
 use crate::shell::Shell;
+use crate::{IntoError, Message, MessageSender, TaskState, TasksMessageSender};
 
 mod check_task;
 mod command_task;
@@ -134,22 +134,22 @@ impl Task {
     }
 
     pub fn git_clone(url: impl Into<String>, dest: impl Into<String>) -> Self {
-        Self::GitTask(GitTask::new(GitCommand::Clone {
+        Self::GitTask(GitTask::new(GitCommand::Clone(GitClone {
             url: url.into(),
             dest: dest.into(),
-        }))
+        })))
     }
 
     pub fn git_pull(src: impl Into<String>) -> Self {
-        Self::GitTask(GitTask::new(GitCommand::Pull { src: src.into() }))
+        Self::GitTask(GitTask::new(GitCommand::Pull(GitPull { src: src.into() })))
     }
 
     pub fn git_checkout(src: impl Into<String>, branch: impl Into<String>, create: bool) -> Self {
-        Self::GitTask(GitTask::new(GitCommand::Checkout {
+        Self::GitTask(GitTask::new(GitCommand::Checkout(GitCheckout {
             src: src.into(),
             branch: branch.into(),
             create,
-        }))
+        })))
     }
 
     pub fn install(

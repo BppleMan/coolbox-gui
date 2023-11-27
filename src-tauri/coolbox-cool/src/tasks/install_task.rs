@@ -43,6 +43,7 @@ impl Display for InstallTask {
             Installer::Yun(_) => write!(f, "sudo yum install -y "),
             Installer::Dnf(_) => write!(f, "sudo dnf install -y "),
             Installer::Rpm(_) => write!(f, "sudo rpm -i "),
+            Installer::WinGet(_) => write!(f, "winget install "),
         }?;
         if let Some(args) = self.args.as_ref() {
             for arg in args {

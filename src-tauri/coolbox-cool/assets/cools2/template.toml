@@ -1,0 +1,697 @@
+name = "template"
+identifier = "template"
+description = "template"
+
+[macos]
+need_restart = false
+
+[macos.formula.PackageManager]
+installer = "brew"
+name = "template"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.CheckTask]
+name = "template"
+installer = "brew"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.CommandTask]
+script = "template"
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+shell = "zsh"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.CompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.CopyTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.DecompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.DeleteTask]
+path = "template_source"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.DownloadTask]
+url = "http://localhost/template"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.ExistsTask]
+path = "template"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.GitTask.command.Clone]
+url = "http://localhost/template.git"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.GitTask.command.Pull]
+src = "template_source"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.GitTask.command.Checkout]
+src = "template_source"
+branch = "template_branch"
+create = false
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.InstallTask]
+name = "template"
+args = ["--template"]
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+installer = "brew"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.MoveTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.UninstallTask]
+name = "template"
+args = ["--template"]
+installer = "brew"
+
+[[macos.formula.PackageManager.post_install_tasks]]
+
+[macos.formula.PackageManager.post_install_tasks.WhichTask]
+command = "template"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.CheckTask]
+name = "template"
+installer = "brew"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.CommandTask]
+script = "template"
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+shell = "zsh"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.CompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.CopyTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.DecompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.DeleteTask]
+path = "template_source"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.DownloadTask]
+url = "http://localhost/template"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.ExistsTask]
+path = "template"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.GitTask.command.Clone]
+url = "http://localhost/template.git"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.GitTask.command.Pull]
+src = "template_source"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.GitTask.command.Checkout]
+src = "template_source"
+branch = "template_branch"
+create = false
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.InstallTask]
+name = "template"
+args = ["--template"]
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+installer = "brew"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.MoveTask]
+src = "template_source"
+dest = "template_dest"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.UninstallTask]
+name = "template"
+args = ["--template"]
+installer = "brew"
+
+[[macos.formula.PackageManager.post_uninstall_tasks]]
+
+[macos.formula.PackageManager.post_uninstall_tasks.WhichTask]
+command = "template"
+
+[windows]
+need_restart = false
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-1"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-8"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-4"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-6"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-3"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-5"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-0"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-7"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-2"
+version = "latest"
+
+[[windows.formula.Manual.dependencies]]
+name = "dependency-9"
+version = "latest"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.CheckTask]
+name = "template"
+installer = "winget"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.CommandTask]
+script = "template"
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+shell = "cmd"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.CompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.CopyTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.DecompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.DeleteTask]
+path = "template_source"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.DownloadTask]
+url = "http://localhost/template"
+dest = "template_dest"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.ExistsTask]
+path = "template"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.GitTask.command.Clone]
+url = "http://localhost/template.git"
+dest = "template_dest"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.GitTask.command.Pull]
+src = "template_source"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.GitTask.command.Checkout]
+src = "template_source"
+branch = "template_branch"
+create = false
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.InstallTask]
+name = "template"
+args = ["--template"]
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+installer = "winget"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.MoveTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.UninstallTask]
+name = "template"
+args = ["--template"]
+installer = "winget"
+
+[[windows.formula.Manual.install_tasks]]
+
+[windows.formula.Manual.install_tasks.WhichTask]
+command = "template"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.CheckTask]
+name = "template"
+installer = "winget"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.CommandTask]
+script = "template"
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+shell = "cmd"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.CompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.CopyTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.DecompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.DeleteTask]
+path = "template_source"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.DownloadTask]
+url = "http://localhost/template"
+dest = "template_dest"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.ExistsTask]
+path = "template"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.GitTask.command.Clone]
+url = "http://localhost/template.git"
+dest = "template_dest"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.GitTask.command.Pull]
+src = "template_source"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.GitTask.command.Checkout]
+src = "template_source"
+branch = "template_branch"
+create = false
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.InstallTask]
+name = "template"
+args = ["--template"]
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+installer = "winget"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.MoveTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.UninstallTask]
+name = "template"
+args = ["--template"]
+installer = "winget"
+
+[[windows.formula.Manual.uninstall_tasks]]
+
+[windows.formula.Manual.uninstall_tasks.WhichTask]
+command = "template"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.CheckTask]
+name = "template"
+installer = "winget"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.CommandTask]
+script = "template"
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+shell = "cmd"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.CompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.CopyTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.DecompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.DeleteTask]
+path = "template_source"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.DownloadTask]
+url = "http://localhost/template"
+dest = "template_dest"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.ExistsTask]
+path = "template"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.GitTask.command.Clone]
+url = "http://localhost/template.git"
+dest = "template_dest"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.GitTask.command.Pull]
+src = "template_source"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.GitTask.command.Checkout]
+src = "template_source"
+branch = "template_branch"
+create = false
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.InstallTask]
+name = "template"
+args = ["--template"]
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+installer = "winget"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.MoveTask]
+src = "template_source"
+dest = "template_dest"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.UninstallTask]
+name = "template"
+args = ["--template"]
+installer = "winget"
+
+[[windows.formula.Manual.check_tasks]]
+
+[windows.formula.Manual.check_tasks.WhichTask]
+command = "template"
+
+[linux]
+need_restart = false
+
+[linux.formula.PackageManager]
+installer = "apt"
+name = "template"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.CheckTask]
+name = "template"
+installer = "apt"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.CommandTask]
+script = "template"
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+shell = "bash"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.CompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.CopyTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.DecompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.DeleteTask]
+path = "template_source"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.DownloadTask]
+url = "http://localhost/template"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.ExistsTask]
+path = "template"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.GitTask.command.Clone]
+url = "http://localhost/template.git"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.GitTask.command.Pull]
+src = "template_source"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.GitTask.command.Checkout]
+src = "template_source"
+branch = "template_branch"
+create = false
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.InstallTask]
+name = "template"
+args = ["--template"]
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+installer = "apt"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.MoveTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.UninstallTask]
+name = "template"
+args = ["--template"]
+installer = "apt"
+
+[[linux.formula.PackageManager.post_install_tasks]]
+
+[linux.formula.PackageManager.post_install_tasks.WhichTask]
+command = "template"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.CheckTask]
+name = "template"
+installer = "apt"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.CommandTask]
+script = "template"
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+shell = "bash"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.CompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.CopyTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.DecompressTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.DeleteTask]
+path = "template_source"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.DownloadTask]
+url = "http://localhost/template"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.ExistsTask]
+path = "template"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.GitTask.command.Clone]
+url = "http://localhost/template.git"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.GitTask.command.Pull]
+src = "template_source"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.GitTask.command.Checkout]
+src = "template_source"
+branch = "template_branch"
+create = false
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.InstallTask]
+name = "template"
+args = ["--template"]
+envs = [["COOL_TEMPLATE", "COOL_TEMPLATE_VALUE"]]
+installer = "apt"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.MoveTask]
+src = "template_source"
+dest = "template_dest"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.UninstallTask]
+name = "template"
+args = ["--template"]
+installer = "apt"
+
+[[linux.formula.PackageManager.post_uninstall_tasks]]
+
+[linux.formula.PackageManager.post_uninstall_tasks.WhichTask]
+command = "template"

@@ -1,0 +1,40 @@
+id: http://dragit.org/schemas/cool.yaml
+$schema: http://json-schema.org/draft-04/schema#
+title: cool
+type: object
+required:
+  - name
+  - identifier
+  - description
+properties:
+  name:
+    type: string
+  identifier:
+    type: string
+  description:
+    type: string
+  macos:
+    type: object
+    default: null,
+    $ref: '#/definitions/Platform'
+definitions:
+  Platform:
+    type: object
+    required:
+      - need_restart
+      - formula
+    properties:
+      need_restart:
+        type: boolean
+        default: false
+      formula:
+        type: object
+        $ref: '#/definitions/CoolFormula'
+  CoolFormula:
+    oneOf:
+      - "!PackageManager":
+          type: tag
+          $ref: '#/definitions/PackageManager'
+      - "!Manual":
+          type: tag
+          $ref: '#/definitions/Manual'

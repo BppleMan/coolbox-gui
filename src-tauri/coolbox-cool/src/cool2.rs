@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::cool::CoolFormula;
+use crate::CoolFormula;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -9,8 +9,11 @@ pub struct Cool2 {
     pub name: String,
     pub identifier: String,
     pub description: String,
+    #[serde(default)]
     pub macos: Option<Platform>,
+    #[serde(default)]
     pub windows: Option<Platform>,
+    #[serde(default)]
     pub linux: Option<Platform>,
 }
 
@@ -18,8 +21,6 @@ pub struct Cool2 {
 pub struct Platform {
     #[serde(default)]
     pub need_restart: bool,
-    #[serde(default)]
-    pub use_package_manager: bool,
     pub formula: CoolFormula,
 }
 

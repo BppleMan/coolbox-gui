@@ -1,11 +1,11 @@
-use crate::cool::{IntoInfo, MessageSender};
-use crate::env_manager::{
-    render_env_var, render_path, render_source, EnvLevel, EnvManager, EnvVar, COOL_PROFILE,
-};
 use crate::error::{EnvTaskError, TaskError};
-use crate::login_shell::LoginShell;
 use crate::result::CoolResult;
 use crate::tasks::Executable;
+use crate::LoginShell;
+use crate::{
+    render_env_var, render_path, render_source, EnvLevel, EnvManager, EnvVar, COOL_PROFILE,
+};
+use crate::{IntoInfo, MessageSender};
 #[allow(unused_imports)]
 use bitflags::Flags;
 use schemars::JsonSchema;
@@ -185,10 +185,10 @@ impl Display for EnvCommand {
 
 #[cfg(test)]
 mod test {
-    use crate::env_manager::EnvVar;
     use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::tasks::{spawn_task, EnvCommand, EnvTask};
+    use crate::EnvVar;
 
     #[test]
     fn env_task_smoke() -> CoolResult<()> {

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use crate::error::ShellError;
-use crate::local_storage::USER_DIRS;
+use crate::USER_DIRS;
 use color_eyre::eyre::eyre;
 
 use crate::result::CoolResult;
@@ -92,7 +92,7 @@ impl LoginShell {
 
 #[cfg(test)]
 mod test {
-    use crate::login_shell::LoginShell;
+    use crate::LoginShell;
 
     #[test]
     fn test() {

@@ -35,6 +35,7 @@ impl Display for UninstallTask {
             Installer::Yun(_) => write!(f, "sudo yum remove "),
             Installer::Dnf(_) => write!(f, "sudo dnf remove "),
             Installer::Rpm(_) => write!(f, "sudo rpm -e "),
+            Installer::WinGet(_) => write!(f, "winget uninstall "),
         }?;
         if let Some(args) = self.args.as_ref() {
             for arg in args {

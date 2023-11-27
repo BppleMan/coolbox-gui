@@ -7,7 +7,7 @@ use log::info;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::cool::{IntoInfo, Message};
+use crate::{IntoInfo, Message};
 pub use bash::*;
 pub use cmd::*;
 pub use linux_sudo::*;
@@ -33,6 +33,32 @@ pub enum Shell {
     Sh(Sh),
     Zsh(Zsh),
     Cmd(Cmd),
+}
+
+impl Shell {
+    pub fn bash() -> Self {
+        Self::Bash(Bash)
+    }
+
+    pub fn linux_sudo() -> Self {
+        Self::LinuxSudo(LinuxSudo)
+    }
+
+    pub fn macos_sudo() -> Self {
+        Self::MacOSSudo(MacOSSudo)
+    }
+
+    pub fn sh() -> Self {
+        Self::Sh(Sh)
+    }
+
+    pub fn zsh() -> Self {
+        Self::Zsh(Zsh)
+    }
+
+    pub fn cmd() -> Self {
+        Self::Cmd(Cmd)
+    }
 }
 
 impl AsRef<dyn ShellExecutor> for Shell {

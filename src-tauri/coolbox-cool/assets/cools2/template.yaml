@@ -1,0 +1,429 @@
+name: template
+identifier: template
+description: template
+macos:
+  need_restart: false
+  formula: !PackageManager
+    installer: brew
+    name: template
+    post_install_tasks:
+    - !CheckTask
+      name: template
+      installer: brew
+    - !CommandTask
+      script: template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      shell: zsh
+    - !CompressTask
+      src: template_source
+      dest: template_dest
+    - !CopyTask
+      src: template_source
+      dest: template_dest
+    - !DecompressTask
+      src: template_source
+      dest: template_dest
+    - !DeleteTask
+      path: template_source
+    - !DownloadTask
+      url: http://localhost/template
+      dest: template_dest
+    - !ExistsTask
+      path: template
+    - !GitTask
+      command: !Clone
+        url: http://localhost/template.git
+        dest: template_dest
+    - !GitTask
+      command: !Pull
+        src: template_source
+    - !GitTask
+      command: !Checkout
+        src: template_source
+        branch: template_branch
+        create: false
+    - !InstallTask
+      name: template
+      args:
+      - --template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      installer: brew
+    - !MoveTask
+      src: template_source
+      dest: template_dest
+    - !UninstallTask
+      name: template
+      args:
+      - --template
+      installer: brew
+    - !WhichTask
+      command: template
+    post_uninstall_tasks:
+    - !CheckTask
+      name: template
+      installer: brew
+    - !CommandTask
+      script: template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      shell: zsh
+    - !CompressTask
+      src: template_source
+      dest: template_dest
+    - !CopyTask
+      src: template_source
+      dest: template_dest
+    - !DecompressTask
+      src: template_source
+      dest: template_dest
+    - !DeleteTask
+      path: template_source
+    - !DownloadTask
+      url: http://localhost/template
+      dest: template_dest
+    - !ExistsTask
+      path: template
+    - !GitTask
+      command: !Clone
+        url: http://localhost/template.git
+        dest: template_dest
+    - !GitTask
+      command: !Pull
+        src: template_source
+    - !GitTask
+      command: !Checkout
+        src: template_source
+        branch: template_branch
+        create: false
+    - !InstallTask
+      name: template
+      args:
+      - --template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      installer: brew
+    - !MoveTask
+      src: template_source
+      dest: template_dest
+    - !UninstallTask
+      name: template
+      args:
+      - --template
+      installer: brew
+    - !WhichTask
+      command: template
+windows:
+  need_restart: false
+  formula: !Manual
+    dependencies:
+    - name: dependency-1
+      version: latest
+    - name: dependency-8
+      version: latest
+    - name: dependency-4
+      version: latest
+    - name: dependency-6
+      version: latest
+    - name: dependency-3
+      version: latest
+    - name: dependency-5
+      version: latest
+    - name: dependency-0
+      version: latest
+    - name: dependency-7
+      version: latest
+    - name: dependency-2
+      version: latest
+    - name: dependency-9
+      version: latest
+    install_tasks:
+    - !CheckTask
+      name: template
+      installer: winget
+    - !CommandTask
+      script: template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      shell: cmd
+    - !CompressTask
+      src: template_source
+      dest: template_dest
+    - !CopyTask
+      src: template_source
+      dest: template_dest
+    - !DecompressTask
+      src: template_source
+      dest: template_dest
+    - !DeleteTask
+      path: template_source
+    - !DownloadTask
+      url: http://localhost/template
+      dest: template_dest
+    - !ExistsTask
+      path: template
+    - !GitTask
+      command: !Clone
+        url: http://localhost/template.git
+        dest: template_dest
+    - !GitTask
+      command: !Pull
+        src: template_source
+    - !GitTask
+      command: !Checkout
+        src: template_source
+        branch: template_branch
+        create: false
+    - !InstallTask
+      name: template
+      args:
+      - --template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      installer: winget
+    - !MoveTask
+      src: template_source
+      dest: template_dest
+    - !UninstallTask
+      name: template
+      args:
+      - --template
+      installer: winget
+    - !WhichTask
+      command: template
+    uninstall_tasks:
+    - !CheckTask
+      name: template
+      installer: winget
+    - !CommandTask
+      script: template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      shell: cmd
+    - !CompressTask
+      src: template_source
+      dest: template_dest
+    - !CopyTask
+      src: template_source
+      dest: template_dest
+    - !DecompressTask
+      src: template_source
+      dest: template_dest
+    - !DeleteTask
+      path: template_source
+    - !DownloadTask
+      url: http://localhost/template
+      dest: template_dest
+    - !ExistsTask
+      path: template
+    - !GitTask
+      command: !Clone
+        url: http://localhost/template.git
+        dest: template_dest
+    - !GitTask
+      command: !Pull
+        src: template_source
+    - !GitTask
+      command: !Checkout
+        src: template_source
+        branch: template_branch
+        create: false
+    - !InstallTask
+      name: template
+      args:
+      - --template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      installer: winget
+    - !MoveTask
+      src: template_source
+      dest: template_dest
+    - !UninstallTask
+      name: template
+      args:
+      - --template
+      installer: winget
+    - !WhichTask
+      command: template
+    check_tasks:
+    - !CheckTask
+      name: template
+      installer: winget
+    - !CommandTask
+      script: template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      shell: cmd
+    - !CompressTask
+      src: template_source
+      dest: template_dest
+    - !CopyTask
+      src: template_source
+      dest: template_dest
+    - !DecompressTask
+      src: template_source
+      dest: template_dest
+    - !DeleteTask
+      path: template_source
+    - !DownloadTask
+      url: http://localhost/template
+      dest: template_dest
+    - !ExistsTask
+      path: template
+    - !GitTask
+      command: !Clone
+        url: http://localhost/template.git
+        dest: template_dest
+    - !GitTask
+      command: !Pull
+        src: template_source
+    - !GitTask
+      command: !Checkout
+        src: template_source
+        branch: template_branch
+        create: false
+    - !InstallTask
+      name: template
+      args:
+      - --template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      installer: winget
+    - !MoveTask
+      src: template_source
+      dest: template_dest
+    - !UninstallTask
+      name: template
+      args:
+      - --template
+      installer: winget
+    - !WhichTask
+      command: template
+linux:
+  need_restart: false
+  formula: !PackageManager
+    installer: apt
+    name: template
+    post_install_tasks:
+    - !CheckTask
+      name: template
+      installer: apt
+    - !CommandTask
+      script: template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      shell: bash
+    - !CompressTask
+      src: template_source
+      dest: template_dest
+    - !CopyTask
+      src: template_source
+      dest: template_dest
+    - !DecompressTask
+      src: template_source
+      dest: template_dest
+    - !DeleteTask
+      path: template_source
+    - !DownloadTask
+      url: http://localhost/template
+      dest: template_dest
+    - !ExistsTask
+      path: template
+    - !GitTask
+      command: !Clone
+        url: http://localhost/template.git
+        dest: template_dest
+    - !GitTask
+      command: !Pull
+        src: template_source
+    - !GitTask
+      command: !Checkout
+        src: template_source
+        branch: template_branch
+        create: false
+    - !InstallTask
+      name: template
+      args:
+      - --template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      installer: apt
+    - !MoveTask
+      src: template_source
+      dest: template_dest
+    - !UninstallTask
+      name: template
+      args:
+      - --template
+      installer: apt
+    - !WhichTask
+      command: template
+    post_uninstall_tasks:
+    - !CheckTask
+      name: template
+      installer: apt
+    - !CommandTask
+      script: template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      shell: bash
+    - !CompressTask
+      src: template_source
+      dest: template_dest
+    - !CopyTask
+      src: template_source
+      dest: template_dest
+    - !DecompressTask
+      src: template_source
+      dest: template_dest
+    - !DeleteTask
+      path: template_source
+    - !DownloadTask
+      url: http://localhost/template
+      dest: template_dest
+    - !ExistsTask
+      path: template
+    - !GitTask
+      command: !Clone
+        url: http://localhost/template.git
+        dest: template_dest
+    - !GitTask
+      command: !Pull
+        src: template_source
+    - !GitTask
+      command: !Checkout
+        src: template_source
+        branch: template_branch
+        create: false
+    - !InstallTask
+      name: template
+      args:
+      - --template
+      envs:
+      - - COOL_TEMPLATE
+        - COOL_TEMPLATE_VALUE
+      installer: apt
+    - !MoveTask
+      src: template_source
+      dest: template_dest
+    - !UninstallTask
+      name: template
+      args:
+      - --template
+      installer: apt
+    - !WhichTask
+      command: template

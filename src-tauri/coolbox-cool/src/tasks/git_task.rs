@@ -9,11 +9,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::cool::IntoInfo;
 use crate::error::GitTaskError::CannotFastForward;
 use crate::error::{GitTaskError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct GitTask {
@@ -201,17 +201,17 @@ impl GitTask {
 impl Display for GitTask {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.command {
-            GitCommand::Clone { url, dest } => {
+            GitCommand::Clone(GitClone { url, dest }) => {
                 write!(f, "git clone {} {}", url, dest)
             }
-            GitCommand::Pull { src } => {
+            GitCommand::Pull(GitPull { src }) => {
                 write!(f, "git -C {} pull", src)
             }
-            GitCommand::Checkout {
+            GitCommand::Checkout(GitCheckout {
                 src,
                 branch,
                 create,
-            } => {
+            }) => {
                 if *create {
                     write!(f, "git -C {} checkout -b {}", src, branch)
                 } else {
@@ -225,13 +225,11 @@ impl Display for GitTask {
 impl<'a> Executable<'a> for GitTask {
     fn execute(&self, send: Box<MessageSender<'a>>) -> CoolResult<(), TaskError> {
         match self.command.clone() {
-            GitCommand::Clone { .. } => {}
-            GitCommand::Pull { src } => self.pull(&src, send)?,
-            GitCommand::Checkout {
-                src,
-                branch,
-                create,
-            } => self.checkout(&src, &branch, create)?,
+            GitCommand::Clone(_clone) => {}
+            GitCommand::Pull(pull) => self.pull(&pull.src, send)?,
+            GitCommand::Checkout(checkout) => {
+                self.checkout(&checkout.src, &checkout.branch, checkout.create)?
+            }
         }
         Ok(())
     }
@@ -239,21 +237,30 @@ impl<'a> Executable<'a> for GitTask {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum GitCommand {
-    Clone {
-        url: String,
-        #[serde(deserialize_with = "crate::cool::template_string")]
-        dest: String,
-    },
-    Pull {
-        #[serde(deserialize_with = "crate::cool::template_string")]
-        src: String,
-    },
-    Checkout {
-        #[serde(deserialize_with = "crate::cool::template_string")]
-        src: String,
-        branch: String,
-        create: bool,
-    },
+    Clone(GitClone),
+    Pull(GitPull),
+    Checkout(GitCheckout),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+pub struct GitClone {
+    pub url: String,
+    #[serde(deserialize_with = "crate::cool::template_string")]
+    pub dest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+pub struct GitPull {
+    #[serde(deserialize_with = "crate::cool::template_string")]
+    pub src: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+pub struct GitCheckout {
+    #[serde(deserialize_with = "crate::cool::template_string")]
+    pub src: String,
+    pub branch: String,
+    pub create: bool,
 }
 
 fn default_fetch_options<'fo>() -> FetchOptions<'fo> {
@@ -292,9 +299,9 @@ mod test {
 
     use git2::Repository;
 
-    use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::tasks::{spawn_task, GitCommand, GitTask};
+    use crate::{init_backtrace, GitCheckout, GitPull};
 
     #[test]
     fn test_pull() -> CoolResult<()> {
@@ -323,9 +330,9 @@ git remote -v
             .wait_with_output()?;
         println!("{}", String::from_utf8(output.stdout)?);
 
-        let task = GitTask::new(GitCommand::Pull {
+        let task = GitTask::new(GitCommand::Pull(GitPull {
             src: test_repo.to_string_lossy().to_string(),
-        });
+        }));
         spawn_task(task, |_| {})?;
         Ok(())
     }
@@ -357,22 +364,22 @@ git commit -m 'init'
             .wait_with_output()?;
         println!("{}", String::from_utf8(output.stdout)?);
 
-        let task = GitTask::new(GitCommand::Checkout {
+        let task = GitTask::new(GitCommand::Checkout(GitCheckout {
             src: checkout_dir.to_string_lossy().to_string(),
             branch: "dev".to_string(),
             create: true,
-        });
+        }));
         spawn_task(task, |_| {})?;
 
         let repo = Repository::open(&checkout_dir)?;
         assert!(repo.find_branch("dev", git2::BranchType::Local).is_ok());
         pretty_assertions::assert_eq!(repo.head()?.shorthand(), Some("dev"));
 
-        let task = GitTask::new(GitCommand::Checkout {
+        let task = GitTask::new(GitCommand::Checkout(GitCheckout {
             src: checkout_dir.to_string_lossy().to_string(),
             branch: "main".to_string(),
             create: false,
-        });
+        }));
         spawn_task(task, |_| {})?;
         pretty_assertions::assert_eq!(repo.head()?.shorthand(), Some("main"));
         Ok(())

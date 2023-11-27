@@ -11,8 +11,8 @@ pub use shell_profile::*;
 pub use win_env_util::*;
 
 use crate::error::EnvError;
-use crate::login_shell::LoginShell;
 use crate::result::CoolResult;
+use crate::LoginShell;
 
 #[cfg(unix)]
 mod shell_profile;
@@ -241,10 +241,10 @@ impl Display for EnvVar {
 
 #[cfg(test)]
 mod test {
-    use crate::env_manager::{EnvLevel, EnvManager, EnvVar, COOL_PROFILE};
     use crate::init_backtrace;
-    use crate::local_storage::LOCAL_STORAGE;
     use crate::result::CoolResult;
+    use crate::LOCAL_STORAGE;
+    use crate::{EnvLevel, EnvManager, EnvVar, COOL_PROFILE};
     use std::ops::{Deref, DerefMut};
 
     #[cfg(unix)]

@@ -4,11 +4,11 @@ use log::info;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::cool::Message;
 use crate::error::{CommandTaskError, TaskError};
 use crate::result::CoolResult;
 use crate::shell::{Shell, ShellExecutor};
 use crate::tasks::{Executable, MessageSender};
+use crate::Message;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CommandTask {

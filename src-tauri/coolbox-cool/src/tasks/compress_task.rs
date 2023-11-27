@@ -13,10 +13,10 @@ use walkdir::WalkDir;
 use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
 
-use crate::cool::IntoInfo;
 use crate::error::{CompressTaskError, InnerError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CompressTask {

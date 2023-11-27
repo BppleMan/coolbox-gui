@@ -10,13 +10,13 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use tracing::error;
 
-use crate::env_manager::{EnvManagerBackend, EnvVar};
 use crate::error::EnvError;
-use crate::local_storage::LOCAL_STORAGE;
-use crate::login_shell::LoginShell;
 use crate::result::CoolResult;
 use crate::shell::ShellExecutor;
+use crate::LoginShell;
 use crate::StringExt;
+use crate::LOCAL_STORAGE;
+use crate::{EnvManagerBackend, EnvVar};
 
 static PATH_ENV_TEMPLATE: &str = r#"
 # ===start===

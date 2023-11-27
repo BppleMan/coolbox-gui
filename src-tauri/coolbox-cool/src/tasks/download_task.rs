@@ -7,10 +7,10 @@ use futures::stream::StreamExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::cool::IntoInfo;
 use crate::error::{DownloadTaskError, InnerError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DownloadTask {

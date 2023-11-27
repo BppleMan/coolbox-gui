@@ -1,16 +1,23 @@
+pub use cool::*;
+pub use env_manager::*;
 pub use extension::*;
+pub use local_storage::*;
+#[cfg(unix)]
+pub use login_shell::*;
+pub use tasks::*;
 pub use trace::*;
 
-pub mod cool;
+mod cool;
 pub mod cool2;
-pub mod env_manager;
+mod env_manager;
 pub mod error;
 mod extension;
 pub mod installer;
-pub mod local_storage;
+mod local_storage;
 #[cfg(unix)]
-pub mod login_shell;
+mod login_shell;
 pub mod result;
 pub mod shell;
-pub mod tasks;
+mod tasks;
+pub mod template;
 mod trace;

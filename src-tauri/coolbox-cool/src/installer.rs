@@ -5,8 +5,8 @@ use crossbeam::channel::Sender;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::cool::Message;
 use crate::error::ShellError;
+use crate::Message;
 pub use apt::*;
 pub use brew::*;
 pub use cargo::*;
@@ -60,6 +60,37 @@ pub enum Installer {
     Yun(Yum),
     Dnf(Dnf),
     Rpm(Rpm),
+    WinGet(WinGet),
+}
+
+impl Installer {
+    pub fn brew() -> Self {
+        Self::Brew(Brew)
+    }
+
+    pub fn cargo() -> Self {
+        Self::Cargo(Cargo)
+    }
+
+    pub fn apt() -> Self {
+        Self::Apt(Apt)
+    }
+
+    pub fn yum() -> Self {
+        Self::Yun(Yum)
+    }
+
+    pub fn dnf() -> Self {
+        Self::Dnf(Dnf)
+    }
+
+    pub fn rpm() -> Self {
+        Self::Rpm(Rpm)
+    }
+
+    pub fn win_get() -> Self {
+        Self::WinGet(WinGet)
+    }
 }
 
 impl AsRef<dyn Installable> for Installer {
@@ -71,6 +102,7 @@ impl AsRef<dyn Installable> for Installer {
             Installer::Yun(yum) => yum,
             Installer::Dnf(dnf) => dnf,
             Installer::Rpm(rpm) => rpm,
+            Installer::WinGet(win_get) => win_get,
         }
     }
 }
@@ -84,6 +116,7 @@ impl AsMut<dyn Installable> for Installer {
             Installer::Yun(yum) => yum,
             Installer::Dnf(dnf) => dnf,
             Installer::Rpm(rpm) => rpm,
+            Installer::WinGet(win_get) => win_get,
         }
     }
 }
@@ -151,6 +184,7 @@ impl<'de> Deserialize<'de> for Installer {
             name if name == Yum.name() => Ok(Installer::Yun(Yum)),
             name if name == Dnf.name() => Ok(Installer::Dnf(Dnf)),
             name if name == Rpm.name() => Ok(Installer::Rpm(Rpm)),
+            name if name == WinGet.name() => Ok(Installer::WinGet(WinGet)),
             _ => Err(serde::de::Error::custom(format!(
                 "unknown installer {}",
                 name

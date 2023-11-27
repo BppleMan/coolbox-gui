@@ -1,5 +1,5 @@
 #[cfg(unix)]
-use crate::env_manager::ShellProfile;
+use crate::ShellProfile;
 use directories::{ProjectDirs, UserDirs};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};

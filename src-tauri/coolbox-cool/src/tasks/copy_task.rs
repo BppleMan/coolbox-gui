@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::cool::{DirTransitProcessInfo, FileTransitProcessInfo};
+use crate::{DirTransitProcessInfo, FileTransitProcessInfo};
 use fs_extra::dir::TransitProcessResult;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

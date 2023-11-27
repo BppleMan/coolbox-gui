@@ -1,5 +1,5 @@
-use crate::cool::Message;
 use crate::error::ShellError;
+use crate::Message;
 use crossbeam::channel::Sender;
 use log::info;
 use schemars::JsonSchema;

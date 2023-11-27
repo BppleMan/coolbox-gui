@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::str::FromStr;
 
-use crate::cool::Cool;
+use crate::{Cool, CoolState};
 use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use dashmap::DashMap;
@@ -11,10 +11,9 @@ use rayon::prelude::*;
 use tracing::error;
 use walkdir::WalkDir;
 
-use crate::cool::state::CoolState;
 use crate::error::CoolError;
-use crate::local_storage::LOCAL_STORAGE;
 use crate::result::CoolResult;
+use crate::LOCAL_STORAGE;
 
 #[cfg(target_os = "macos")]
 static PLATFORM_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/assets/cools/macos");
@@ -177,9 +176,9 @@ pub fn check_cool_states() -> Vec<(String, CoolState)> {
 mod test {
     use std::path::Path;
 
-    use crate::cool::COOL_LIST;
     use crate::init_backtrace;
     use crate::result::CoolResult;
+    use crate::COOL_LIST;
 
     #[test]
     fn test_cool_list() -> CoolResult<()> {

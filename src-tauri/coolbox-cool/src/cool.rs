@@ -12,7 +12,7 @@ pub use dependency::*;
 pub use event::*;
 pub use formula::*;
 pub use list::*;
-use state::CoolState;
+pub use state::*;
 pub use state::*;
 #[allow(unused_imports)]
 pub(crate) use template::*;
@@ -231,11 +231,11 @@ impl PartialOrd for Cool {
 
 #[cfg(test)]
 mod test {
-    use crate::cool::Cool;
     use crate::init_backtrace;
     use crate::result::CoolResult;
     use crate::shell::{Bash, MacOSSudo, Shell};
     use crate::tasks::{Task, Tasks, WhichTask};
+    use crate::Cool;
 
     #[test]
     fn test_cool() -> CoolResult<()> {

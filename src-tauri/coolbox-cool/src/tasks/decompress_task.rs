@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 use zip::ZipArchive;
 
-use crate::cool::IntoInfo;
 use crate::error::{CompressTaskError, InnerError, TaskError};
 use crate::result::CoolResult;
 use crate::tasks::{Executable, MessageSender};
+use crate::IntoInfo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DecompressTask {

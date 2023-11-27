@@ -1,40 +1,54 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Cool",
+  "title": "Cool2",
   "type": "object",
   "required": [
-    "check_tasks",
-    "dependencies",
     "description",
-    "install_tasks",
-    "name",
-    "uninstall_tasks"
+    "identifier",
+    "name"
   ],
   "properties": {
-    "check_tasks": {
-      "$ref": "#/definitions/Tasks"
-    },
-    "dependencies": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "description": {
       "type": "string"
     },
-    "install_tasks": {
-      "$ref": "#/definitions/Tasks"
+    "identifier": {
+      "type": "string"
+    },
+    "linux": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Platform"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "macos": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Platform"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "name": {
       "type": "string"
     },
-    "need_restart": {
-      "default": false,
-      "type": "boolean"
-    },
-    "uninstall_tasks": {
-      "$ref": "#/definitions/Tasks"
+    "windows": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Platform"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "definitions": {
@@ -65,6 +79,9 @@
         }
       }
     },
+    "Cmd": {
+      "type": "null"
+    },
     "CommandTask": {
       "type": "object",
       "required": [
@@ -72,16 +89,6 @@
         "shell"
       ],
       "properties": {
-        "args": {
-          "default": null,
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          }
-        },
         "envs": {
           "default": null,
           "type": [
@@ -124,6 +131,71 @@
           "type": "string"
         }
       }
+    },
+    "CoolDependency": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "$ref": "#/definitions/CoolVersion"
+        }
+      }
+    },
+    "CoolFormula": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "PackageManager"
+          ],
+          "properties": {
+            "PackageManager": {
+              "$ref": "#/definitions/PackageManager"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Manual"
+          ],
+          "properties": {
+            "Manual": {
+              "$ref": "#/definitions/Manual"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CoolVersion": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Latest"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "Specific"
+          ],
+          "properties": {
+            "Specific": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     },
     "CopyTask": {
       "type": "object",
@@ -184,6 +256,108 @@
         }
       }
     },
+    "EnvCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "Export"
+          ],
+          "properties": {
+            "Export": {
+              "$ref": "#/definitions/EnvVar"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Unset"
+          ],
+          "properties": {
+            "Unset": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "AppendPath"
+          ],
+          "properties": {
+            "AppendPath": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "RemovePath"
+          ],
+          "properties": {
+            "RemovePath": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "AddSource"
+          ],
+          "properties": {
+            "AddSource": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "RemoveSource"
+          ],
+          "properties": {
+            "RemoveSource": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EnvTask": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "$ref": "#/definitions/EnvCommand"
+        }
+      }
+    },
+    "EnvVar": {
+      "type": "object",
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "ExistsTask": {
       "type": "object",
       "required": [
@@ -191,6 +365,40 @@
       ],
       "properties": {
         "path": {
+          "type": "string"
+        }
+      }
+    },
+    "GitCheckout": {
+      "type": "object",
+      "required": [
+        "branch",
+        "create",
+        "src"
+      ],
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "create": {
+          "type": "boolean"
+        },
+        "src": {
+          "type": "string"
+        }
+      }
+    },
+    "GitClone": {
+      "type": "object",
+      "required": [
+        "dest",
+        "url"
+      ],
+      "properties": {
+        "dest": {
+          "type": "string"
+        },
+        "url": {
           "type": "string"
         }
       }
@@ -204,19 +412,7 @@
           ],
           "properties": {
             "Clone": {
-              "type": "object",
-              "required": [
-                "dest",
-                "url"
-              ],
-              "properties": {
-                "dest": {
-                  "type": "string"
-                },
-                "url": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/GitClone"
             }
           },
           "additionalProperties": false
@@ -228,15 +424,7 @@
           ],
           "properties": {
             "Pull": {
-              "type": "object",
-              "required": [
-                "src"
-              ],
-              "properties": {
-                "src": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/GitPull"
             }
           },
           "additionalProperties": false
@@ -248,28 +436,23 @@
           ],
           "properties": {
             "Checkout": {
-              "type": "object",
-              "required": [
-                "branch",
-                "create",
-                "src"
-              ],
-              "properties": {
-                "branch": {
-                  "type": "string"
-                },
-                "create": {
-                  "type": "boolean"
-                },
-                "src": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/GitCheckout"
             }
           },
           "additionalProperties": false
         }
       ]
+    },
+    "GitPull": {
+      "type": "object",
+      "required": [
+        "src"
+      ],
+      "properties": {
+        "src": {
+          "type": "string"
+        }
+      }
     },
     "GitTask": {
       "type": "object",
@@ -297,6 +480,26 @@
           ],
           "items": {
             "type": "string"
+          }
+        },
+        "envs": {
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "array",
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
           }
         },
         "installer": {
@@ -380,6 +583,18 @@
             }
           },
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "WinGet"
+          ],
+          "properties": {
+            "WinGet": {
+              "$ref": "#/definitions/WinGet"
+            }
+          },
+          "additionalProperties": false
         }
       ]
     },
@@ -388,6 +603,33 @@
     },
     "MacOSSudo": {
       "type": "null"
+    },
+    "Manual": {
+      "type": "object",
+      "required": [
+        "check_tasks",
+        "install_tasks",
+        "uninstall_tasks"
+      ],
+      "properties": {
+        "check_tasks": {
+          "$ref": "#/definitions/Tasks"
+        },
+        "dependencies": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CoolDependency"
+          },
+          "uniqueItems": true
+        },
+        "install_tasks": {
+          "$ref": "#/definitions/Tasks"
+        },
+        "uninstall_tasks": {
+          "$ref": "#/definitions/Tasks"
+        }
+      }
     },
     "MoveTask": {
       "type": "object",
@@ -401,6 +643,48 @@
         },
         "src": {
           "type": "string"
+        }
+      }
+    },
+    "PackageManager": {
+      "type": "object",
+      "required": [
+        "installer",
+        "name",
+        "post_install_tasks",
+        "post_uninstall_tasks"
+      ],
+      "properties": {
+        "installer": {
+          "$ref": "#/definitions/Installer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "post_install_tasks": {
+          "$ref": "#/definitions/Tasks"
+        },
+        "post_uninstall_tasks": {
+          "$ref": "#/definitions/Tasks"
+        }
+      }
+    },
+    "Platform": {
+      "type": "object",
+      "required": [
+        "formula"
+      ],
+      "properties": {
+        "formula": {
+          "$ref": "#/definitions/CoolFormula"
+        },
+        "need_restart": {
+          "default": false,
+          "type": "boolean"
+        },
+        "use_package_manager": {
+          "default": false,
+          "type": "boolean"
         }
       }
     },
@@ -468,6 +752,18 @@
           "properties": {
             "Zsh": {
               "$ref": "#/definitions/Zsh"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "Cmd"
+          ],
+          "properties": {
+            "Cmd": {
+              "$ref": "#/definitions/Cmd"
             }
           },
           "additionalProperties": false
@@ -556,6 +852,18 @@
           "properties": {
             "DownloadTask": {
               "$ref": "#/definitions/DownloadTask"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "EnvTask"
+          ],
+          "properties": {
+            "EnvTask": {
+              "$ref": "#/definitions/EnvTask"
             }
           },
           "additionalProperties": false
@@ -675,6 +983,9 @@
           "type": "string"
         }
       }
+    },
+    "WinGet": {
+      "type": "null"
     },
     "Yum": {
       "type": "null"
